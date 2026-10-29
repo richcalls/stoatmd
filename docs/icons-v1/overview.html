@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<title>LoomMD Icons v1 · Overview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+    background: #E8E2D8;
+    padding: 40px 48px 56px;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-bottom: 28px;
+  }
+  h1 { font-size: 26px; font-weight: 650; color: #2C2A26; letter-spacing: -0.02em; }
+  .sub { font-size: 14px; color: #6B6560; margin-top: 6px; }
+  .badge {
+    font-size: 12px; color: #6B6560; background: #F7F3EB;
+    border: 1px solid #E0D9CE; border-radius: 999px; padding: 8px 14px;
+  }
+  .row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+  }
+  .panel {
+    border-radius: 16px; overflow: hidden;
+    border: 1px solid #D4CDC2;
+    box-shadow: 0 8px 28px rgba(44,42,38,0.08);
+    background: #F7F3EB;
+  }
+  .panel.dark { background: #1C1A18; border-color: #2A2723; }
+  .panel iframe { width: 100%; height: 1680px; border: 0; display: block; pointer-events: none; }
+  .cap {
+    font-size: 12px; padding: 10px 16px; color: #6B6560;
+    border-top: 1px solid #E0D9CE; background: #FAF7F1;
+  }
+  .panel.dark .cap { color: #A39E96; border-top-color: #33302C; background: #221F1C; }
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>LoomMD Icons v1</h1>
+      <div class="sub">63 枚线性图标 · 风格 B · 描边 1.75px · forecho</div>
+    </div>
+    <div class="badge">浅色 / 深色对照</div>
+  </header>
+  <div class="row">
+    <div class="panel">
+      <iframe src="preview-light.html" scrolling="no"></iframe>
+      <div class="cap">preview-light · 默认墨色 #2C2A26 · 强调 #3D5A80</div>
+    </div>
+    <div class="panel dark">
+      <iframe src="preview-dark.html" scrolling="no"></iframe>
+      <div class="cap">preview-dark · 默认墨色 #EDE9E3 · 强调 #7A9CC0</div>
+    </div>
+  </div>
+</body>
+</html>
