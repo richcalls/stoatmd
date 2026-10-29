@@ -53,4 +53,4 @@ Linux 可做类型/编译冒烟：`nsh check`；有 GTK 4.14+ 时可 `nsh run`�
 
 - [x] Phase 0/1：混合工程 + Mac 三栏壳 + Editor/TextView 分栏 + 假数据
 - [ ] Phase 2：Vault 读写与选文件夹
-- [ ] 同步（Drive / Dropbox / iCloud）
+- [ ] 同步（Drive / Dropbox；不做 iCloud）
