@@ -3,6 +3,7 @@ import { Storage } from "nsh";
 const ROOT_KEY = "vault.root";
 const LOCALE_KEY = "prefs.locale";
 const THEME_KEY = "prefs.theme";
+const FONT_FAMILY_KEY = "prefs.fontFamily";
 const FONT_SIZE_KEY = "prefs.fontSize";
 const FONT_LINE_KEY = "prefs.fontLineHeight";
 
@@ -39,6 +40,16 @@ export async function loadSavedTheme(): Promise<string | null> {
 /** 持久化主题。 */
 export async function saveTheme(theme: string): Promise<void> {
   await Storage.setItem(THEME_KEY, theme);
+}
+
+/** 读取正文字体偏好。 */
+export async function loadSavedFontFamily(): Promise<string | null> {
+  return (await Storage.getItem(FONT_FAMILY_KEY)) ?? null;
+}
+
+/** 持久化正文字体。 */
+export async function saveFontFamily(family: string): Promise<void> {
+  await Storage.setItem(FONT_FAMILY_KEY, family);
 }
 
 /** 读取字号偏好。 */

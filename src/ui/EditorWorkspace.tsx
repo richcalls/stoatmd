@@ -3,6 +3,7 @@ import { Editor, ResizablePanel, ResizablePanelGroup, TextView } from "nsh/base"
 import { ModeSwitch } from "./ModeSwitch";
 import { previewModel } from "./previewModel";
 import { colors } from "./theme";
+import { fontFamilyName, fontSize, lineHeightPx } from "./typography";
 import type { ViewMode } from "./Toolbar";
 import {
   EDITOR_LINE_HEIGHT,
@@ -32,6 +33,44 @@ type Props = {
 const editorTextStyles = () => ({
   content: { backgroundColor: colors().editor, color: colors().ink, paddingRight: 16 },
 });
+
+/** 预览排版：字号/行高/字体来自设置；代码块与行内代码始终等宽。 */
+const previewTextStyles = () => {
+  const size = fontSize();
+  const lh = lineHeightPx(size);
+  const mono = Math.max(12, Math.round(size * 0.87));
+  return {
+    root: {
+      color: colors().ink,
+      fontSize: size,
+      lineHeight: lh,
+      fontFamily: fontFamilyName(),
+    },
+    heading1: {
+      fontSize: Math.round(size * 1.733),
+      lineHeight: Math.round(size * 1.733 * 1.25),
+      fontWeight: 650,
+    },
+    heading2: {
+      fontSize: Math.round(size * 1.2),
+      lineHeight: Math.round(size * 1.2 * 1.3),
+      fontWeight: 600,
+    },
+    heading3: {
+      fontSize: Math.round(size * 1.067),
+      lineHeight: Math.round(size * 1.067 * 1.3),
+      fontWeight: 600,
+    },
+    blockquote: { color: colors().ink2 },
+    code: { color: colors().syntaxBold, fontFamily: "Menlo", fontSize: mono },
+    codeBlockCode: {
+      fontFamily: "Menlo",
+      fontSize: mono,
+      lineHeight: Math.round(mono * 1.6),
+    },
+    link: { color: colors().accent },
+  };
+};
 
 /** 右栏：顶栏模式切换 + Editor / List 预览。 */
 export function EditorWorkspace(props: Props) {
@@ -110,18 +149,10 @@ export function EditorWorkspace(props: Props) {
               <TextView
                 document={{ blocks: [block()] }}
                 selectable
-                styles={{
-                  root: { color: colors().ink, fontSize: 15, lineHeight: 26 },
-                  blockquote: { color: colors().ink2 },
-                  code: { color: colors().syntaxBold },
-                  link: { color: colors().accent },
-                }}
+                styles={previewTextStyles()}
                 classes={{
-                  heading1: "text-[26px] font-semibold",
-                  heading2: "text-[18px] font-semibold",
-                  heading3: "text-[16px] font-semibold",
                   blockquote: "pl-3 py-1",
-                  code: "font-mono text-[13px]",
+                  code: "font-mono",
                   strong: "font-semibold",
                 }}
               />
@@ -132,9 +163,12 @@ export function EditorWorkspace(props: Props) {
     );
   };
 
-  // 预览换文后 List 的内容高度不上报，轻推一次让同步拿到新的基准
+  // 预览换文或排版变化后 List 的内容高度不上报，轻推一次让同步拿到新的基准
   effect(() => {
-    const model = previewModel(props.preview);
+    const model = previewModel(props.preview, {
+      fontSize: fontSize(),
+      lineHeight: lineHeightPx(),
+    });
     batch(() => {
       previewBlocks.set(model.blocks);
       previewItemSize.set(model.estimatedItemSize);

@@ -6,11 +6,13 @@ import { t } from "./i18n";
 import { colors } from "./theme";
 
 export type ViewMode = "edit" | "split" | "preview";
+/** 文件夹栏：展开 200 / 图标轨 48 / 隐藏。 */
+export type SidebarMode = "expanded" | "rail" | "hidden";
 
 type Props = {
-  sidebarOpen: boolean;
+  sidebarMode: SidebarMode;
   listOpen: boolean;
-  onToggleSidebar: () => void;
+  onCycleSidebar: () => void;
   onToggleList: () => void;
   onFont: () => void;
   onSettings: () => void;
@@ -27,6 +29,7 @@ function ToolButton(props: {
     <Button
       testID={props.testID}
       accessibilityLabel={props.label}
+      tooltip={<Text style={{ fontSize: 12 }}>{props.label}</Text>}
       selected={!!props.active}
       onPress={props.onPress}
       style={{
@@ -48,7 +51,7 @@ function ToolButton(props: {
 }
 
 /**
- * 窗口顶栏：仅折叠 + 标题拖拽区 + 字体/设置。
+ * 窗口顶栏：折叠/列表 + 标题拖拽区 + 字体/设置。
  * 模式切换改在 EditorWorkspace（编辑区右上角），避免 titleBar 拖拽吞点击。
  */
 export function Toolbar(props: Props) {
@@ -72,11 +75,11 @@ export function Toolbar(props: Props) {
       <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 0 }}>
         <ToolButton
           testID="toolbar-sidebar"
-          active={props.sidebarOpen}
+          active={props.sidebarMode !== "hidden"}
           label={t("toolbar.sidebar")}
-          onPress={props.onToggleSidebar}
+          onPress={props.onCycleSidebar}
         >
-          <Icon name="sidebar" color={props.sidebarOpen ? active() : ink()} size={16} />
+          <Icon name="sidebar" color={props.sidebarMode !== "hidden" ? active() : ink()} size={16} />
         </ToolButton>
         <ToolButton
           testID="toolbar-list"

@@ -1,6 +1,8 @@
 import { Image } from "nsh";
 
 import book from "../../assets/icons/book.svg";
+import caretDown from "../../assets/icons/caret-down.svg";
+import check from "../../assets/icons/check.svg";
 import cloud from "../../assets/icons/cloud.svg";
 import code from "../../assets/icons/code.svg";
 import eye from "../../assets/icons/eye.svg";
@@ -37,6 +39,8 @@ export type IconName =
   | "eye"
   | "sidebar"
   | "list-pane"
+  | "check"
+  | "caret-down"
   | "x";
 
 const MAP = {
@@ -55,6 +59,8 @@ const MAP = {
   eye,
   sidebar,
   "list-pane": listPane,
+  check,
+  "caret-down": caretDown,
   x,
 } as const;
 

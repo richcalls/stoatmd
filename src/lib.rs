@@ -11,7 +11,11 @@ use stoatmd_core::{Vault as CoreVault, VaultError};
 /// 混合工程 UI 集（`nsh.json` `"rust": "."`）。
 #[native_module("stoatmd/native")]
 fn native(registry: &mut Registry) {
-    registry.module::<StoatMeta>().module::<VaultDialog>().class::<Vault>();
+    registry
+        .module::<StoatMeta>()
+        .module::<VaultDialog>()
+        .module::<SystemFonts>()
+        .class::<Vault>();
 }
 
 /// 构建期元信息。
@@ -27,7 +31,36 @@ impl StoatMeta {
 
     /// 当前阶段说明。
     pub fn phase() -> String {
-        "mac-phase-2-vault".to_owned()
+        "mac-phase-3-polish".to_owned()
+    }
+}
+
+/// 系统可用字体族（macOS 由 Core Text 枚举；其他平台为空）。
+#[module]
+pub struct SystemFonts;
+
+#[module]
+impl SystemFonts {
+    /// 字体族名称，按字母序。
+    pub fn list() -> Vec<String> {
+        #[cfg(target_os = "macos")]
+        {
+            use objc2_core_foundation::{CFArray, CFRetained, CFString};
+            use objc2_core_text::CTFontManagerCopyAvailableFontFamilyNames;
+
+            // Core Text 的字体管理器可从任意线程查询，无需主线程。
+            let families = unsafe { CTFontManagerCopyAvailableFontFamilyNames() };
+            // SAFETY: 该 API 文档承诺数组元素为 CFString。
+            let families = unsafe { CFRetained::cast_unchecked::<CFArray<CFString>>(families) };
+            let mut names: Vec<String> = families.iter().map(|name| name.to_string()).collect();
+            names.sort();
+            names.dedup();
+            names
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            Vec::new()
+        }
     }
 }
 
@@ -205,6 +238,19 @@ impl Vault {
     pub fn poll_changes(&self) -> Vec<VaultChangeDto> {
         let mut guard = self.pending.lock().unwrap_or_else(|e| e.into_inner());
         std::mem::take(&mut *guard)
+    }
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::SystemFonts;
+
+    #[test]
+    fn system_fonts_are_sorted_and_installed() {
+        let fonts = SystemFonts::list();
+        assert!(!fonts.is_empty(), "macOS 应能枚举到系统字体");
+        assert!(fonts.windows(2).all(|pair| pair[0] <= pair[1]));
+        assert!(fonts.iter().any(|name| name == "Menlo"));
     }
 }
 
