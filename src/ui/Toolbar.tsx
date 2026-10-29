@@ -1,4 +1,5 @@
 import { Text, View } from "nsh";
+import { Button } from "nsh/base";
 import { titleBar } from "nsh/desktop";
 import { Icon } from "./Icon";
 import { t } from "./i18n";
@@ -23,10 +24,11 @@ function ToolButton(props: {
   onPress: () => void;
   children: any;
 }) {
+  // 用 nsh/base Button 接管按压（顶栏 windowDrag 区域内仍可点）
   return (
-    <View
-      role="button"
+    <Button
       accessibilityLabel={props.label}
+      selected={!!props.active}
       onPress={props.onPress}
       style={{
         width: 28,
@@ -38,9 +40,10 @@ function ToolButton(props: {
         borderWidth: props.active ? 1 : 0,
         borderColor: props.active ? colors().accent : "transparent",
       }}
+      activeStyle={{ opacity: 0.75 }}
     >
       {props.children}
-    </View>
+    </Button>
   );
 }
 
@@ -64,7 +67,11 @@ export function Toolbar(props: Props) {
         backgroundColor: colors().paper,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+      {/* 从拖拽区排除交互控件，避免 macOS 把点击当成拖窗 */}
+      <View
+        desktop={{ windowDrag: false }}
+        style={{ flexDirection: "row", alignItems: "center", gap: 4, zIndex: 2 }}
+      >
         <ToolButton
           active={props.sidebarOpen}
           label={t("toolbar.sidebar")}
@@ -81,7 +88,10 @@ export function Toolbar(props: Props) {
         <Text style={{ fontSize: 13, fontWeight: "510", color: colors().ink }}>{t("app.name")}</Text>
       </View>
 
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+      <View
+        desktop={{ windowDrag: false }}
+        style={{ flexDirection: "row", alignItems: "center", gap: 4, zIndex: 2 }}
+      >
         <ToolButton
           active={props.mode === "edit"}
           label={t("mode.edit")}

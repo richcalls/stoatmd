@@ -86,39 +86,75 @@ impl Vault {
     }
 
     /// 列出 `rel` 目录下的直接子项（目录 + `.md` 文件）；`rel` 空串表示根。
+    /// 跳过隐藏名（`.` 开头）与 `node_modules`。
     pub fn list(&self, rel: &str) -> Result<Vec<VaultEntry>, VaultError> {
         let dir = self.resolve(rel, false)?;
         if !dir.is_dir() {
             return Err(VaultError::NotADirectory(rel.to_owned()));
         }
         let mut out = Vec::new();
-        let rd = fs::read_dir(&dir).map_err(|e| VaultError::Io(e.to_string()))?;
+        self.collect_dir(&dir, false, &mut out)?;
+        sort_entries(&mut out);
+        Ok(out)
+    }
+
+    /// 递归列出 `rel` 下的目录与 `.md`（含嵌套子目录）；`rel` 空串表示库根。
+    /// 跳过隐藏目录（如 `.git` / `.obsidian`）与 `node_modules`。
+    pub fn list_recursive(&self, rel: &str) -> Result<Vec<VaultEntry>, VaultError> {
+        let dir = self.resolve(rel, false)?;
+        if !dir.is_dir() {
+            return Err(VaultError::NotADirectory(rel.to_owned()));
+        }
+        let mut out = Vec::new();
+        self.collect_dir(&dir, true, &mut out)?;
+        sort_entries(&mut out);
+        Ok(out)
+    }
+
+    fn collect_dir(
+        &self,
+        dir: &Path,
+        recursive: bool,
+        out: &mut Vec<VaultEntry>,
+    ) -> Result<(), VaultError> {
+        let rd = fs::read_dir(dir).map_err(|e| VaultError::Io(e.to_string()))?;
+        let mut children: Vec<(PathBuf, String, fs::Metadata)> = Vec::new();
         for entry in rd {
             let entry = entry.map_err(|e| VaultError::Io(e.to_string()))?;
             let path = entry.path();
             let name = entry.file_name().to_string_lossy().into_owned();
-            if name.starts_with('.') {
-                continue;
-            }
             let meta = entry.metadata().map_err(|e| VaultError::Io(e.to_string()))?;
-            let is_dir = meta.is_dir();
-            if !is_dir && !is_markdown(&name) {
-                continue;
-            }
-            let rel_path = self.rel_string(&path)?;
-            out.push(VaultEntry {
-                path: rel_path,
-                name,
-                is_dir,
-                mtime_ms: mtime_ms(&meta),
-            });
+            children.push((path, name, meta));
         }
-        out.sort_by(|a, b| match (a.is_dir, b.is_dir) {
-            (true, false) => std::cmp::Ordering::Less,
-            (false, true) => std::cmp::Ordering::Greater,
-            _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
-        });
-        Ok(out)
+        children.sort_by(|a, b| a.1.to_lowercase().cmp(&b.1.to_lowercase()));
+
+        for (path, name, meta) in children {
+            let is_dir = meta.is_dir();
+            if is_dir {
+                if should_skip_dir(&name) {
+                    continue;
+                }
+                let rel_path = self.rel_string(&path)?;
+                out.push(VaultEntry {
+                    path: rel_path,
+                    name: name.clone(),
+                    is_dir: true,
+                    mtime_ms: mtime_ms(&meta),
+                });
+                if recursive {
+                    self.collect_dir(&path, true, out)?;
+                }
+            } else if is_markdown(&name) && !name.starts_with('.') {
+                let rel_path = self.rel_string(&path)?;
+                out.push(VaultEntry {
+                    path: rel_path,
+                    name,
+                    is_dir: false,
+                    mtime_ms: mtime_ms(&meta),
+                });
+            }
+        }
+        Ok(())
     }
 
     /// 读取相对路径文件（UTF-8）。
@@ -269,6 +305,26 @@ impl Vault {
 fn is_markdown(name: &str) -> bool {
     let lower = name.to_ascii_lowercase();
     lower.ends_with(".md") || lower.ends_with(".markdown")
+}
+
+/// 跳过隐藏目录（`.` 开头，含 `.git` / `.obsidian`）与依赖目录。
+fn should_skip_dir(name: &str) -> bool {
+    if name.starts_with('.') {
+        return true;
+    }
+    name.eq_ignore_ascii_case("node_modules")
+}
+
+fn sort_entries(out: &mut [VaultEntry]) {
+    out.sort_by(|a, b| match (a.is_dir, b.is_dir) {
+        (true, false) => std::cmp::Ordering::Less,
+        (false, true) => std::cmp::Ordering::Greater,
+        _ => a
+            .path
+            .to_lowercase()
+            .cmp(&b.path.to_lowercase())
+            .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
+    });
 }
 
 fn mtime_ms(meta: &fs::Metadata) -> u64 {
@@ -466,5 +522,47 @@ mod tests {
         let list = vault.list("").unwrap();
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].name, "a.md");
+    }
+
+    #[test]
+    fn list_recursive_finds_nested_markdown_and_skips_ignored_dirs() {
+        let (_dir, vault) = temp_vault();
+        let root = vault.root();
+        fs::create_dir_all(root.join("writing/drafts")).unwrap();
+        fs::create_dir_all(root.join(".obsidian")).unwrap();
+        fs::create_dir_all(root.join(".git/objects")).unwrap();
+        fs::create_dir_all(root.join("node_modules/pkg")).unwrap();
+        fs::write(root.join("root.md"), "root").unwrap();
+        fs::write(root.join("writing/hello.md"), "hello").unwrap();
+        fs::write(root.join("writing/drafts/nested.md"), "nested").unwrap();
+        fs::write(root.join(".obsidian/app.json"), "{}").unwrap();
+        fs::write(root.join(".git/HEAD"), "ref").unwrap();
+        fs::write(root.join("node_modules/pkg/readme.md"), "skip").unwrap();
+
+        // 浅层 list：根下只有 root.md + writing
+        let shallow = vault.list("").unwrap();
+        assert_eq!(shallow.len(), 2);
+        assert!(shallow.iter().any(|e| e.name == "root.md" && !e.is_dir));
+        assert!(shallow.iter().any(|e| e.name == "writing" && e.is_dir));
+        assert!(!shallow.iter().any(|e| e.path.contains("nested")));
+
+        // 递归：含嵌套笔记与子目录，不含忽略目录内容
+        let deep = vault.list_recursive("").unwrap();
+        let paths: Vec<&str> = deep.iter().map(|e| e.path.as_str()).collect();
+        assert!(paths.contains(&"root.md"));
+        assert!(paths.contains(&"writing"));
+        assert!(paths.contains(&"writing/hello.md"));
+        assert!(paths.contains(&"writing/drafts"));
+        assert!(paths.contains(&"writing/drafts/nested.md"));
+        assert!(!paths.iter().any(|p| p.starts_with(".obsidian")));
+        assert!(!paths.iter().any(|p| p.starts_with(".git")));
+        assert!(!paths.iter().any(|p| p.starts_with("node_modules")));
+
+        // 相对某子目录递归
+        let under_writing = vault.list_recursive("writing").unwrap();
+        let wpaths: Vec<&str> = under_writing.iter().map(|e| e.path.as_str()).collect();
+        assert!(wpaths.contains(&"writing/drafts/nested.md"));
+        assert!(wpaths.contains(&"writing/hello.md"));
+        assert!(!wpaths.iter().any(|p| *p == "root.md"));
     }
 }

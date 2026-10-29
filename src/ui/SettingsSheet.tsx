@@ -32,20 +32,32 @@ const LOCALES: { id: Locale; key: string }[] = [
   { id: "en", key: "settings.locale.en" },
 ];
 
+/** 设置固定尺寸：切页不改变窗口几何，始终居中。 */
+const SHEET_WIDTH = 720;
+const SHEET_HEIGHT = 520;
+
 /** 设置 sheet：外观 / 字体 / 同步（无 MCP；同步仅占位）。 */
 export function SettingsSheet(props: Props) {
   return (
     <Dialog
       open={props.open}
       onOpenChange={(open) => {
+        // nsh 0.3 Dialog：`onOpenChange` 在本版本签名为 boolean
         if (!open) props.onClose();
       }}
       closeOnBackdropPress
       closeOnEscape
+      animation="fade"
       backdropStyle={{ backgroundColor: "rgba(44,42,38,0.28)" }}
       style={{
-        width: 720,
-        maxHeight: 780,
+        width: SHEET_WIDTH,
+        height: SHEET_HEIGHT,
+        minWidth: SHEET_WIDTH,
+        minHeight: SHEET_HEIGHT,
+        maxWidth: SHEET_WIDTH,
+        maxHeight: SHEET_HEIGHT,
+        margin: "auto",
+        alignSelf: "center",
         borderRadius: 12,
         backgroundColor: colors().editor,
         borderWidth: 1,
@@ -57,6 +69,7 @@ export function SettingsSheet(props: Props) {
       <View
         style={{
           width: 168,
+          height: "100%",
           backgroundColor: colors().sidebar,
           borderRightWidth: 1,
           borderRightColor: colors().thread,
@@ -103,7 +116,7 @@ export function SettingsSheet(props: Props) {
         </Each>
       </View>
 
-      <View style={{ flex: 1, padding: 20, gap: 16 }}>
+      <View style={{ flex: 1, height: "100%", padding: 20, gap: 16 }}>
         <If when={props.tab === "appearance"}>
           <View style={{ gap: 12 }}>
             <Text style={{ fontSize: 14, fontWeight: "600", color: colors().ink }}>

@@ -82,7 +82,8 @@ export function Sidebar(props: Props) {
                   alignItems: "center",
                   gap: 8,
                   height: 32,
-                  paddingLeft: props.rail ? 0 : 10,
+                  // 嵌套目录按深度缩进（根 depth=0）
+                  paddingLeft: props.rail ? 0 : 10 + (f.depth || 0) * 12,
                   paddingRight: 10,
                   justifyContent: props.rail ? "center" : "flex-start",
                   borderRadius: 6,

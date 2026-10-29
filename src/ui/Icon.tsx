@@ -16,7 +16,10 @@ import sidebar from "../../assets/icons/sidebar.svg";
 import split from "../../assets/icons/split.svg";
 import textT from "../../assets/icons/text-t.svg";
 
-/** Phosphor Regular 等价 SVG（黑描边 + tintColor）。 */
+/**
+ * Phosphor Regular SVG（`assets/icons/`，fill `#000` + `tintColor`）。
+ * 约定见 docs/ui-v1/DESIGN-NOTES.md 与 docs/superpowers/plans/2026-10-29-stoatmd-mac-v1.md。
+ */
 export type IconName =
   | "notebook"
   | "folder"
