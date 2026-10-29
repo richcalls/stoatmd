@@ -12,11 +12,8 @@
 
 - [产品总述](docs/product/PRODUCT.md) · [云盘同步](docs/product/SYNC.md)
 - [技术设计 v1](docs/技术设计-v1.md)
-<<<<<<< HEAD
 - [UI v1 设计说明](docs/ui-v1/DESIGN-NOTES.md)（风格 B · 织线）
-- [Logo 方向草案](docs/brand/stoatmd-logo/NOTES.md)（A 织线白鼬 · C 敏捷剪影）
-=======
-- [UI v1](docs/ui-v1/DESIGN-NOTES.md)
+- [Logo 方向草案](docs/brand/stoatmd-logo/NOTES.md)（A 织线白鼬 · C 敏捷剪影；主图标未定，未接入 App）
 - [Mac 一期实现计划](docs/superpowers/plans/2026-10-29-stoatmd-mac-v1.md)
 
 ## 工程结构
@@ -57,4 +54,3 @@ Linux 可做类型/编译冒烟：`nsh check`；有 GTK 4.14+ 时可 `nsh run`�
 - [x] Phase 0/1：混合工程 + Mac 三栏壳 + Editor/TextView 分栏 + 假数据
 - [ ] Phase 2：Vault 读写与选文件夹
 - [ ] 同步（Drive / Dropbox / iCloud）
->>>>>>> fb154e9 (feat(mac): 一期计划入库并落地 nsh 混合壳)
