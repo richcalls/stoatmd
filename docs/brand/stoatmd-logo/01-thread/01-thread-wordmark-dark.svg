@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="480" viewBox="0 0 1600 480">
+  <rect width="1600" height="480" fill="#1C1A18"/>
+  <g transform="translate(80,90) scale(3.2)">
+    <path d="M 22 52 C 30 42, 42 36, 56 34 C 62 30, 68 28, 74 30 C 80 32, 86 36, 88 40 C 86 44, 80 46, 74 46 C 66 48, 58 50, 50 52 C 42 54, 34 56, 28 56 C 24 56, 20 54, 22 52 Z" fill="none" stroke="#EDE9E3" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 66 30 L 70 16 L 76 30" fill="none" stroke="#EDE9E3" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 78 36 L 82 36" fill="none" stroke="#EDE9E3" stroke-width="2.3" stroke-linecap="round"/>
+<path d="M 30 48 C 42 44, 56 40, 72 40" fill="none" stroke="#7A9CC0" stroke-width="1.1" stroke-linecap="round" opacity="0.9"/>
+<path d="M 28 52 C 42 48, 56 46, 70 46" fill="none" stroke="#7A9CC0" stroke-width="1.1" stroke-linecap="round" opacity="0.65"/>
+<path d="M 40 56 L 38 70 M 52 54 L 52 70 M 64 52 L 66 68" fill="none" stroke="#EDE9E3" stroke-width="1.7" stroke-linecap="round"/>
+<path d="M 22 52 C 12 50, 6 42, 8 32 C 9 26, 16 26, 18 32" fill="none" stroke="#EDE9E3" stroke-width="1.6" stroke-linecap="round"/>
+  </g>
+  <text x="520" y="278" font-family="Instrument Sans, system-ui, sans-serif" font-size="142" font-weight="550" fill="#EDE9E3">Stoat</text>
+  <text x="860" y="278" font-family="Instrument Sans, system-ui, sans-serif" font-size="142" font-weight="550" fill="#7A9CC0">MD</text>
+  <line x1="520" y1="310" x2="1120" y2="310" stroke="#7A9CC0" stroke-width="2" stroke-linecap="round"/>
+</svg>
