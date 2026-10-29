@@ -13,7 +13,7 @@
 | 首发平台 | **先 Mac**；iOS / iPad 设计可保留文档，**本计划不排实现任务** |
 | 多语言 | 产品出海；UI 文案至少 **中 / 英**（键驱动，默认中文示意） |
 | 不做 MCP | 无 AgentBridge / 本地 MCP sidecar（产品已定） |
-| 同步后置 | Drive / Dropbox / iCloud 与付费墙：**本地 Vault 跑通之后**再做 |
+| 同步后置 | Drive / Dropbox（不做 iCloud）与付费墙：**本地 Vault 跑通之后**再做 |
 | 编辑模型 | 源码 Editor + TextView 预览；**非**所见即所得；Mermaid / LaTeX 不进一期 |
 | 视觉 | 默认 **织线纸白**；深色 **暖夜炭**（非 `#000`）；纯白主题为预设但可后置接线 |
 | 顶栏 | Code / Split / Eye \| TextT / Gear；**不要 Palette** |

@@ -340,7 +340,7 @@
 |----|------|
 | S1 设置·同步 | 未连接英雄区 + 主 CTA「开启同步」；Agent 短注 |
 | S9 付费墙 | 轻卡片挡在开启后；未付费不进 OAuth |
-| S2 提供商 | 仅 GDrive / Dropbox / iCloud；前两者「推荐 · Agent」徽章 |
+| S2 提供商 | 仅 GDrive / Dropbox；均带「推荐 · Agent」徽章 |
 | S3 授权中 | 窄 modal + spinner + 取消 |
 | S5 首轮同步 | 进度条 + 文件数；可后台 |
 | S6 冲突 | 宽 modal；按文件三选一；批量条；禁止预勾覆盖 |

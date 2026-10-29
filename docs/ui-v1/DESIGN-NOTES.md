@@ -1,7 +1,7 @@
 # StoatMD UI 定稿说明 · ui-v1-final
 
 > **FINAL** · 风格 B · impeccable craft floor · Operate  
-> 产品定名：**StoatMD**（曾用名 LoomMD；仓库已更名为 `richcalls/stoatmd`；路径 `docs/ui-v1/` 与本地 `loommd/` 可暂留）  
+> 产品定名：**StoatMD**（曾用名 LoomMD；目录/仓库路径 `loommd` 暂保留）  
 > 相对源稿：`/workspace/loommd/ui-v1/`  
 > 日期：2026-10-29（Asia/Shanghai）  
 > 署名：forecho
@@ -41,7 +41,7 @@ Mac 三栏主界面（浅/深）+ 折叠态 + iPhone 编辑 + Mac 设置（主�
 | `05-mac-settings.html` / `.png` | Mac 设置：主题网格（示意）+ 字体；左导航仅外观 / 字体 / 同步（**已砍 MCP**）；完整色号见 DESIGN.md |
 | `09-mac-sync-s1.html` / `.png` | S1 设置·同步 · 未连接 + CTA |
 | `10-mac-sync-s9.html` / `.png` | S9 付费墙（开启后） |
-| `11-mac-sync-s2.html` / `.png` | S2 提供商：GDrive / Dropbox / iCloud |
+| `11-mac-sync-s2.html` / `.png` | S2 提供商：GDrive / Dropbox |
 | `12-mac-sync-s6.html` / `.png` | S6 冲突处理弹层 |
 | `13-mac-sync-s7.html` / `.png` | S7 侧栏冲突小状态 |
 | `13b-mac-sync-s7-ok.html` / `.png` | S7 侧栏已同步 |
@@ -118,7 +118,7 @@ Mac 三栏主界面（浅/深）+ 折叠态 + iPhone 编辑 + Mac 设置（主�
 
 ## 同步界面（本轮 · 正海拍板）
 
-- 不自建服务器；一期仅 **Google Drive + Dropbox + iCloud**；主推前两者（Agent）
+- 不自建服务器；一期仅 **Google Drive + Dropbox**（均主推，Agent 友好）；不做 iCloud
 - 冲突：**必须弹出** 本地 / 云端 / 两边都留
 - 付费：一点「开启同步」就墙；未付费不走 OAuth
 - 设置左导航「同步」正式可进；侧栏底从灰显锁改为状态脚标

@@ -2,8 +2,8 @@
 
 > 模式：**Operate**（本地写作工具，任务优先）  
 > 定名：**StoatMD** · 域名：stoatmd.com（可注册）  
-> 曾用名：LoomMD（内部/早期代号；仓库已更名为 `richcalls/stoatmd`；本地设计目录 `loommd/` 可暂留）  
-> 署名：forecho · 仓库：https://github.com/richcalls/stoatmd  
+> 曾用名：LoomMD（内部/早期代号；仓库路径 `loommd` 暂保留）  
+> 署名：forecho · 仓库：https://github.com/richcalls/loommd  
 > 定稿：2026-10-29（Asia/Shanghai）
 
 ## 产品是什么
@@ -36,7 +36,7 @@ Mac 编辑工具条：左侧 `SidebarSimple`（文件夹侧栏）· 笔记列表
 |------|------|
 | 主题 | 只换颜色的预设色板（参考 Slack 外观网格），**不**换布局、不做自定义色板编辑器；完整 hex 见 `DESIGN.md`，**不必**为每套出图 |
 | 字体 | 正文字体（系统 UI / 宋体类 / 等宽）、字号步进、行高；一行真文案预览。源码区仍用等宽 |
-| 同步 | **正式核心能力**：设置 → 同步；一期 Google Drive / Dropbox / iCloud；主推前两者（Agent）；一点「开启同步」付费墙（未付费不走 OAuth）；冲突必弹 |
+| 同步 | **正式核心能力**：设置 → 同步；一期仅 Google Drive / Dropbox（均主推，Agent 友好）；一点「开启同步」付费墙（未付费不走 OAuth）；冲突必弹 |
 
 预设 **12** 套（light / dark 标明模式；实现按 token 切换）：
 - **Light（8）**：织线纸白（默认）、**纯白**（`#FFFFFF` 必选）、鼠尾草、墨灰、砂褐、雾蓝、樱雾、青瓷
