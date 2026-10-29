@@ -2,24 +2,26 @@ import { Scroll, Text, View } from "nsh";
 import { Input } from "nsh/base";
 import { Icon } from "./Icon";
 import { locale, t } from "./i18n";
-import { notesInFolder, type FolderId } from "./mockData";
 import { colors } from "./theme";
+import { formatWhen, type NoteItem } from "./vaultModel";
 
 type Props = {
-  folderId: FolderId;
   folderLabel: string;
+  notes: NoteItem[];
   selectedNoteId: string;
   onSelectNote: (id: string) => void;
+  onNewNote: () => void;
   query: string;
   onQuery: (q: string) => void;
+  disabled?: boolean;
 };
 
-/** 中栏：搜索 + 分类标题 + 假笔记列表。 */
+/** 中栏：搜索 + 分类标题 + 真实笔记列表。 */
 export function NoteList(props: Props) {
-  const notes = notesInFolder(props.folderId).filter((n) => {
+  const notes = props.notes.filter((n) => {
     const q = props.query.trim().toLowerCase();
     if (!q) return true;
-    return n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q);
+    return n.title.toLowerCase().includes(q) || n.path.toLowerCase().includes(q);
   });
 
   return (
@@ -69,6 +71,9 @@ export function NoteList(props: Props) {
           <View
             role="button"
             accessibilityLabel={t("note.new")}
+            onPress={() => {
+              if (!props.disabled) props.onNewNote();
+            }}
             style={{
               width: 26,
               height: 26,
@@ -77,6 +82,7 @@ export function NoteList(props: Props) {
               borderColor: colors().thread,
               alignItems: "center",
               justifyContent: "center",
+              opacity: props.disabled ? 0.4 : 1,
             }}
           >
             <Icon name="plus" color={colors().ink2} size={14} />
@@ -85,12 +91,25 @@ export function NoteList(props: Props) {
       </View>
 
       <Scroll style={{ flex: 1 }} contentClass="px-2 pb-3">
+        <If when={notes.length === 0}>
+          <Text
+            style={{
+              fontSize: 12,
+              color: colors().ink3,
+              paddingHorizontal: 10,
+              paddingTop: 8,
+              lineHeight: 18,
+            }}
+          >
+            {props.disabled ? t("vault.empty.hint") : t("note.empty")}
+          </Text>
+        </If>
         <Each of={notes}>
           {(note) => {
             const n = note();
             const on = n.id === props.selectedNoteId;
             const c = colors();
-            const when = locale() === "en" ? n.whenEn : n.when;
+            const when = formatWhen(n.mtimeMs, locale());
             return (
               <View
                 role="button"

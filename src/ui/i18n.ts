@@ -1,6 +1,7 @@
 import { signal } from "nsh";
 import zh from "../../locales/zh.json";
 import en from "../../locales/en.json";
+import { loadSavedLocale } from "./prefs";
 
 export type Locale = "zh" | "en";
 
@@ -16,4 +17,12 @@ export function t(key: string): string {
 
 export function setLocale(next: Locale) {
   locale.set(next);
+}
+
+/** 启动时恢复语言偏好。 */
+export async function restoreLocale(): Promise<void> {
+  const saved = await loadSavedLocale();
+  if (saved === "zh" || saved === "en") {
+    locale.set(saved);
+  }
 }

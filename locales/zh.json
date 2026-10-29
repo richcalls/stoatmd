@@ -31,5 +31,21 @@
   "settings.locale": "语言",
   "settings.locale.zh": "中文",
   "settings.locale.en": "English",
-  "note.new": "新建笔记"
+  "note.new": "新建笔记",
+  "note.empty": "此文件夹还没有笔记",
+  "menu.file": "文件",
+  "menu.edit": "编辑",
+  "menu.quit": "退出",
+  "vault.open": "打开文件夹…",
+  "vault.section": "本地库",
+  "vault.none": "尚未选择文件夹",
+  "vault.rootFolder": "根目录",
+  "vault.empty.hint": "选择一个本地文件夹作为笔记库。库内普通 .md 文件即可读写。",
+  "vault.saving": "正在保存…",
+  "vault.saved": "已保存",
+  "vault.reloaded": "已从磁盘重载",
+  "vault.conflict.title": "文件已在外部被修改",
+  "vault.conflict.description": "磁盘上的内容与编辑器不一致。保留本地编辑将覆盖磁盘；重载将丢弃未保存的修改。",
+  "vault.conflict.keep": "保留本地",
+  "vault.conflict.reload": "从磁盘重载"
 }

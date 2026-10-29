@@ -3,6 +3,9 @@ name = "stoatmd-core"
 version = "0.1.0"
 edition = "2024"
 publish = false
-description = "StoatMD Vault：本地库读写、索引与监视（本阶段为 stub）"
+description = "StoatMD Vault：本地库读写与路径沙箱"
 
 [dependencies]
+
+[dev-dependencies]
+tempfile = "3"
