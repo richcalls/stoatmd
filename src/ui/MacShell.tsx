@@ -209,10 +209,12 @@ export function MacShell() {
     }
   };
 
-  const selectFolder = (id: string) => {
+  const selectFolder = async (id: string) => {
     const v = vault();
     if (!v) return;
     const next = normalizeVaultPath(id);
+    // 切到空文件夹时 applyNotes 会直接 clearEditor：先落盘，避免吞掉未保存输入
+    await flushSave();
     folderId.set(next);
     refreshNotes(v, next);
   };
