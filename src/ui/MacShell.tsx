@@ -116,9 +116,10 @@ export function MacShell() {
     clearEditor();
   };
 
-  const openNote = async (v: Vault, path: string) => {
+  const openNote = async (v: Vault, path: string, skipFlush = false) => {
     const gen = ++openGen;
-    await flushSave();
+    // 冲突时选「重新加载」即丢弃本地改动：跳过 flush，也避免等外层 doSave 持有的 saving 造成死锁
+    if (!skipFlush) await flushSave();
     if (gen !== openGen) return;
     try {
       const note = await readNote(v, path);
@@ -325,7 +326,7 @@ export function MacShell() {
           }
         }
       } else if (action === "reload") {
-        await openNote(v, path);
+        await openNote(v, path, true);
         status.set(t("vault.reloaded"));
       }
     } finally {
