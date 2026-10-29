@@ -32,6 +32,9 @@ export type ThemePalette = {
   accentSoft: string;
   syntaxBold: string;
   quote: string;
+  codeBg: string;
+  quoteBg: string;
+  searchBg: string;
 };
 
 export type ThemePreset = {
@@ -41,8 +44,20 @@ export type ThemePreset = {
   palette: ThemePalette;
 };
 
-const lightSyntax = { syntaxBold: "#8B5E3C", quote: "#4F6B4F" };
-const darkSyntax = { syntaxBold: "#C4A484", quote: "#8FAF8F" };
+const lightSyntax = {
+  syntaxBold: "#8B5E3C",
+  quote: "#4F6B4F",
+  codeBg: "rgba(139,94,60,0.08)",
+  quoteBg: "rgba(90,122,90,0.07)",
+};
+const darkSyntax = {
+  syntaxBold: "#C4A484",
+  quote: "#8FAF8F",
+  codeBg: "rgba(196,164,132,0.12)",
+  quoteBg: "rgba(143,175,143,0.10)",
+};
+const lightField = { searchBg: "rgba(44,42,38,0.05)" };
+const darkField = { searchBg: "rgba(255,255,255,0.06)" };
 
 export const THEMES: readonly ThemePreset[] = [
   {
@@ -62,6 +77,7 @@ export const THEMES: readonly ThemePreset[] = [
       accent: "#3D5A80",
       accentSoft: "#E4EBF3",
       ...lightSyntax,
+      ...lightField,
     },
   },
   {
@@ -81,6 +97,7 @@ export const THEMES: readonly ThemePreset[] = [
       accent: "#3D5A80",
       accentSoft: "#E8EEF5",
       ...lightSyntax,
+      ...lightField,
     },
   },
   {
@@ -100,6 +117,7 @@ export const THEMES: readonly ThemePreset[] = [
       accent: "#5A7A62",
       accentSoft: "#E0E8E2",
       ...lightSyntax,
+      ...lightField,
     },
   },
   {
@@ -119,6 +137,7 @@ export const THEMES: readonly ThemePreset[] = [
       accent: "#555555",
       accentSoft: "#E8E8E6",
       ...lightSyntax,
+      ...lightField,
     },
   },
   {
@@ -138,6 +157,7 @@ export const THEMES: readonly ThemePreset[] = [
       accent: "#7A5C3E",
       accentSoft: "#EDE4D8",
       ...lightSyntax,
+      ...lightField,
     },
   },
   {
@@ -157,6 +177,7 @@ export const THEMES: readonly ThemePreset[] = [
       accent: "#5A7A9A",
       accentSoft: "#E2EAF2",
       ...lightSyntax,
+      ...lightField,
     },
   },
   {
@@ -176,6 +197,7 @@ export const THEMES: readonly ThemePreset[] = [
       accent: "#9A6B78",
       accentSoft: "#F0E4E7",
       ...lightSyntax,
+      ...lightField,
     },
   },
   {
@@ -195,6 +217,7 @@ export const THEMES: readonly ThemePreset[] = [
       accent: "#5A7A68",
       accentSoft: "#E0E8E2",
       ...lightSyntax,
+      ...lightField,
     },
   },
   {
@@ -214,6 +237,7 @@ export const THEMES: readonly ThemePreset[] = [
       accent: "#7A9CC0",
       accentSoft: "#2A3340",
       ...darkSyntax,
+      ...darkField,
     },
   },
   {
@@ -233,6 +257,7 @@ export const THEMES: readonly ThemePreset[] = [
       accent: "#5B7FB5",
       accentSoft: "#243047",
       ...darkSyntax,
+      ...darkField,
     },
   },
   {
@@ -252,6 +277,7 @@ export const THEMES: readonly ThemePreset[] = [
       accent: "#9A7AB0",
       accentSoft: "#2E2836",
       ...darkSyntax,
+      ...darkField,
     },
   },
   {
@@ -271,6 +297,7 @@ export const THEMES: readonly ThemePreset[] = [
       accent: "#7A9A7A",
       accentSoft: "#243024",
       ...darkSyntax,
+      ...darkField,
     },
   },
 ];

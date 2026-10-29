@@ -13,8 +13,6 @@ export type NoteItem = {
   path: string;
   title: string;
   mtimeMs: number;
-  /** 相对当前所选文件夹的展示路径（用于嵌套笔记副标题）。 */
-  relativePath?: string;
 };
 
 /**
@@ -65,14 +63,11 @@ export function notesInFolder(entries: VaultEntryDto[], folderId = ""): NoteItem
     .filter((e) => noteBelongsToFolder(e.path, folder))
     .map((e) => {
       const path = normalizeVaultPath(e.path);
-      const relative =
-        folder && path.startsWith(folder + "/") ? path.slice(folder.length + 1) : path;
       return {
         id: path,
         path,
         title: titleFromName(e.name.normalize("NFC")),
         mtimeMs: e.mtimeMs,
-        relativePath: relative.includes("/") ? relative : undefined,
       };
     })
     .sort((a, b) => b.mtimeMs - a.mtimeMs || a.path.localeCompare(b.path));

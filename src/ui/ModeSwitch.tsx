@@ -30,8 +30,6 @@ function ModeButton(props: {
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: props.active ? colors().accentSoft : "transparent",
-        borderWidth: props.active ? 1 : 0,
-        borderColor: props.active ? colors().accent : "transparent",
       }}
       activeStyle={{ opacity: 0.75 }}
     >
@@ -47,7 +45,7 @@ export function ModeSwitch(props: Props) {
   return (
     <View
       testID="mode-switch"
-      style={{ flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 0 }}
+      style={{ flexDirection: "row", alignItems: "center", gap: 2, flexShrink: 0 }}
     >
       <ModeButton
         id="mode-edit"

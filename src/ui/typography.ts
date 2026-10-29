@@ -16,8 +16,11 @@ export const systemFonts = signal<readonly string[]>([]);
 export const fontSize = signal(15);
 export const fontLineHeight = signal(1.75);
 
-export const FONT_SIZES = [14, 15, 16, 18] as const;
-export const LINE_HEIGHTS = [1.5, 1.75, 2] as const;
+export const FONT_SIZE_MIN = 12;
+export const FONT_SIZE_MAX = 24;
+export const LINE_HEIGHT_MIN = 1.3;
+export const LINE_HEIGHT_MAX = 2.2;
+export const LINE_HEIGHT_STEP = 0.05;
 
 export function fontFamilyName(): string | undefined {
   const family = fontFamily();
@@ -45,13 +48,18 @@ export function applyFontFamily(next: string) {
 }
 
 export function applyFontSize(next: number) {
-  fontSize.set(next);
-  void saveFontSize(String(next));
+  const value = Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, Math.round(next)));
+  fontSize.set(value);
+  void saveFontSize(String(value));
 }
 
 export function applyFontLineHeight(next: number) {
-  fontLineHeight.set(next);
-  void saveFontLineHeight(String(next));
+  const value = Math.min(
+    LINE_HEIGHT_MAX,
+    Math.max(LINE_HEIGHT_MIN, Math.round(next * 100) / 100),
+  );
+  fontLineHeight.set(value);
+  void saveFontLineHeight(String(value));
 }
 
 /** 启动时恢复字体偏好；无效值回落到默认。 */
@@ -71,11 +79,15 @@ export async function restoreTypography(): Promise<void> {
     }
   }
   const sizeNum = Number(size);
-  if ((FONT_SIZES as readonly number[]).includes(sizeNum)) {
-    fontSize.set(sizeNum);
+  if (Number.isFinite(sizeNum) && sizeNum >= FONT_SIZE_MIN && sizeNum <= FONT_SIZE_MAX) {
+    fontSize.set(Math.round(sizeNum));
   }
   const lineNum = Number(lineHeight);
-  if ((LINE_HEIGHTS as readonly number[]).includes(lineNum)) {
+  if (
+    Number.isFinite(lineNum) &&
+    lineNum >= LINE_HEIGHT_MIN &&
+    lineNum <= LINE_HEIGHT_MAX
+  ) {
     fontLineHeight.set(lineNum);
   }
 }

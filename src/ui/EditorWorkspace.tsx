@@ -1,8 +1,8 @@
 import { List, Text, View, batch, effect, signal } from "nsh";
-import { Editor, ResizablePanel, ResizablePanelGroup, TextView } from "nsh/base";
-import { ModeSwitch } from "./ModeSwitch";
-import { previewModel } from "./previewModel";
-import { colors } from "./theme";
+import { Editor, ResizablePanel, ResizablePanelGroup, TextView, type EditorDecoration } from "nsh/base";
+import { markdownDecorations } from "./markdownDecorations";
+import { previewGap, previewModel } from "./previewModel";
+import { colors, themePreset, type ThemePreset } from "./theme";
 import { fontFamilyName, fontSize, lineHeightPx } from "./typography";
 import type { ViewMode } from "./Toolbar";
 import {
@@ -27,7 +27,6 @@ type Props = {
   preview: string;
   onChange: (value: string) => void;
   mode: ViewMode;
-  onMode: (mode: ViewMode) => void;
 };
 
 const editorTextStyles = () => ({
@@ -39,6 +38,7 @@ const previewTextStyles = () => {
   const size = fontSize();
   const lh = lineHeightPx(size);
   const mono = Math.max(12, Math.round(size * 0.87));
+  const quote = Math.max(12, Math.round(size * 0.967));
   return {
     root: {
       color: colors().ink,
@@ -50,60 +50,111 @@ const previewTextStyles = () => {
       fontSize: Math.round(size * 1.733),
       lineHeight: Math.round(size * 1.733 * 1.25),
       fontWeight: 650,
+      letterSpacing: -0.39,
     },
     heading2: {
       fontSize: Math.round(size * 1.2),
       lineHeight: Math.round(size * 1.2 * 1.3),
       fontWeight: 600,
+      letterSpacing: -0.18,
     },
     heading3: {
       fontSize: Math.round(size * 1.067),
       lineHeight: Math.round(size * 1.067 * 1.3),
       fontWeight: 600,
     },
-    blockquote: { color: colors().ink2 },
-    code: { color: colors().syntaxBold, fontFamily: "Menlo", fontSize: mono },
+    blockquote: {
+      color: colors().ink2,
+      fontSize: quote,
+      lineHeight: Math.round(quote * 1.65),
+      backgroundColor: colors().quoteBg,
+      borderLeftWidth: 1,
+      borderLeftColor: colors().accent,
+      paddingTop: 8,
+      paddingBottom: 8,
+      paddingLeft: 14,
+      paddingRight: 14,
+    },
+    code: {
+      color: colors().syntaxBold,
+      backgroundColor: colors().codeBg,
+      fontFamily: "Menlo",
+      fontSize: mono,
+      borderRadius: 4,
+      paddingHorizontal: 4,
+    },
     codeBlockCode: {
       fontFamily: "Menlo",
       fontSize: mono,
       lineHeight: Math.round(mono * 1.6),
     },
+    strong: { fontWeight: 650 },
     link: { color: colors().accent },
   };
 };
 
-/** 右栏：顶栏模式切换 + Editor / List 预览。 */
+/** 右栏：Editor / List 预览；工具条由 MacShell 提供。 */
 export function EditorWorkspace(props: Props) {
   // 预览数据走信号：换文时更新 List 的 each，而不是重建整个节点（重建会把滚动位置丢回顶部）
   const initial = previewModel(props.preview);
   const previewBlocks = signal(initial.blocks);
   const previewItemSize = signal(initial.estimatedItemSize);
+
+  // 语法装饰按（正文, 主题）记忆：输入时只扫一遍，主题不变不重复构造
+  let decorationCache: { text: string; preset: ThemePreset; value: EditorDecoration[] } | null = null;
+  const decorations = (text: string) => {
+    const preset = themePreset();
+    if (decorationCache && decorationCache.text === text && decorationCache.preset === preset) {
+      return decorationCache.value;
+    }
+    const value = markdownDecorations(text, preset.palette);
+    decorationCache = { text, preset, value };
+    return value;
+  };
   const editorPane = () => (
     <View
       style={{ flex: 1, backgroundColor: colors().editor, position: "relative" }}
       testID="pane-editor"
-      onLayout={(b) => setEditorViewHeight(b.size.height)}
       onHoverIn={() => markEditorHover(true)}
       onHoverOut={() => markEditorHover(false)}
     >
-      <Editor
-        ref={attachEditor}
-        value={props.source}
-        onChange={props.onChange}
-        onFocus={() => markEditorFocus(true)}
-        onBlur={() => markEditorFocus(false)}
-        language="markdown"
-        softWrap
-        lineNumbers={false}
-        fontSize={13.5}
-        lineHeight={EDITOR_LINE_HEIGHT}
-        scrollBeyondLastLine={false}
-        style={{ flex: 1 }}
-        // 编辑器自己按显示行折行；行内再用 whitespace-nowrap 阻止 Text 二次折行，
-        // 否则测量误差会让行尾字符折到下一行、与下一行文字重叠。右侧留白容纳这点溢出。
-        classes={{ content: "whitespace-nowrap" }}
-        styles={editorTextStyles()}
-      />
+      {/* 对齐 ui-v1 pane-src：文件名走等宽小字，正文从标题下方开始 */}
+      <View style={{ paddingTop: 16, paddingBottom: 4, paddingHorizontal: 20 }}>
+        <Text
+          testID="doc-title"
+          numberOfLines={1}
+          style={{
+            fontSize: 12,
+            fontWeight: "510",
+            color: colors().ink3,
+            fontFamily: "Menlo",
+            letterSpacing: 0.12,
+          }}
+        >
+          {props.fileName}
+        </Text>
+      </View>
+      <View style={{ flex: 1 }} onLayout={(b) => setEditorViewHeight(b.size.height)}>
+        <Editor
+          ref={attachEditor}
+          value={props.source}
+          onChange={props.onChange}
+          onFocus={() => markEditorFocus(true)}
+          onBlur={() => markEditorFocus(false)}
+          language="markdown"
+          softWrap
+          lineNumbers={false}
+          fontSize={13.5}
+          lineHeight={EDITOR_LINE_HEIGHT}
+          scrollBeyondLastLine={false}
+          style={{ flex: 1 }}
+          decorations={decorations(props.source)}
+          // 编辑器自己按显示行折行；行内再用 whitespace-nowrap 阻止 Text 二次折行，
+          // 否则测量误差会让行尾字符折到下一行、与下一行文字重叠。右侧留白容纳这点溢出。
+          classes={{ content: "whitespace-nowrap" }}
+          styles={editorTextStyles()}
+        />
+      </View>
       {/* 隐藏探针：同宽同字体，滚到最大值即可反推出可见编辑器的内容高度（不可见、不可交互） */}
       <View
         style={{ height: 1, opacity: 0, overflow: "hidden" }}
@@ -138,26 +189,40 @@ export function EditorWorkspace(props: Props) {
         <List
           each={previewBlocks()}
           estimatedItemSize={previewItemSize()}
-          contentClass="px-6 py-4"
+          contentClass="px-9 py-7"
           testID="pane-preview"
           ref={attachPreview}
           onScroll={handlePreviewScroll}
           style={{ flex: 1, backgroundColor: colors().preview }}
         >
-          {(block) => (
-            <View style={{ maxWidth: 672, width: "100%", alignSelf: "center" }}>
-              <TextView
-                document={{ blocks: [block()] }}
-                selectable
-                styles={previewTextStyles()}
-                classes={{
-                  blockquote: "pl-3 py-1",
-                  code: "font-mono",
-                  strong: "font-semibold",
+          {(block, index) => {
+            const gap = () => {
+              const all = previewBlocks();
+              const at = index();
+              return previewGap(at > 0 ? all[at - 1] : undefined, block());
+            };
+            return (
+              <View
+                style={{
+                  maxWidth: 672,
+                  width: "100%",
+                  alignSelf: "flex-start",
+                  paddingTop: gap(),
                 }}
-              />
-            </View>
-          )}
+              >
+                <TextView
+                  document={{ blocks: [block()] }}
+                  selectable
+                  styles={previewTextStyles()}
+                  classes={{
+                    blockquote: "pl-3 py-1",
+                    code: "font-mono",
+                    strong: "font-semibold",
+                  }}
+                />
+              </View>
+            );
+          }}
         </List>
       </View>
     );
@@ -200,28 +265,6 @@ export function EditorWorkspace(props: Props) {
 
   return (
     <View style={{ flex: 1, flexDirection: "column", backgroundColor: colors().editor }}>
-      {/* 编辑区顶栏：文件名左、模式右——对齐 ui-v1 editor-toolbar */}
-      <View
-        testID="editor-toolbar"
-        style={{
-          height: 40,
-          paddingHorizontal: 12,
-          flexDirection: "row",
-          alignItems: "center",
-          borderBottomWidth: 1,
-          borderBottomColor: colors().thread,
-          backgroundColor: colors().editor,
-          gap: 8,
-        }}
-      >
-        <Text
-          style={{ flex: 1, fontSize: 12, color: colors().ink3 }}
-          numberOfLines={1}
-        >
-          {props.fileName}
-        </Text>
-        <ModeSwitch mode={props.mode} onMode={props.onMode} />
-      </View>
       <View style={{ flex: 1 }} testID={`workspace-mode-${props.mode}`}>
         {body()}
       </View>

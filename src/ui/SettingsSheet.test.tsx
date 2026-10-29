@@ -11,14 +11,6 @@ test("设置：点右上角关闭后 open 变为 false", async () => {
   expect(app.texts()).toContain("closed");
 });
 
-test("设置：点完成按钮关闭", async () => {
-  const app = await open("./SettingsSheet.harness.tsx", desktop);
-  expect(app.texts()).toContain("open");
-
-  await app.press("text:完成");
-  expect(app.texts()).toContain("closed");
-});
-
 test("设置：12 套主题可选并持久化", async () => {
   const app = await open("./SettingsSheet.harness.tsx", desktop);
   expect(app.shows("id:theme-weave-paper")).toBe(true);
@@ -44,21 +36,23 @@ test("设置：字体下拉可选系统默认并持久化，语言切换即时�
   await app.waitUntil(() => app.shows("id:font-search"));
   expect(app.shows("id:font-options")).toBe(true);
   await app.press("id:font-option-system");
-  await app.press("id:font-size-18");
-  await app.press("id:font-line-2");
+  await app.press("id:font-size-inc");
+  await app.press("id:font-size-inc");
+  await app.press("id:font-size-inc");
+  await app.press("id:font-line-inc");
   await app.waitUntil(
     () =>
       app.storage()["prefs.fontFamily"] === "system" &&
       app.storage()["prefs.fontSize"] === "18" &&
-      app.storage()["prefs.fontLineHeight"] === "2",
+      app.storage()["prefs.fontLineHeight"] === "1.8",
   );
   expect(app.texts()).toContain("系统默认");
   expect(app.storage()["prefs.fontSize"]).toBe("18");
-  expect(app.storage()["prefs.fontLineHeight"]).toBe("2");
+  expect(app.storage()["prefs.fontLineHeight"]).toBe("1.8");
 
   await app.press("id:settings-tab-appearance");
   await app.press("id:locale-en");
   await app.waitUntil(() => app.storage()["prefs.locale"] === "en");
   expect(app.texts()).toContain("Settings");
-  expect(app.texts()).toContain("Done");
+  expect(app.texts()).toContain("Appearance");
 });

@@ -35,39 +35,54 @@ export function NoteList(props: Props) {
         borderRightColor: colors().thread,
       }}
     >
-      <View style={{ paddingHorizontal: 12, paddingTop: 10, paddingBottom: 8, gap: 10 }}>
+      <View
+        style={{
+          paddingHorizontal: 14,
+          paddingTop: 12,
+          paddingBottom: 10,
+          gap: 10,
+          borderBottomWidth: 1,
+          borderBottomColor: colors().thread,
+        }}
+      >
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 8,
-            height: 32,
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: colors().thread,
-            backgroundColor: colors().editor,
+            gap: 7,
+            height: 30,
+            borderRadius: 7,
+            backgroundColor: colors().searchBg,
             paddingHorizontal: 10,
           }}
         >
-          <Icon name="magnifying-glass" color={colors().ink3} size={14} />
+          <Icon name="magnifying-glass" color={colors().ink3} size={13} />
           <Input
             value={props.query}
             onChange={(text) => props.onQuery(text)}
             placeholder={t("search.placeholder")}
             style={{
               flex: 1,
-              fontSize: 13,
+              fontSize: 12.5,
               color: colors().ink,
               backgroundColor: "transparent",
               borderWidth: 0,
               padding: 0,
-              height: 28,
+              height: 26,
             }}
           />
         </View>
 
         <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Text style={{ flex: 1, fontSize: 14, fontWeight: "560", color: colors().ink }}>
+          <Text
+            style={{
+              flex: 1,
+              fontSize: 15,
+              fontWeight: "600",
+              letterSpacing: -0.15,
+              color: colors().ink,
+            }}
+          >
             {props.folderLabel}
           </Text>
           <View
@@ -77,17 +92,16 @@ export function NoteList(props: Props) {
               if (!props.disabled) props.onNewNote();
             }}
             style={{
-              width: 26,
-              height: 26,
-              borderRadius: 6,
-              borderWidth: 1,
-              borderColor: colors().thread,
+              width: 28,
+              height: 28,
+              borderRadius: 7,
+              backgroundColor: colors().accentSoft,
               alignItems: "center",
               justifyContent: "center",
               opacity: props.disabled ? 0.4 : 1,
             }}
           >
-            <Icon name="plus" color={colors().ink2} size={14} />
+            <Icon name="plus" color={colors().accent} size={15} />
           </View>
         </View>
       </View>
@@ -96,7 +110,7 @@ export function NoteList(props: Props) {
           行内一律通过 item() 读值，单元格被复用到另一篇笔记时才会跟着更新。 */}
       <List
         style={{ flex: 1 }}
-        contentClass="px-2 pb-3"
+        contentStyle={{ paddingHorizontal: 8, paddingTop: 6, paddingBottom: 12 }}
         each={notes()}
         keyExtractor={(n) => n.id}
         empty={
@@ -122,23 +136,16 @@ export function NoteList(props: Props) {
               style={{
                 width: "100%",
                 paddingVertical: 10,
-                paddingHorizontal: 10,
-                borderRadius: 6,
+                paddingHorizontal: 12,
+                borderRadius: 8,
                 marginBottom: 2,
                 backgroundColor: on() ? colors().accentSoft : "transparent",
-                borderLeftWidth: on() ? 1 : 0,
-                borderLeftColor: on() ? colors().accent : "transparent",
               }}
             >
               <Text style={{ fontSize: 14, fontWeight: "560", color: colors().ink }}>
                 {item().title}
               </Text>
-              <If when={!!item().relativePath}>
-                <Text style={{ fontSize: 11, color: colors().ink3, marginTop: 2 }}>
-                  {item().relativePath}
-                </Text>
-              </If>
-              <Text style={{ fontSize: 12, color: colors().ink2, marginTop: 3 }}>
+              <Text style={{ fontSize: 12, color: colors().ink3, marginTop: 3 }}>
                 {formatWhen(item().mtimeMs, locale())}
               </Text>
             </View>

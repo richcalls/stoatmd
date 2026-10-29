@@ -9,7 +9,7 @@ import { loadSavedRoot, saveRoot } from "./prefs";
 import { SettingsSheet, type SettingsTab } from "./SettingsSheet";
 import { Sidebar } from "./Sidebar";
 import { colors } from "./theme";
-import { Toolbar, type SidebarMode, type ViewMode } from "./Toolbar";
+import { TitleBar, WorkspaceToolbar, type SidebarMode, type ViewMode } from "./Toolbar";
 import {
   foldersFromEntries,
   nextUntitledPath,
@@ -23,7 +23,7 @@ import {
 } from "./vaultModel";
 
 Window.setTitle("StoatMD");
-Window.setTitleBar("hidden", 44);
+Window.setTitleBar("hidden", 52);
 
 const AUTOSAVE_MS = 700;
 const PREVIEW_MS = 250;
@@ -541,25 +541,30 @@ export function MacShell() {
         flexDirection: "column",
       }}
     >
-      <Toolbar
-        sidebarMode={sidebarMode()}
-        listOpen={listOpen()}
-        onCycleSidebar={cycleSidebar}
-        onToggleList={() => listOpen.update((v) => !v)}
-        onFont={() => openSettings("font")}
-        onSettings={() => openSettings("appearance")}
-      />
+      <TitleBar />
 
       <If when={!vault()}>
-        <View
-          style={{
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 12,
-            padding: 24,
-          }}
-        >
+        <View style={{ flex: 1, flexDirection: "column" }}>
+          <WorkspaceToolbar
+            minimal
+            mode={mode()}
+            onMode={changeMode}
+            sidebarMode={sidebarMode()}
+            listOpen={listOpen()}
+            onCycleSidebar={cycleSidebar}
+            onToggleList={() => listOpen.update((v) => !v)}
+            onFont={() => openSettings("font")}
+            onSettings={() => openSettings("appearance")}
+          />
+          <View
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+              padding: 24,
+            }}
+          >
           <Text style={{ fontSize: 22, fontWeight: "600", color: colors().ink }}>
             {t("app.name")}
           </Text>
@@ -596,6 +601,7 @@ export function MacShell() {
           <If when={!!status()}>
             <Text style={{ fontSize: 12, color: colors().ink3, marginTop: 8 }}>{status()}</Text>
           </If>
+          </View>
         </View>
       </If>
 
@@ -640,6 +646,16 @@ export function MacShell() {
           </If>
 
           <View style={{ flex: 1, minWidth: 320, flexDirection: "column" }}>
+            <WorkspaceToolbar
+              mode={mode()}
+              onMode={changeMode}
+              sidebarMode={sidebarMode()}
+              listOpen={listOpen()}
+              onCycleSidebar={cycleSidebar}
+              onToggleList={() => listOpen.update((v) => !v)}
+              onFont={() => openSettings("font")}
+              onSettings={() => openSettings("appearance")}
+            />
             <If when={!!opened()}>
               <EditorWorkspace
                 fileName={fileName()}
@@ -647,7 +663,6 @@ export function MacShell() {
                 preview={previewDraft()}
                 onChange={onDraftChange}
                 mode={mode()}
-                onMode={changeMode}
               />
             </If>
             <If when={!opened()}>
