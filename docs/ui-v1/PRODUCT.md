@@ -2,8 +2,8 @@
 
 > 模式：**Operate**（本地写作工具，任务优先）  
 > 定名：**StoatMD** · 域名：stoatmd.com（可注册）  
-> 曾用名：LoomMD（内部/早期代号；仓库路径 `loommd` 暂保留）  
-> 署名：forecho · 仓库：https://github.com/richcalls/loommd  
+> 曾用名：LoomMD（内部/早期代号；仓库已更名为 `richcalls/stoatmd`；本地设计目录 `loommd/` 可暂留）  
+> 署名：forecho · 仓库：https://github.com/richcalls/stoatmd  
 > 定稿：2026-10-29（Asia/Shanghai）
 
 ## 产品是什么

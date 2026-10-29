@@ -1,7 +1,7 @@
 # StoatMD UI 定稿说明 · ui-v1-final
 
 > **FINAL** · 风格 B · impeccable craft floor · Operate  
-> 产品定名：**StoatMD**（曾用名 LoomMD；目录/仓库路径 `loommd` 暂保留）  
+> 产品定名：**StoatMD**（曾用名 LoomMD；仓库已更名为 `richcalls/stoatmd`；路径 `docs/ui-v1/` 与本地 `loommd/` 可暂留）  
 > 相对源稿：`/workspace/loommd/ui-v1/`  
 > 日期：2026-10-29（Asia/Shanghai）  
 > 署名：forecho
