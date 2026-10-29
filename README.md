@@ -5,6 +5,7 @@
 - 定名 **StoatMD** · 域名 [stoatmd.com](https://stoatmd.com) · 曾用名 LoomMD
 - 自选文件夹，普通 `.md` 文件（Vault：open / list / read / write / create / rename / delete）
 - 源码编辑 + 仅编辑 / 分栏 / 仅预览；停顿自动保存；外部改文件冲突提示
+- 分栏时**编辑区与预览 60fps 双向滚动同步，丝滑跟手**（硬性验收标准）
 - 本机永远免费；云盘同步在本地库跑通后接入（**应用买断制**，不为同步再绑订阅）
 - **不做 MCP**
 
@@ -84,6 +85,7 @@ nsh run --target macos
 2. 选一个含 `.md` 的目录（或空目录后点「新建笔记」）
 3. 编辑正文，停顿约 0.7s 应出现「已保存」
 4. 用外部编辑器改同一文件 → 应弹出冲突：保留本地 / 从磁盘重载
+5. 分栏模式下分别滚动编辑区和预览 → 两侧应保持 60fps 双向同步，跟手无迟滞
 
 > **本 Cloud / Linux 环境限制**：无 macOS AppKit，无法真机弹出系统选文件夹做端到端验证；可用 `nsh check`、`nsh test` 与 `cargo test -p stoatmd-core` 验收编译与 Vault 单元测试。选文件夹在桌面依赖 `rfd`（macOS 为系统面板；Linux 需 GTK 文件对话框）。
 
