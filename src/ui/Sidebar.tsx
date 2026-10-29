@@ -9,6 +9,7 @@ type Props = {
   selected: string;
   onSelect: (id: string) => void;
   onOpenVault: () => void;
+  onSync: () => void;
   vaultRoot: string | null;
   rail?: boolean;
 };
@@ -71,11 +72,12 @@ export function Sidebar(props: Props) {
           {(folder) => {
             const f = folder();
             const on = () => normalizeVaultPath(props.selected) === f.id;
-            const c = colors();
             const label = f.id === "" ? t("vault.rootFolder") : f.name;
             return (
               <View
                 role="button"
+                accessibilityLabel={label}
+                tooltip={props.rail ? <Text style={{ fontSize: 12 }}>{label}</Text> : undefined}
                 onPress={() => props.onSelect(f.id)}
                 style={{
                   flexDirection: "row",
@@ -84,17 +86,17 @@ export function Sidebar(props: Props) {
                   height: 32,
                   // 嵌套目录按深度缩进（根 depth=0）
                   paddingLeft: props.rail ? 0 : 10 + (f.depth || 0) * 12,
-                  paddingRight: 10,
+                  paddingRight: props.rail ? 0 : 10,
                   justifyContent: props.rail ? "center" : "flex-start",
                   borderRadius: 6,
-                  backgroundColor: on() ? c.accentSoft : "transparent",
+                  backgroundColor: on() ? colors().accentSoft : "transparent",
                   borderLeftWidth: on() && !props.rail ? 1 : 0,
-                  borderLeftColor: on() ? c.accent : "transparent",
+                  borderLeftColor: on() ? colors().accent : "transparent",
                 }}
               >
                 <Icon
                   name={f.id === "" ? "notebook" : "folder"}
-                  color={on() ? c.accent : c.ink2}
+                  color={on() ? colors().accent : colors().ink2}
                   size={16}
                 />
                 <If when={!props.rail}>
@@ -102,7 +104,7 @@ export function Sidebar(props: Props) {
                     style={{
                       fontSize: 13,
                       fontWeight: "500",
-                      color: on() ? c.accent : c.ink,
+                      color: on() ? colors().accent : colors().ink,
                       flex: 1,
                     }}
                   >
@@ -116,12 +118,19 @@ export function Sidebar(props: Props) {
       </View>
 
       <View
+        role="button"
+        testID="sidebar-sync"
+        accessibilityLabel={t("settings.sync")}
+        tooltip={props.rail ? <Text style={{ fontSize: 12 }}>{t("settings.sync")}</Text> : undefined}
+        onPress={props.onSync}
         style={{
           flexDirection: "row",
           alignItems: "center",
           gap: 6,
-          paddingHorizontal: props.rail ? 8 : 14,
-          paddingTop: 8,
+          marginHorizontal: props.rail ? 6 : 8,
+          paddingHorizontal: props.rail ? 2 : 6,
+          paddingVertical: 6,
+          borderRadius: 6,
           justifyContent: props.rail ? "center" : "flex-start",
         }}
       >

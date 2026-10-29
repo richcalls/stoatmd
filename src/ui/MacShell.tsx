@@ -9,7 +9,7 @@ import { loadSavedRoot, saveRoot } from "./prefs";
 import { SettingsSheet, type SettingsTab } from "./SettingsSheet";
 import { Sidebar } from "./Sidebar";
 import { colors } from "./theme";
-import { Toolbar, type ViewMode } from "./Toolbar";
+import { Toolbar, type SidebarMode, type ViewMode } from "./Toolbar";
 import {
   foldersFromEntries,
   nextUntitledPath,
@@ -33,7 +33,7 @@ const SELF_WRITE_MS = 4000;
 
 /** Mac 三栏壳：Vault 真文件 + 自动保存 + 冲突提示。 */
 export function MacShell() {
-  const sidebarOpen = signal(true);
+  const sidebarMode = signal<SidebarMode>("expanded");
   const listOpen = signal(true);
   const mode = signal<ViewMode>("split");
   const vault = signal<Vault | null>(null);
@@ -352,6 +352,17 @@ export function MacShell() {
     mode.set(m);
   };
 
+  const cycleSidebar = () => {
+    sidebarMode.update((current) =>
+      current === "expanded" ? "rail" : current === "rail" ? "hidden" : "expanded",
+    );
+  };
+
+  const openSettings = (tab: SettingsTab) => {
+    settingsTab.set(tab);
+    settingsOpen.set(true);
+  };
+
   // 启动：恢复上次库根
   effect(() => {
     if (bootstrapped()) return;
@@ -368,14 +379,21 @@ export function MacShell() {
     })();
   });
 
-  // 应用菜单：打开库
+  // 应用菜单：文件 / 视图 / 编辑；语言切换后随 t() 重建
   effect(() => {
     const mac = platform.os === "macos";
+    const settingsItem = {
+      label: t("menu.settings"),
+      shortcut: "mod+,",
+      onSelect: () => openSettings("appearance"),
+    };
     Menu.setApplicationMenu([
       mac && {
         label: "StoatMD",
         submenu: [
           { role: "about" },
+          { type: "separator" },
+          settingsItem,
           { type: "separator" },
           { role: "hide" },
           { role: "hideOthers" },
@@ -401,7 +419,36 @@ export function MacShell() {
             },
           },
           !mac && { type: "separator" },
+          !mac && settingsItem,
+          !mac && { type: "separator" },
           !mac && { role: "quit", label: t("menu.quit") },
+        ],
+      },
+      {
+        label: t("menu.view"),
+        submenu: [
+          { label: t("menu.view.sidebar"), shortcut: "mod+b", onSelect: cycleSidebar },
+          {
+            label: t("menu.view.list"),
+            shortcut: "mod+shift+b",
+            onSelect: () => listOpen.update((open) => !open),
+          },
+          { type: "separator" },
+          {
+            label: t("mode.edit"),
+            shortcut: "mod+1",
+            onSelect: () => changeMode("edit"),
+          },
+          {
+            label: t("mode.split"),
+            shortcut: "mod+2",
+            onSelect: () => changeMode("split"),
+          },
+          {
+            label: t("mode.preview"),
+            shortcut: "mod+3",
+            onSelect: () => changeMode("preview"),
+          },
         ],
       },
       {
@@ -474,11 +521,6 @@ export function MacShell() {
     });
   });
 
-  const openSettings = (tab: SettingsTab) => {
-    settingsTab.set(tab);
-    settingsOpen.set(true);
-  };
-
   const folderLabel = () => {
     const id = normalizeVaultPath(folderId());
     if (!id) return t("vault.rootFolder");
@@ -500,9 +542,9 @@ export function MacShell() {
       }}
     >
       <Toolbar
-        sidebarOpen={sidebarOpen()}
+        sidebarMode={sidebarMode()}
         listOpen={listOpen()}
-        onToggleSidebar={() => sidebarOpen.update((v) => !v)}
+        onCycleSidebar={cycleSidebar}
         onToggleList={() => listOpen.update((v) => !v)}
         onFont={() => openSettings("font")}
         onSettings={() => openSettings("appearance")}
@@ -559,8 +601,13 @@ export function MacShell() {
 
       <If when={!!vault()}>
         <View style={{ flex: 1, flexDirection: "row" }}>
-          <If when={sidebarOpen()}>
-            <View style={{ width: 168, minWidth: 168 }}>
+          <If when={sidebarMode() !== "hidden"}>
+            <View
+              style={{
+                width: sidebarMode() === "rail" ? 48 : 200,
+                minWidth: sidebarMode() === "rail" ? 48 : 200,
+              }}
+            >
               <Sidebar
                 folders={folders()}
                 selected={folderId()}
@@ -568,13 +615,15 @@ export function MacShell() {
                 onOpenVault={() => {
                   void pickAndOpen();
                 }}
+                onSync={() => openSettings("sync")}
                 vaultRoot={vaultRoot()}
+                rail={sidebarMode() === "rail"}
               />
             </View>
           </If>
 
           <If when={listOpen()}>
-            <View style={{ width: 260, minWidth: 220 }}>
+            <View style={{ width: 280, minWidth: 240 }}>
               <NoteList
                 folderLabel={folderLabel()}
                 notes={notes()}

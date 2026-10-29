@@ -1,6 +1,7 @@
 import { Text, View, mount, signal } from "nsh";
 import { Button } from "nsh/base";
 import { SettingsSheet, type SettingsTab } from "./SettingsSheet";
+import { loadSystemFonts, restoreTypography } from "./typography";
 
 /** 设置关闭路径的最小挂载入口。 */
 function Harness() {
@@ -22,4 +23,5 @@ function Harness() {
   );
 }
 
-mount(Harness);
+loadSystemFonts();
+void restoreTypography().then(() => mount(Harness));

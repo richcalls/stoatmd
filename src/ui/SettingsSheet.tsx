@@ -1,9 +1,23 @@
-import { Text, View, signal } from "nsh";
-import { Button, Dialog } from "nsh/base";
+import { Scroll, Text, View, effect, signal } from "nsh";
+import { Button, Dialog, Input, Popover } from "nsh/base";
 import { Icon } from "./Icon";
-import { locale, setLocale, t, type Locale } from "./i18n";
-import { saveFontLineHeight, saveFontSize, saveLocale } from "./prefs";
-import { applyAppearanceForTheme, colors, themeId, type ThemeId } from "./theme";
+import { localePref, setLocalePref, t, type LocalePref } from "./i18n";
+import { saveLocale } from "./prefs";
+import { THEMES, applyTheme, colors, themeId, type ThemePreset } from "./theme";
+import {
+  FONT_SIZES,
+  LINE_HEIGHTS,
+  applyFontFamily,
+  applyFontLineHeight,
+  applyFontSize,
+  fontFamily,
+  fontFamilyName,
+  fontLineHeight,
+  fontSize,
+  lineHeightPx,
+  loadSystemFonts,
+  systemFonts,
+} from "./typography";
 
 export type SettingsTab = "appearance" | "font" | "sync";
 
@@ -16,34 +30,277 @@ type Props = {
   onOpenVault?: () => void;
 };
 
-const THEMES: { id: ThemeId; labelKey: string; swatch: string; disabled?: boolean }[] = [
-  { id: "weave-paper", labelKey: "settings.theme.weavePaper", swatch: "#F7F3EB" },
-  { id: "pure-white", labelKey: "settings.theme.pureWhite", swatch: "#FFFFFF", disabled: true },
-  { id: "warm-charcoal", labelKey: "settings.theme.warmCharcoal", swatch: "#1C1A18" },
-];
-
 const TABS: { id: SettingsTab; labelKey: string }[] = [
   { id: "appearance", labelKey: "settings.appearance" },
   { id: "font", labelKey: "settings.font" },
   { id: "sync", labelKey: "settings.sync" },
 ];
 
-const LOCALES: { id: Locale; key: string }[] = [
+const LOCALES: { id: LocalePref; key: string }[] = [
+  { id: "system", key: "settings.locale.system" },
   { id: "zh", key: "settings.locale.zh" },
   { id: "en", key: "settings.locale.en" },
 ];
 
-const FONT_SIZES = ["14", "15", "16", "18"];
-const LINE_HEIGHTS = ["1.5", "1.75", "2"];
+const LIGHT_THEMES = THEMES.filter((theme) => theme.mode === "light");
+const DARK_THEMES = THEMES.filter((theme) => theme.mode === "dark");
 
 const SHEET_WIDTH = 720;
-const SHEET_HEIGHT = 520;
+const SHEET_HEIGHT = 540;
+
+function OptionChip(props: {
+  testID?: string;
+  active: boolean;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <View
+      role="button"
+      testID={props.testID}
+      onPress={props.onPress}
+      style={{
+        paddingHorizontal: 12,
+        height: 30,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: props.active ? colors().accent : colors().thread,
+        backgroundColor: props.active ? colors().accentSoft : "transparent",
+        justifyContent: "center",
+      }}
+    >
+      <Text style={{ fontSize: 13, color: props.active ? colors().accent : colors().ink }}>
+        {props.label}
+      </Text>
+    </View>
+  );
+}
+
+function ThemeCard(props: { item: ThemePreset }) {
+  const on = () => themeId() === props.item.id;
+  return (
+    <View
+      role="button"
+      testID={`theme-${props.item.id}`}
+      accessibilityLabel={t(props.item.nameKey)}
+      onPress={() => applyTheme(props.item.id)}
+      style={{
+        width: 158,
+        height: 42,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: on() ? colors().accent : colors().thread,
+        backgroundColor: on() ? colors().accentSoft : "transparent",
+      }}
+    >
+      <View
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: 11,
+          backgroundColor: props.item.palette.paper,
+          borderWidth: 1,
+          borderColor: props.item.palette.thread,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <View
+          style={{
+            width: 10,
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: props.item.palette.accent,
+          }}
+        />
+      </View>
+      <Text style={{ fontSize: 12, color: colors().ink, flex: 1 }} numberOfLines={1}>
+        {t(props.item.nameKey)}
+      </Text>
+      <If when={on()}>
+        <Icon name="check" color={colors().accent} size={13} />
+      </If>
+    </View>
+  );
+}
+
+/** 字体下拉：触发条 + 搜索 + 系统字体列表。 */
+function FontPicker() {
+  const menuOpen = signal(false);
+  const query = signal("");
+
+  const matches = (name: string): boolean => {
+    const q = query().trim().toLowerCase();
+    return q === "" || name.toLowerCase().includes(q);
+  };
+
+  const systemSelected = () => fontFamily() === "";
+  const visibleCount = () => systemFonts().filter(matches).length;
+  const listHeight = () => Math.min(256, Math.max(32, visibleCount() * 32));
+
+  return (
+    <Popover
+      open={menuOpen()}
+      onOpenChange={(next) => menuOpen.set(next)}
+      onOpen={() => {
+        query.set("");
+        loadSystemFonts();
+      }}
+      placement="bottom"
+      align="start"
+      offset={6}
+      popupStyle={{
+        width: 300,
+        padding: 8,
+        gap: 6,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: colors().thread,
+        backgroundColor: colors().editor,
+      }}
+      trigger={
+        <View
+          role="button"
+          testID="font-select"
+          accessibilityLabel={t("settings.font.family")}
+          style={{
+            height: 34,
+            paddingHorizontal: 10,
+            borderRadius: 7,
+            borderWidth: 1,
+            borderColor: colors().thread,
+            backgroundColor: colors().list,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <Text
+            style={{
+              flex: 1,
+              fontSize: 13,
+              color: colors().ink,
+              fontFamily: fontFamilyName(),
+            }}
+            numberOfLines={1}
+          >
+            {fontFamily() || t("settings.font.systemDefault")}
+          </Text>
+          <Icon name="caret-down" color={colors().ink3} size={12} />
+        </View>
+      }
+    >
+      <View style={{ gap: 6 }}>
+        <Input
+          testID="font-search"
+          value={query()}
+          onChange={(text) => query.set(text)}
+          placeholder={t("settings.font.search")}
+          autoFocus
+          style={{
+            height: 30,
+            paddingHorizontal: 8,
+            borderRadius: 6,
+            borderWidth: 1,
+            borderColor: colors().thread,
+            backgroundColor: colors().list,
+            fontSize: 13,
+            color: colors().ink,
+          }}
+        />
+        <View
+          role="button"
+          testID="font-option-system"
+          onPress={() => {
+            applyFontFamily("");
+            menuOpen.set(false);
+          }}
+          style={{
+            height: 32,
+            paddingHorizontal: 8,
+            borderRadius: 6,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            backgroundColor: systemSelected() ? colors().accentSoft : "transparent",
+          }}
+        >
+          <Text
+            style={{
+              flex: 1,
+              fontSize: 13,
+              color: systemSelected() ? colors().accent : colors().ink,
+            }}
+            numberOfLines={1}
+          >
+            {t("settings.font.systemDefault")}
+          </Text>
+          <If when={systemSelected()}>
+            <Icon name="check" color={colors().accent} size={13} />
+          </If>
+        </View>
+        <Scroll testID="font-options" style={{ height: listHeight() }}>
+          <View style={{ gap: 2 }}>
+            <Each of={systemFonts()} key="index">
+              {(name, index) => {
+                const family = name();
+                const selected = () => fontFamily() === family;
+                return (
+                  <If when={matches(family)}>
+                    <View
+                      role="button"
+                      testID={`font-option-${index()}`}
+                      onPress={() => {
+                        applyFontFamily(family);
+                        menuOpen.set(false);
+                      }}
+                      style={{
+                        height: 32,
+                        paddingHorizontal: 8,
+                        borderRadius: 6,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                        backgroundColor: selected() ? colors().accentSoft : "transparent",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          flex: 1,
+                          fontSize: 13,
+                          color: selected() ? colors().accent : colors().ink,
+                          fontFamily: family,
+                        }}
+                        numberOfLines={1}
+                      >
+                        {family}
+                      </Text>
+                      <If when={selected()}>
+                        <Icon name="check" color={colors().accent} size={13} />
+                      </If>
+                    </View>
+                  </If>
+                );
+              }}
+            </Each>
+          </View>
+        </Scroll>
+      </View>
+    </Popover>
+  );
+}
 
 /** 设置 sheet：即时写入 prefs；× / Esc / 遮罩 / 完成 均可关闭。 */
 export function SettingsSheet(props: Props) {
-  const fontSize = signal("15");
-  const lineHeight = signal("1.75");
   const close = () => props.onClose();
+
+  effect(() => {
+    if (props.tab === "font") loadSystemFonts();
+  });
 
   return (
     <Dialog
@@ -144,83 +401,50 @@ export function SettingsSheet(props: Props) {
         <View style={{ flex: 1, gap: 12 }}>
           <If when={props.tab === "appearance"}>
             <View style={{ gap: 12 }}>
-              <Text style={{ fontSize: 14, fontWeight: "600", color: colors().ink }}>
-                {t("settings.theme")}
-              </Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-                <Each of={THEMES}>
-                  {(row) => {
-                    const item = row();
-                    const on = () => themeId() === item.id;
-                    return (
-                      <View
-                        role="button"
-                        onPress={() => {
-                          if (!item.disabled) applyAppearanceForTheme(item.id);
-                        }}
-                        style={{
-                          width: 148,
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 10,
-                          padding: 10,
-                          borderRadius: 8,
-                          borderWidth: 1,
-                          borderColor: on() ? colors().accent : colors().thread,
-                          opacity: item.disabled ? 0.45 : 1,
-                        }}
-                      >
-                        <View
-                          style={{
-                            width: 22,
-                            height: 22,
-                            borderRadius: 11,
-                            backgroundColor: item.swatch,
-                            borderWidth: 1,
-                            borderColor: colors().thread,
-                          }}
-                        />
-                        <Text style={{ fontSize: 12, color: colors().ink, flex: 1 }}>
-                          {t(item.labelKey)}
-                        </Text>
-                      </View>
-                    );
-                  }}
-                </Each>
+              <View style={{ gap: 8 }}>
+                <Text style={{ fontSize: 12, fontWeight: "600", color: colors().ink3 }}>
+                  {t("settings.theme.light")}
+                </Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+                  <Each of={LIGHT_THEMES}>
+                    {(row) => <ThemeCard item={row()} />}
+                  </Each>
+                </View>
               </View>
 
-              <Text style={{ fontSize: 14, fontWeight: "600", color: colors().ink, marginTop: 8 }}>
-                {t("settings.locale")}
-              </Text>
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                <Each of={LOCALES}>
-                  {(row) => {
-                    const item = row();
-                    const on = () => locale() === item.id;
-                    return (
-                      <View
-                        role="button"
-                        onPress={() => {
-                          setLocale(item.id);
-                          void saveLocale(item.id);
-                        }}
-                        style={{
-                          paddingHorizontal: 12,
-                          height: 30,
-                          borderRadius: 6,
-                          borderWidth: 1,
-                          borderColor: on() ? colors().accent : colors().thread,
-                          backgroundColor: on() ? colors().accentSoft : "transparent",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Text style={{ fontSize: 13, color: on() ? colors().accent : colors().ink }}>
-                          {t(item.key)}
-                        </Text>
-                      </View>
-                    );
-                  }}
-                </Each>
+              <View style={{ gap: 8 }}>
+                <Text style={{ fontSize: 12, fontWeight: "600", color: colors().ink3 }}>
+                  {t("settings.theme.dark")}
+                </Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+                  <Each of={DARK_THEMES}>
+                    {(row) => <ThemeCard item={row()} />}
+                  </Each>
+                </View>
+              </View>
+
+              <View style={{ gap: 8 }}>
+                <Text style={{ fontSize: 13, fontWeight: "600", color: colors().ink }}>
+                  {t("settings.locale")}
+                </Text>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <Each of={LOCALES}>
+                    {(row) => {
+                      const item = row();
+                      return (
+                        <OptionChip
+                          testID={`locale-${item.id}`}
+                          active={localePref() === item.id}
+                          label={t(item.key)}
+                          onPress={() => {
+                            setLocalePref(item.id);
+                            void saveLocale(item.id);
+                          }}
+                        />
+                      );
+                    }}
+                  </Each>
+                </View>
               </View>
             </View>
           </If>
@@ -228,78 +452,45 @@ export function SettingsSheet(props: Props) {
           <If when={props.tab === "font"}>
             <View style={{ gap: 10 }}>
               <Text style={{ fontSize: 14, fontWeight: "600", color: colors().ink }}>
-                {t("settings.font")}
+                {t("settings.font.family")}
               </Text>
-              <Text style={{ fontSize: 13, color: colors().ink2 }}>
-                {t("settings.font.family")}: 系统 UI
+              <FontPicker />
+
+              <Text style={{ fontSize: 14, fontWeight: "600", color: colors().ink, marginTop: 2 }}>
+                {t("settings.font.size")}
               </Text>
-              <Text style={{ fontSize: 13, color: colors().ink2 }}>{t("settings.font.size")}</Text>
               <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
                 <Each of={FONT_SIZES}>
-                  {(row) => {
-                    const size = row();
-                    const on = () => fontSize() === size;
-                    return (
-                      <View
-                        role="button"
-                        onPress={() => {
-                          fontSize.set(size);
-                          void saveFontSize(size);
-                        }}
-                        style={{
-                          paddingHorizontal: 12,
-                          height: 30,
-                          borderRadius: 6,
-                          borderWidth: 1,
-                          borderColor: on() ? colors().accent : colors().thread,
-                          backgroundColor: on() ? colors().accentSoft : "transparent",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Text style={{ fontSize: 13, color: on() ? colors().accent : colors().ink }}>
-                          {size}
-                        </Text>
-                      </View>
-                    );
-                  }}
+                  {(row) => (
+                    <OptionChip
+                      testID={`font-size-${row()}`}
+                      active={fontSize() === row()}
+                      label={String(row())}
+                      onPress={() => applyFontSize(row())}
+                    />
+                  )}
                 </Each>
               </View>
-              <Text style={{ fontSize: 13, color: colors().ink2 }}>
+
+              <Text style={{ fontSize: 14, fontWeight: "600", color: colors().ink, marginTop: 2 }}>
                 {t("settings.font.lineHeight")}
               </Text>
               <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
                 <Each of={LINE_HEIGHTS}>
-                  {(row) => {
-                    const lh = row();
-                    const on = () => lineHeight() === lh;
-                    return (
-                      <View
-                        role="button"
-                        onPress={() => {
-                          lineHeight.set(lh);
-                          void saveFontLineHeight(lh);
-                        }}
-                        style={{
-                          paddingHorizontal: 12,
-                          height: 30,
-                          borderRadius: 6,
-                          borderWidth: 1,
-                          borderColor: on() ? colors().accent : colors().thread,
-                          backgroundColor: on() ? colors().accentSoft : "transparent",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Text style={{ fontSize: 13, color: on() ? colors().accent : colors().ink }}>
-                          {lh}
-                        </Text>
-                      </View>
-                    );
-                  }}
+                  {(row) => (
+                    <OptionChip
+                      testID={`font-line-${row()}`}
+                      active={fontLineHeight() === row()}
+                      label={String(row())}
+                      onPress={() => applyFontLineHeight(row())}
+                    />
+                  )}
                 </Each>
               </View>
+
               <View
                 style={{
-                  marginTop: 8,
+                  marginTop: 6,
                   padding: 14,
                   borderRadius: 8,
                   borderWidth: 1,
@@ -309,8 +500,9 @@ export function SettingsSheet(props: Props) {
               >
                 <Text
                   style={{
-                    fontSize: Number(fontSize()),
-                    lineHeight: Math.round(Number(fontSize()) * Number(lineHeight())),
+                    fontSize: fontSize(),
+                    lineHeight: lineHeightPx(),
+                    fontFamily: fontFamilyName(),
                     color: colors().ink,
                   }}
                 >
