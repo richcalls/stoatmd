@@ -27,7 +27,6 @@ function Harness() {
           preview={docText()}
           onChange={() => {}}
           mode="split"
-          onMode={() => {}}
         />
       </View>
       <View style={{ flexDirection: "row", gap: 12, height: 24 }}>

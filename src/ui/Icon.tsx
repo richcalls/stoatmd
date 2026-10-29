@@ -12,10 +12,12 @@ import lightbulb from "../../assets/icons/lightbulb.svg";
 import listPane from "../../assets/icons/list-pane.svg";
 import magnifyingGlass from "../../assets/icons/magnifying-glass.svg";
 import notebook from "../../assets/icons/notebook.svg";
+import palette from "../../assets/icons/palette.svg";
 import pencil from "../../assets/icons/pencil.svg";
 import plus from "../../assets/icons/plus.svg";
 import sidebar from "../../assets/icons/sidebar.svg";
 import split from "../../assets/icons/split.svg";
+import sync from "../../assets/icons/sync.svg";
 import textT from "../../assets/icons/text-t.svg";
 import x from "../../assets/icons/x.svg";
 
@@ -39,6 +41,8 @@ export type IconName =
   | "eye"
   | "sidebar"
   | "list-pane"
+  | "palette"
+  | "sync"
   | "check"
   | "caret-down"
   | "x";
@@ -59,6 +63,8 @@ const MAP = {
   eye,
   sidebar,
   "list-pane": listPane,
+  palette,
+  sync,
   check,
   "caret-down": caretDown,
   x,

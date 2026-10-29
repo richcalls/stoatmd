@@ -19,6 +19,22 @@ const BASE_SIZE = 15;
 const BASE_CHARS_PER_LINE = 34;
 const CJK = /[\u1100-\u11ff\u2e80-\u9fff\uac00-\ud7af\uf900-\ufaff\uff00-\uffef]/;
 
+/**
+ * 相邻块之间的空隙。预览按块拆成独立 TextView，CSS 的 margin 折叠不会发生，
+ * 所以由这里统一给出「折叠后」的间距（DESIGN.md：标题上 26 / 下 8）。
+ */
+export function previewGap(previous: TextViewBlock | undefined, block: TextViewBlock): number {
+  if (!previous) return 0;
+  if (block.type === "heading") return block.level <= 2 ? 26 : 20;
+  if (previous.type === "heading") return 8;
+  if (block.type === "blockquote" || previous.type === "blockquote") return 14;
+  if (block.type === "codeBlock" || previous.type === "codeBlock") return 14;
+  if (block.type === "table" || previous.type === "table") return 14;
+  if (block.type === "math" || previous.type === "math") return 14;
+  if (block.type === "rule") return 18;
+  return 12;
+}
+
 function estimateBlockHeight(block: TextViewBlock, metrics: PreviewMetrics): number {
   const { fontSize, lineHeight } = metrics;
   const scale = fontSize / BASE_SIZE;
@@ -54,7 +70,11 @@ export function previewModel(
     for (const footnote of document.footnotes) blocks.push(...footnote.children);
   }
   let total = 0;
-  for (const block of blocks) total += estimateBlockHeight(block, metrics);
+  let previous: TextViewBlock | undefined;
+  for (const block of blocks) {
+    total += estimateBlockHeight(block, metrics) + previewGap(previous, block);
+    previous = block;
+  }
   const average = blocks.length > 0 ? total / blocks.length : 64;
   cachedKey = key;
   cached = {
