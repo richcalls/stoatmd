@@ -1,0 +1,14 @@
+[workspace]
+members = [".", "crates/stoatmd-core"]
+resolver = "2"
+
+[package]
+name = "nsh-app-stoatmd"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+nsh-core = "=0.3.0"
+nsh-base = "=0.3.0"
+stoatmd-core = { path = "crates/stoatmd-core" }
