@@ -6,4 +6,8 @@
 - 源码编辑 + 切换 / 分栏预览
 - 本机永远免费；云盘同步买断与 MCP 见后续版本
 
-产品设计见 vault：`LoomMD 产品设计 2026-10-29.md`。
+## 文档
+
+- [技术设计 v1](docs/技术设计-v1.md)
+- [UI v1 设计说明](docs/ui-v1/DESIGN-NOTES.md)（风格 B · 织线）
+- 产品设计：Obsidian 库《LoomMD 产品设计 2026-10-29》
