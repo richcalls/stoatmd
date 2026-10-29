@@ -1,7 +1,9 @@
-# LoomMD 产品总述
+# StoatMD 产品总述
 
 > 本地优先 Markdown 笔记本 · 首发 macOS + iOS · **面向全球用户（出海）**  
+> 定名：**StoatMD** · 域名：[stoatmd.com](https://stoatmd.com) · 曾用名：LoomMD  
 > 日期：2026-10-29（Asia/Shanghai） · 产品约束：正海已拍板  
+> 仓库：[`richcalls/stoatmd`](https://github.com/richcalls/stoatmd)（曾用名 loommd）  
 > 本文档以中文撰写，产品本身为**多语言、国际化**产品，非国内向。
 
 ## 一句话
@@ -33,9 +35,13 @@
 |------|------|
 | 自选本机库、读写 `.md` | 核心 · 已定 |
 | 源码编辑 + 切换 / 分栏预览 | 核心 · 已定 |
-| **云盘同步** | **核心能力**（非「即将推出」灰显心态）；流程与状态机见 [SYNC.md](./SYNC.md) |
-| MCP / AgentBridge | 后续；可与同步解耦灰显 |
+| **云盘同步** | **核心能力**；流程与状态机见 [SYNC.md](./SYNC.md) |
+| **MCP / AgentBridge** | **已决定不做**：无自有服务器；远程 Agent 无法挂本地 MCP；Personal Agent 走云盘文件即可 |
 | 自建账号 / 自建同步服 / 实时协作 | **明确不做** |
+
+## 主题（摘要）
+
+设置 → 外观：12 套预设（**8 light + 4 dark**），只换颜色 token。必须含 **纯白**（`#FFFFFF`）。完整 hex 见 [../ui-v1/DESIGN.md](../ui-v1/DESIGN.md)；不必为每套出图。
 
 ## 提供商矩阵摘要
 
@@ -67,4 +73,5 @@
 |------|------|
 | [SYNC.md](./SYNC.md) | 云盘同步专章（流程、提供商、冲突、付费） |
 | [../技术设计-v1.md](../技术设计-v1.md) | 工程栈与 v1 实现范围（含产品已定交叉引用） |
-| [../ui-v1/DESIGN-NOTES.md](../ui-v1/DESIGN-NOTES.md) | UI v1 视觉与交互（设置「同步」应从灰显升级为正式入口） |
+| [../ui-v1/PRODUCT.md](../ui-v1/PRODUCT.md) | UI 定稿旁产品事实（StoatMD） |
+| [../ui-v1/DESIGN-NOTES.md](../ui-v1/DESIGN-NOTES.md) | UI v1 视觉与交互；设置导航仅外观 / 字体 / 同步 |

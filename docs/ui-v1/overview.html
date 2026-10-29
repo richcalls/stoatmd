@@ -2,90 +2,125 @@
 <html lang="zh-Hans">
 <head>
 <meta charset="utf-8"/>
-<title>LoomMD v1 · UI 总览</title>
+<title>StoatMD v1-final · UI 定稿总览</title>
 <link rel="stylesheet" href="shared.css"/>
 <style>
   body.overview-page.theme-light { width: 2200px; }
-  .grid { grid-template-columns: 1.2fr 1.2fr 0.55fr 0.55fr; gap: 32px; }
-  .mac-embed, .phone-embed {
-    transform-origin: top left;
-    pointer-events: none;
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 28px;
+    align-items: start;
   }
-  .mac-slot {
-    width: 760px; height: 490px;
-    overflow: hidden; border-radius: 14px;
-    box-shadow: 0 18px 48px rgba(44,42,38,.14);
-    background: #EDE6DA;
-    position: relative;
-  }
-  .mac-slot.dark { background: #12100E; }
-  .mac-embed { transform: scale(0.5278); /* 1440*0.5278≈760 */ }
-  /* We embed iframes of the full scenes scaled */
   .frame-mac {
     width: 1520px; height: 980px;
-    border: 0; transform: scale(0.5); transform-origin: top left;
+    border: 0; transform: scale(0.42); transform-origin: top left;
     pointer-events: none;
   }
   .slot-mac {
-    width: 760px; height: 490px;
-    overflow: hidden; border-radius: 16px;
+    width: 638px; height: 412px;
+    overflow: hidden; border-radius: 12px;
     box-shadow: 0 18px 48px rgba(0,0,0,.14);
   }
   .frame-phone {
     width: 520px; height: 980px;
-    border: 0; transform: scale(0.5); transform-origin: top left;
+    border: 0; transform: scale(0.42); transform-origin: top left;
     pointer-events: none;
   }
   .slot-phone {
-    width: 260px; height: 490px;
-    overflow: hidden; border-radius: 16px;
+    width: 218px; height: 412px;
+    overflow: hidden; border-radius: 12px;
     box-shadow: 0 18px 48px rgba(0,0,0,.14);
   }
-  .brand {
-    display: flex; align-items: center; gap: 14px;
+  .meta { font-size: 12px; color: #6E6860; text-align: right; line-height: 1.6; }
+  .row-phone { display: flex; gap: 28px; margin-top: 28px; }
+  .section-label {
+    font-size: 14px; font-weight: 600; color: #2C2A26;
+    margin: 36px 0 16px; letter-spacing: -0.01em;
   }
-  .loom-mark {
-    width: 36px; height: 36px; border-radius: 9px;
-    background: #3D5A80; display: flex; align-items: center; justify-content: center;
-  }
-  .loom-mark svg { width: 20px; height: 20px; }
-  .meta { font-size: 12px; color: #9A948C; text-align: right; line-height: 1.6; }
 </style>
 </head>
 <body class="overview-page theme-light">
   <div class="overview-head">
-    <div class="brand">
-      <div class="loom-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#F7F3EB" stroke-width="1.8" stroke-linecap="round">
-          <path d="M4 8h16M4 12h16M4 16h10"/>
-          <path d="M7 6v12M12 6v12M17 6v8"/>
-        </svg>
-      </div>
-      <div>
-        <h1>LoomMD v1 · 风格 B</h1>
-        <p>轻与原生 · 织线隐喻 · Mac 三栏分栏 + iPhone 编辑 · forecho</p>
-      </div>
+    <div>
+      <h1>StoatMD · 定稿</h1>
+      <p>Operate · 织线 B · 同步正式（Drive / Dropbox / iCloud）· 设置内主题+字体 · impeccable · forecho</p>
     </div>
     <div class="meta">
-      靛蓝 #3D5A80 · 纸色 #F7F3EB · 暖炭灰 #1C1A18<br/>
-      2026-10-29
+      三栏可折叠 · 同步核心能力<br/>
+      2026-10-29 · ui-v1-final
     </div>
   </div>
   <div class="grid">
     <div class="card">
-      <label>01 · MAC 主界面 · 浅色</label>
+      <label>Mac · 默认三栏 · 浅色</label>
       <div class="slot-mac"><iframe class="frame-mac" src="01-mac-main-light.html"></iframe></div>
     </div>
     <div class="card">
-      <label>02 · MAC 主界面 · 深色</label>
-      <div class="slot-mac"><iframe class="frame-mac" src="02-mac-main-dark.html"></iframe></div>
+      <label>Mac · 收左栏（图标轨）· 浅色</label>
+      <div class="slot-mac"><iframe class="frame-mac" src="06-mac-rail-light.html"></iframe></div>
     </div>
     <div class="card">
-      <label>03 · IPHONE 编辑 · 浅色</label>
+      <label>Mac · 仅编辑器 · 浅色</label>
+      <div class="slot-mac"><iframe class="frame-mac" src="07-mac-focus-light.html"></iframe></div>
+    </div>
+    <div class="card">
+      <label>Mac · 仅编辑器 · 深色</label>
+      <div class="slot-mac"><iframe class="frame-mac" src="08-mac-focus-dark.html"></iframe></div>
+    </div>
+    <div class="card">
+      <label>Mac · 设置（主题 · 字体 · 同步可进）</label>
+      <div class="slot-mac"><iframe class="frame-mac" src="05-mac-settings.html"></iframe></div>
+    </div>
+    <div class="card">
+      <label>Mac · 默认三栏 · 深色</label>
+      <div class="slot-mac"><iframe class="frame-mac" src="02-mac-main-dark.html"></iframe></div>
+    </div>
+  </div>
+
+  <div class="section-label">同步 · Sync</div>
+  <div class="grid">
+    <div class="card">
+      <label>S1 · 设置·同步（未连接）</label>
+      <div class="slot-mac"><iframe class="frame-mac" src="09-mac-sync-s1.html"></iframe></div>
+    </div>
+    <div class="card">
+      <label>S9 · 付费墙</label>
+      <div class="slot-mac"><iframe class="frame-mac" src="10-mac-sync-s9.html"></iframe></div>
+    </div>
+    <div class="card">
+      <label>S2 · 提供商选择</label>
+      <div class="slot-mac"><iframe class="frame-mac" src="11-mac-sync-s2.html"></iframe></div>
+    </div>
+    <div class="card">
+      <label>S6 · 冲突处理</label>
+      <div class="slot-mac"><iframe class="frame-mac" src="12-mac-sync-s6.html"></iframe></div>
+    </div>
+    <div class="card">
+      <label>S7 · 侧栏冲突状态</label>
+      <div class="slot-mac"><iframe class="frame-mac" src="13-mac-sync-s7.html"></iframe></div>
+    </div>
+    <div class="card">
+      <label>S7 · 侧栏已同步</label>
+      <div class="slot-mac"><iframe class="frame-mac" src="13b-mac-sync-s7-ok.html"></iframe></div>
+    </div>
+    <div class="card">
+      <label>S3 · 授权中</label>
+      <div class="slot-mac"><iframe class="frame-mac" src="14-mac-sync-s3.html"></iframe></div>
+    </div>
+    <div class="card">
+      <label>S5 · 首轮同步中</label>
+      <div class="slot-mac"><iframe class="frame-mac" src="15-mac-sync-s5.html"></iframe></div>
+    </div>
+  </div>
+
+  <div class="row-phone">
+    <div class="card">
+      <label>iPhone 编辑 · 浅色</label>
       <div class="slot-phone"><iframe class="frame-phone" src="03-iphone-edit-light.html"></iframe></div>
     </div>
     <div class="card">
-      <label>04 · IPHONE 编辑 · 深色</label>
+      <label>iPhone 编辑 · 深色</label>
       <div class="slot-phone"><iframe class="frame-phone" src="04-iphone-edit-dark.html"></iframe></div>
     </div>
   </div>
