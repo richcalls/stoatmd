@@ -1,4 +1,4 @@
-import { Scroll, Text, View } from "nsh";
+import { List, Text, View } from "nsh";
 import { Input } from "nsh/base";
 import { Icon } from "./Icon";
 import { locale, t } from "./i18n";
@@ -18,11 +18,13 @@ type Props = {
 
 /** 中栏：搜索 + 分类标题 + 真实笔记列表。 */
 export function NoteList(props: Props) {
-  const notes = props.notes.filter((n) => {
-    const q = props.query.trim().toLowerCase();
-    if (!q) return true;
-    return n.title.toLowerCase().includes(q) || n.path.toLowerCase().includes(q);
-  });
+  // 组件只运行一次：派生列表必须是闭包，在 JSX 里调用才会跟随 props 更新
+  const notes = () =>
+    props.notes.filter((n) => {
+      const q = props.query.trim().toLowerCase();
+      if (!q) return true;
+      return n.title.toLowerCase().includes(q) || n.path.toLowerCase().includes(q);
+    });
 
   return (
     <View
@@ -90,8 +92,14 @@ export function NoteList(props: Props) {
         </View>
       </View>
 
-      <Scroll style={{ flex: 1 }} contentClass="px-2 pb-3">
-        <If when={notes.length === 0}>
+      {/* 虚拟化列表：只渲染视口附近的单元格并复用，笔记再多也不整列重建。
+          行内一律通过 item() 读值，单元格被复用到另一篇笔记时才会跟着更新。 */}
+      <List
+        style={{ flex: 1 }}
+        contentClass="px-2 pb-3"
+        each={notes()}
+        keyExtractor={(n) => n.id}
+        empty={
           <Text
             style={{
               fontSize: 12,
@@ -103,37 +111,40 @@ export function NoteList(props: Props) {
           >
             {props.disabled ? t("vault.empty.hint") : t("note.empty")}
           </Text>
-        </If>
-        <Each of={notes}>
-          {(note) => {
-            const n = note();
-            const on = n.id === props.selectedNoteId;
-            const c = colors();
-            const when = formatWhen(n.mtimeMs, locale());
-            return (
-              <View
-                role="button"
-                onPress={() => props.onSelectNote(n.id)}
-                style={{
-                  paddingVertical: 10,
-                  paddingHorizontal: 10,
-                  borderRadius: 6,
-                  marginBottom: 2,
-                  backgroundColor: on ? c.accentSoft : "transparent",
-                  borderLeftWidth: on ? 1 : 0,
-                  borderLeftColor: on ? c.accent : "transparent",
-                }}
-              >
-                <Text style={{ fontSize: 14, fontWeight: "560", color: c.ink }}>{n.title}</Text>
-                <If when={!!n.relativePath}>
-                  <Text style={{ fontSize: 11, color: c.ink3, marginTop: 2 }}>{n.relativePath}</Text>
-                </If>
-                <Text style={{ fontSize: 12, color: c.ink2, marginTop: 3 }}>{when}</Text>
-              </View>
-            );
-          }}
-        </Each>
-      </Scroll>
+        }
+      >
+        {(item) => {
+          const on = () => item().id === props.selectedNoteId;
+          return (
+            <View
+              role="button"
+              onPress={() => props.onSelectNote(item().id)}
+              style={{
+                width: "100%",
+                paddingVertical: 10,
+                paddingHorizontal: 10,
+                borderRadius: 6,
+                marginBottom: 2,
+                backgroundColor: on() ? colors().accentSoft : "transparent",
+                borderLeftWidth: on() ? 1 : 0,
+                borderLeftColor: on() ? colors().accent : "transparent",
+              }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: "560", color: colors().ink }}>
+                {item().title}
+              </Text>
+              <If when={!!item().relativePath}>
+                <Text style={{ fontSize: 11, color: colors().ink3, marginTop: 2 }}>
+                  {item().relativePath}
+                </Text>
+              </If>
+              <Text style={{ fontSize: 12, color: colors().ink2, marginTop: 3 }}>
+                {formatWhen(item().mtimeMs, locale())}
+              </Text>
+            </View>
+          );
+        }}
+      </List>
     </View>
   );
 }

@@ -97,7 +97,7 @@ export function SettingsSheet(props: Props) {
         <Each of={TABS}>
           {(tab) => {
             const item = tab();
-            const on = props.tab === item.id;
+            const on = () => props.tab === item.id;
             return (
               <View
                 role="button"
@@ -108,12 +108,12 @@ export function SettingsSheet(props: Props) {
                   borderRadius: 6,
                   paddingHorizontal: 10,
                   justifyContent: "center",
-                  backgroundColor: on ? colors().accentSoft : "transparent",
-                  borderLeftWidth: on ? 1 : 0,
-                  borderLeftColor: on ? colors().accent : "transparent",
+                  backgroundColor: on() ? colors().accentSoft : "transparent",
+                  borderLeftWidth: on() ? 1 : 0,
+                  borderLeftColor: on() ? colors().accent : "transparent",
                 }}
               >
-                <Text style={{ fontSize: 13, color: on ? colors().accent : colors().ink }}>
+                <Text style={{ fontSize: 13, color: on() ? colors().accent : colors().ink }}>
                   {t(item.labelKey)}
                 </Text>
               </View>
@@ -151,7 +151,7 @@ export function SettingsSheet(props: Props) {
                 <Each of={THEMES}>
                   {(row) => {
                     const item = row();
-                    const on = themeId() === item.id;
+                    const on = () => themeId() === item.id;
                     return (
                       <View
                         role="button"
@@ -166,7 +166,7 @@ export function SettingsSheet(props: Props) {
                           padding: 10,
                           borderRadius: 8,
                           borderWidth: 1,
-                          borderColor: on ? colors().accent : colors().thread,
+                          borderColor: on() ? colors().accent : colors().thread,
                           opacity: item.disabled ? 0.45 : 1,
                         }}
                       >
@@ -196,7 +196,7 @@ export function SettingsSheet(props: Props) {
                 <Each of={LOCALES}>
                   {(row) => {
                     const item = row();
-                    const on = locale() === item.id;
+                    const on = () => locale() === item.id;
                     return (
                       <View
                         role="button"
@@ -209,12 +209,12 @@ export function SettingsSheet(props: Props) {
                           height: 30,
                           borderRadius: 6,
                           borderWidth: 1,
-                          borderColor: on ? colors().accent : colors().thread,
-                          backgroundColor: on ? colors().accentSoft : "transparent",
+                          borderColor: on() ? colors().accent : colors().thread,
+                          backgroundColor: on() ? colors().accentSoft : "transparent",
                           justifyContent: "center",
                         }}
                       >
-                        <Text style={{ fontSize: 13, color: on ? colors().accent : colors().ink }}>
+                        <Text style={{ fontSize: 13, color: on() ? colors().accent : colors().ink }}>
                           {t(item.key)}
                         </Text>
                       </View>
@@ -238,7 +238,7 @@ export function SettingsSheet(props: Props) {
                 <Each of={FONT_SIZES}>
                   {(row) => {
                     const size = row();
-                    const on = fontSize() === size;
+                    const on = () => fontSize() === size;
                     return (
                       <View
                         role="button"
@@ -251,12 +251,12 @@ export function SettingsSheet(props: Props) {
                           height: 30,
                           borderRadius: 6,
                           borderWidth: 1,
-                          borderColor: on ? colors().accent : colors().thread,
-                          backgroundColor: on ? colors().accentSoft : "transparent",
+                          borderColor: on() ? colors().accent : colors().thread,
+                          backgroundColor: on() ? colors().accentSoft : "transparent",
                           justifyContent: "center",
                         }}
                       >
-                        <Text style={{ fontSize: 13, color: on ? colors().accent : colors().ink }}>
+                        <Text style={{ fontSize: 13, color: on() ? colors().accent : colors().ink }}>
                           {size}
                         </Text>
                       </View>
@@ -271,7 +271,7 @@ export function SettingsSheet(props: Props) {
                 <Each of={LINE_HEIGHTS}>
                   {(row) => {
                     const lh = row();
-                    const on = lineHeight() === lh;
+                    const on = () => lineHeight() === lh;
                     return (
                       <View
                         role="button"
@@ -284,12 +284,12 @@ export function SettingsSheet(props: Props) {
                           height: 30,
                           borderRadius: 6,
                           borderWidth: 1,
-                          borderColor: on ? colors().accent : colors().thread,
-                          backgroundColor: on ? colors().accentSoft : "transparent",
+                          borderColor: on() ? colors().accent : colors().thread,
+                          backgroundColor: on() ? colors().accentSoft : "transparent",
                           justifyContent: "center",
                         }}
                       >
-                        <Text style={{ fontSize: 13, color: on ? colors().accent : colors().ink }}>
+                        <Text style={{ fontSize: 13, color: on() ? colors().accent : colors().ink }}>
                           {lh}
                         </Text>
                       </View>
