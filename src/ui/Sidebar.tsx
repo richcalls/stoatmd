@@ -1,16 +1,19 @@
 import { Text, View } from "nsh";
 import { Icon } from "./Icon";
 import { t } from "./i18n";
-import { FOLDERS, type FolderId } from "./mockData";
 import { colors } from "./theme";
+import type { FolderNode } from "./vaultModel";
 
 type Props = {
-  selected: FolderId;
-  onSelect: (id: FolderId) => void;
+  folders: FolderNode[];
+  selected: string;
+  onSelect: (id: string) => void;
+  onOpenVault: () => void;
+  vaultRoot: string | null;
   rail?: boolean;
 };
 
-/** 左栏文件夹树；rail 时仅图标轨。 */
+/** 左栏：真实库文件夹树；rail 时仅图标轨。 */
 export function Sidebar(props: Props) {
   return (
     <View
@@ -24,25 +27,52 @@ export function Sidebar(props: Props) {
       }}
     >
       <If when={!props.rail}>
-        <Text
+        <View
           style={{
-            fontSize: 13,
-            fontWeight: "500",
-            color: colors().ink2,
+            flexDirection: "row",
+            alignItems: "center",
             paddingHorizontal: 14,
             paddingBottom: 8,
+            gap: 8,
           }}
         >
-          {t("library.label")}
-        </Text>
+          <Text style={{ flex: 1, fontSize: 13, fontWeight: "500", color: colors().ink2 }}>
+            {t("library.label")}
+          </Text>
+          <View
+            role="button"
+            accessibilityLabel={t("vault.open")}
+            onPress={props.onOpenVault}
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 6,
+              borderWidth: 1,
+              borderColor: colors().thread,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon name="folder" color={colors().ink2} size={14} />
+          </View>
+        </View>
+      </If>
+
+      <If when={!props.vaultRoot}>
+        <View style={{ paddingHorizontal: 14, paddingTop: 8 }}>
+          <Text style={{ fontSize: 12, color: colors().ink3, lineHeight: 18 }}>
+            {t("vault.empty.hint")}
+          </Text>
+        </View>
       </If>
 
       <View style={{ flex: 1, gap: 2, paddingHorizontal: 8 }}>
-        <Each of={FOLDERS}>
+        <Each of={props.folders}>
           {(folder) => {
             const f = folder();
             const on = props.selected === f.id;
             const c = colors();
+            const label = f.id === "" ? t("vault.rootFolder") : f.name;
             return (
               <View
                 role="button"
@@ -61,10 +91,21 @@ export function Sidebar(props: Props) {
                   borderLeftColor: on ? c.accent : "transparent",
                 }}
               >
-                <Icon name={f.icon} color={on ? c.accent : c.ink2} size={16} />
+                <Icon
+                  name={f.id === "" ? "notebook" : "folder"}
+                  color={on ? c.accent : c.ink2}
+                  size={16}
+                />
                 <If when={!props.rail}>
-                  <Text style={{ fontSize: 13, fontWeight: "500", color: on ? c.accent : c.ink }}>
-                    {t(f.labelKey)}
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "500",
+                      color: on ? c.accent : c.ink,
+                      flex: 1,
+                    }}
+                  >
+                    {label}
                   </Text>
                 </If>
               </View>

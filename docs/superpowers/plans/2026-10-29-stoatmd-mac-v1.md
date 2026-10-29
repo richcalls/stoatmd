@@ -33,7 +33,8 @@ Phase 3  Mac 打磨（设置面板完整主题网格、字体偏好、快捷键�
 Phase 4  再谈同步（S1–S9，见 product/SYNC.md；本计划仅预留位）
 ```
 
-**本 PR（Phase 0 + Phase 1）**：计划入库 + 可检出的 Mac 壳；列表用假数据；**真正选文件夹与 Vault 留给下一 PR（Phase 2）**。
+**Phase 0 + Phase 1**：计划入库 + Mac 壳（假数据）。  
+**Phase 2（本阶段 PR）**：Vault 真读写、系统选文件夹、自动保存、冲突提示。
 
 ## 目标目录（对齐技术设计）
 
@@ -174,20 +175,21 @@ stoatmd/
 
 ---
 
-### T6 · Vault（下一 PR · Phase 2）— 本 PR 只写清边界
+### T6 · Vault（Phase 2）
 
-**内容（不做于本 PR）**
+**内容**
 
 - `crates/stoatmd-core`：`open` / `list` / `read` / `write` / `create` / `rename` / `delete`
 - 路径规范化，禁止逃出 root
 - 文件监视 → UI 冲突保留/重载
-- Mac：系统选文件夹 + 持久权限
+- Mac：系统选文件夹（`rfd`；nsh 0.3.0 尚无 `file_dialog`）+ `Storage` 记上次 root
 - 替换假数据；停顿自动保存
 
-**验收（下一 PR）**
+**验收**
 
-- [ ] 打开自选文件夹，新建/编辑/预览 `.md`，自动保存可靠
-- [ ] 外部改文件能提示冲突
+- [x] Vault 单元测试（路径逃逸 / CRUD / 冲突 mtime）
+- [x] native 桥暴露给 TSX；Mac UI 主路径为真 `.md`
+- [ ] Mac 真机：打开自选文件夹，新建/编辑/预览，自动保存与冲突弹窗（本环境无 macOS）
 
 ---
 

@@ -1,6 +1,7 @@
 import { Text, View } from "nsh";
 import { Dialog } from "nsh/base";
 import { locale, setLocale, t, type Locale } from "./i18n";
+import { saveLocale } from "./prefs";
 import { applyAppearanceForTheme, colors, themeId, type ThemeId } from "./theme";
 
 export type SettingsTab = "appearance" | "font" | "sync";
@@ -10,6 +11,8 @@ type Props = {
   tab: SettingsTab;
   onTab: (tab: SettingsTab) => void;
   onClose: () => void;
+  vaultRoot?: string | null;
+  onOpenVault?: () => void;
 };
 
 const THEMES: { id: ThemeId; labelKey: string; swatch: string; disabled?: boolean }[] = [
@@ -159,7 +162,10 @@ export function SettingsSheet(props: Props) {
                   return (
                     <View
                       role="button"
-                      onPress={() => setLocale(item.id)}
+                      onPress={() => {
+                        setLocale(item.id);
+                        void saveLocale(item.id);
+                      }}
                       style={{
                         paddingHorizontal: 12,
                         height: 30,
@@ -216,6 +222,30 @@ export function SettingsSheet(props: Props) {
             <Text style={{ fontSize: 13, color: colors().ink3, lineHeight: 22 }}>
               {t("sync.later")}
             </Text>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: colors().ink, marginTop: 12 }}>
+              {t("vault.section")}
+            </Text>
+            <Text style={{ fontSize: 12, color: colors().ink3, lineHeight: 18 }}>
+              {props.vaultRoot ? props.vaultRoot : t("vault.none")}
+            </Text>
+            <If when={!!props.onOpenVault}>
+              <View
+                role="button"
+                onPress={props.onOpenVault}
+                style={{
+                  alignSelf: "flex-start",
+                  marginTop: 4,
+                  paddingHorizontal: 12,
+                  height: 30,
+                  borderRadius: 6,
+                  borderWidth: 1,
+                  borderColor: colors().thread,
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ fontSize: 13, color: colors().ink }}>{t("vault.open")}</Text>
+              </View>
+            </If>
           </View>
         </If>
       </View>

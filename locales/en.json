@@ -31,5 +31,21 @@
   "settings.locale": "Language",
   "settings.locale.zh": "中文",
   "settings.locale.en": "English",
-  "note.new": "New note"
+  "note.new": "New note",
+  "note.empty": "No notes in this folder yet",
+  "menu.file": "File",
+  "menu.edit": "Edit",
+  "menu.quit": "Quit",
+  "vault.open": "Open Folder…",
+  "vault.section": "Local vault",
+  "vault.none": "No folder selected",
+  "vault.rootFolder": "Root",
+  "vault.empty.hint": "Choose a local folder as your vault. Ordinary .md files inside are read and written.",
+  "vault.saving": "Saving…",
+  "vault.saved": "Saved",
+  "vault.reloaded": "Reloaded from disk",
+  "vault.conflict.title": "File changed on disk",
+  "vault.conflict.description": "The file on disk differs from the editor. Keep local edits to overwrite disk, or reload to discard unsaved changes.",
+  "vault.conflict.keep": "Keep local",
+  "vault.conflict.reload": "Reload from disk"
 }

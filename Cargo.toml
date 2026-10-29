@@ -12,3 +12,5 @@ publish = false
 nsh-core = "=0.3.0"
 nsh-base = "=0.3.0"
 stoatmd-core = { path = "crates/stoatmd-core" }
+rfd = "0.15"
+notify = "7"
