@@ -28,10 +28,10 @@ test("noteBelongsToFolder：根目录收全部；子目录做 NFC 前缀匹配",
 
 test("notesInFolder：从全库条目筛 Clippings，根目录列出全部笔记", () => {
   const entries = [
-    { path: "Clippings", name: "Clippings", isDir: true, mtimeMs: 1 },
-    { path: "Clippings/万字教程.md", name: "万字教程.md", isDir: false, mtimeMs: 3 },
-    { path: "Template", name: "Template", isDir: true, mtimeMs: 1 },
-    { path: "root.md", name: "root.md", isDir: false, mtimeMs: 2 },
+    { path: "Clippings", name: "Clippings", isDir: true, mtimeMs: 1, size: 0 },
+    { path: "Clippings/万字教程.md", name: "万字教程.md", isDir: false, mtimeMs: 3, size: 10 },
+    { path: "Template", name: "Template", isDir: true, mtimeMs: 1, size: 0 },
+    { path: "root.md", name: "root.md", isDir: false, mtimeMs: 2, size: 10 },
   ];
 
   const folders = foldersFromEntries(entries);
@@ -51,8 +51,8 @@ test("notesInFolder：NFD 文件夹 id 仍能匹配 NFC 笔记路径（复现 Ma
   const nfd = "价格行为学".normalize("NFD");
   const nfc = "价格行为学".normalize("NFC");
   const entries = [
-    { path: nfc, name: nfc, isDir: true, mtimeMs: 1 },
-    { path: `${nfc}/note.md`, name: "note.md", isDir: false, mtimeMs: 2 },
+    { path: nfc, name: nfc, isDir: true, mtimeMs: 1, size: 0 },
+    { path: `${nfc}/note.md`, name: "note.md", isDir: false, mtimeMs: 2, size: 10 },
   ];
   const notes = notesInFolder(entries, nfd);
   expect(notes.length).toBe(1);

@@ -1,8 +1,12 @@
 //! StoatMD 原生桥：TSX 从 `stoatmd/native` 导入。
 //! Vault 重活在 `crates/stoatmd-core`；选文件夹与监视在本模块接通。
 
-use std::path::PathBuf;
+use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use nsh_core::prelude::*;
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
@@ -15,6 +19,9 @@ fn native(registry: &mut Registry) {
         .module::<StoatMeta>()
         .module::<VaultDialog>()
         .module::<SystemFonts>()
+        .module::<SyncConfig>()
+        .module::<OAuth>()
+        .module::<TokenVault>()
         .class::<Vault>();
 }
 
@@ -83,6 +90,108 @@ impl VaultDialog {
     }
 }
 
+/// 同步连接配置（客户端凭据只来自开发者环境 / 本地配置，不写进应用包）。
+#[derive(Debug, Clone, PartialEq, JsObject)]
+pub struct SyncConfigDto {
+    /// Google OAuth 桌面客户端 ID。
+    pub google_client_id: String,
+    /// Google 桌面客户端 secret（Google 仍要求；非用户机密）。
+    pub google_client_secret: String,
+    /// Dropbox 应用 key。
+    pub dropbox_app_key: String,
+    /// Dropbox 应用 secret（可选，PKCE 公共客户端）。
+    pub dropbox_app_secret: String,
+    /// Dropbox 要求回调端口固定并在应用后台登记；0 表示随机端口。
+    pub dropbox_redirect_port: u32,
+    /// 付费墙开关；商业化接入前默认关闭。
+    pub purchase_required: bool,
+    /// 配置文件路径（UI 在缺凭据时提示）。
+    pub config_path: String,
+}
+
+/// 读取同步的开发者配置：环境变量优先，其次 `sync.json`。
+#[module]
+pub struct SyncConfig;
+
+#[module]
+impl SyncConfig {
+    /// 当前配置；缺项为空串，由界面提示如何补齐。
+    pub fn load() -> SyncConfigDto {
+        let path = config_file_path();
+        let doc = std::fs::read_to_string(&path)
+            .ok()
+            .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
+            .unwrap_or(serde_json::Value::Null);
+        let mut config = config_from_json(&doc, &path);
+        apply_env(&mut config);
+        config
+    }
+}
+
+/// OAuth 回调结果；`redirect_uri` 必须与授权时登记的一致。
+#[derive(Debug, Clone, PartialEq, JsObject)]
+pub struct OAuthResultDto {
+    /// 授权码。
+    pub code: String,
+    /// 回传的 state（已校验）。
+    pub state: String,
+    /// 实际使用的 loopback 回调地址。
+    pub redirect_uri: String,
+}
+
+static OAUTH_CANCELLED: AtomicBool = AtomicBool::new(false);
+static OAUTH_RUNNING: AtomicBool = AtomicBool::new(false);
+/// 浏览器授权最多等 5 分钟。
+const OAUTH_TIMEOUT: Duration = Duration::from_secs(300);
+const OAUTH_PATH: &str = "/callback";
+
+/// 系统浏览器 + 本机 loopback 回调的 OAuth 授权（PKCE 由 TS 侧生成）。
+#[module]
+pub struct OAuth;
+
+#[module]
+impl OAuth {
+    /// 打开浏览器并等待回调；`url_template` 里的 `__REDIRECT__` 换成实际回调地址。
+    /// `port` 为 0 / 缺省时用随机端口（Google 可接受）；Dropbox 需固定端口。
+    pub async fn authorize(
+        url_template: String,
+        state: String,
+        port: Option<u32>,
+    ) -> Result<OAuthResultDto, String> {
+        match blocking(move || run_oauth(&url_template, &state, port)).await {
+            Ok(result) => result,
+            Err(err) => Err(err.to_string()),
+        }
+    }
+
+    /// 取消进行中的授权（用户点「取消」时调用）。
+    pub fn cancel() {
+        OAUTH_CANCELLED.store(true, Ordering::SeqCst);
+    }
+}
+
+/// OAuth 令牌：macOS 存登录钥匙串，其它平台回退到 0600 文件。
+#[module]
+pub struct TokenVault;
+
+#[module]
+impl TokenVault {
+    /// 写入或更新。
+    pub fn set(provider: String, secret: String) -> Result<(), String> {
+        token_set(&provider, &secret)
+    }
+
+    /// 读取；没有时返回 `null`。
+    pub fn get(provider: String) -> Result<Option<String>, String> {
+        token_get(&provider)
+    }
+
+    /// 删除；不存在也算成功。
+    pub fn delete(provider: String) -> Result<(), String> {
+        token_delete(&provider)
+    }
+}
+
 /// 列表项（给 TSX）。
 #[derive(Debug, Clone, PartialEq, JsObject)]
 pub struct VaultEntryDto {
@@ -94,6 +203,8 @@ pub struct VaultEntryDto {
     pub is_dir: bool,
     /// 修改时间（毫秒）。
     pub mtime_ms: u64,
+    /// 文件字节数（目录为 0）。
+    pub size: u64,
 }
 
 /// 读文件结果。
@@ -219,6 +330,11 @@ impl Vault {
             .map_err(map_err)
     }
 
+    /// 确保相对目录存在（同步下载补父目录）。
+    pub fn ensure_dir(&self, path: String) -> Result<(), String> {
+        self.core.ensure_dir(&path).map_err(map_err)
+    }
+
     /// 重命名 / 移动。
     pub fn rename(&self, from: String, to: String) -> Result<(), String> {
         self.core.rename(&from, &to).map_err(map_err)
@@ -238,6 +354,64 @@ impl Vault {
     pub fn poll_changes(&self) -> Vec<VaultChangeDto> {
         let mut guard = self.pending.lock().unwrap_or_else(|e| e.into_inner());
         std::mem::take(&mut *guard)
+    }
+}
+
+#[cfg(test)]
+mod sync_tests {
+    use super::{config_from_json, parse_query, percent_decode, percent_encode, valid_provider};
+    use std::path::Path;
+
+    #[test]
+    fn oauth_redirect_is_percent_encoded_into_template() {
+        let redirect = "http://127.0.0.1:53682/callback";
+        let encoded = percent_encode(redirect);
+        assert_eq!(encoded, "http%3A%2F%2F127.0.0.1%3A53682%2Fcallback");
+        let template = format!(
+            "https://example.com/auth?redirect_uri={encoded}&state=__STATE__"
+        );
+        assert!(template.contains("redirect_uri=http%3A%2F%2F"));
+    }
+
+    #[test]
+    fn oauth_query_decodes_plus_and_percent() {
+        let params = parse_query("code=4%2F0Ab&state=a%20b&error_description=no+access");
+        assert_eq!(params.get("code").unwrap(), "4/0Ab");
+        assert_eq!(params.get("state").unwrap(), "a b");
+        assert_eq!(params.get("error_description").unwrap(), "no access");
+        assert_eq!(percent_decode("%E4%B8%AD"), "中");
+    }
+
+    #[test]
+    fn config_reads_json_and_defaults() {
+        let doc = serde_json::json!({
+            "googleClientId": "gid",
+            "googleClientSecret": "gsecret",
+            "dropboxAppKey": "dkey",
+            "dropboxRedirectPort": 51234,
+            "purchaseRequired": true
+        });
+        let config = config_from_json(&doc, Path::new("/tmp/sync.json"));
+        assert_eq!(config.google_client_id, "gid");
+        assert_eq!(config.google_client_secret, "gsecret");
+        assert_eq!(config.dropbox_app_key, "dkey");
+        assert_eq!(config.dropbox_app_secret, "");
+        assert_eq!(config.dropbox_redirect_port, 51234);
+        assert!(config.purchase_required);
+        assert_eq!(config.config_path, "/tmp/sync.json");
+
+        let empty = config_from_json(&serde_json::Value::Null, Path::new("x"));
+        assert_eq!(empty.google_client_id, "");
+        assert_eq!(empty.dropbox_redirect_port, 53682);
+        assert!(!empty.purchase_required);
+    }
+
+    #[test]
+    fn token_provider_names_are_restricted() {
+        assert!(valid_provider("google").is_ok());
+        assert!(valid_provider("dropbox.dev-1").is_ok());
+        assert!(valid_provider("../evil").is_err());
+        assert!(valid_provider("").is_err());
     }
 }
 
@@ -265,8 +439,438 @@ fn map_entries(rows: Vec<stoatmd_core::VaultEntry>) -> Vec<VaultEntryDto> {
             name: e.name,
             is_dir: e.is_dir,
             mtime_ms: e.mtime_ms,
+            size: e.size,
         })
         .collect()
+}
+
+fn support_dir() -> PathBuf {
+    if let Some(dir) = std::env::var_os("STOATMD_SUPPORT_DIR") {
+        return PathBuf::from(dir);
+    }
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."));
+    home.join("Library")
+        .join("Application Support")
+        .join("StoatMD")
+}
+
+fn config_file_path() -> PathBuf {
+    std::env::var_os("STOATMD_CONFIG_PATH")
+        .map(PathBuf::from)
+        .filter(|path| !path.as_os_str().is_empty())
+        .unwrap_or_else(|| support_dir().join("sync.json"))
+}
+
+fn config_from_json(doc: &serde_json::Value, path: &Path) -> SyncConfigDto {
+    SyncConfigDto {
+        google_client_id: json_str(doc, &["googleClientId", "google_client_id"]),
+        google_client_secret: json_str(doc, &["googleClientSecret", "google_client_secret"]),
+        dropbox_app_key: json_str(doc, &["dropboxAppKey", "dropbox_app_key"]),
+        dropbox_app_secret: json_str(doc, &["dropboxAppSecret", "dropbox_app_secret"]),
+        dropbox_redirect_port: json_u32(doc, &["dropboxRedirectPort", "dropbox_redirect_port"])
+            .filter(|port| *port > 0 && *port <= u16::MAX as u32)
+            .unwrap_or(53682),
+        purchase_required: doc
+            .get("purchaseRequired")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(false),
+        config_path: path.display().to_string(),
+    }
+}
+
+fn json_str(doc: &serde_json::Value, keys: &[&str]) -> String {
+    keys.iter()
+        .find_map(|key| doc.get(*key).and_then(|value| value.as_str()))
+        .unwrap_or("")
+        .trim()
+        .to_owned()
+}
+
+fn json_u32(doc: &serde_json::Value, keys: &[&str]) -> Option<u32> {
+    keys.iter().find_map(|key| {
+        doc.get(*key).and_then(|value| {
+            value
+                .as_u64()
+                .map(|n| n as u32)
+                .or_else(|| value.as_str().and_then(|s| s.parse().ok()))
+        })
+    })
+}
+
+fn apply_env(config: &mut SyncConfigDto) {
+    if let Ok(value) = std::env::var("STOATMD_GOOGLE_CLIENT_ID") {
+        if !value.trim().is_empty() {
+            config.google_client_id = value.trim().to_owned();
+        }
+    }
+    if let Ok(value) = std::env::var("STOATMD_GOOGLE_CLIENT_SECRET") {
+        if !value.trim().is_empty() {
+            config.google_client_secret = value.trim().to_owned();
+        }
+    }
+    if let Ok(value) = std::env::var("STOATMD_DROPBOX_APP_KEY") {
+        if !value.trim().is_empty() {
+            config.dropbox_app_key = value.trim().to_owned();
+        }
+    }
+    if let Ok(value) = std::env::var("STOATMD_DROPBOX_APP_SECRET") {
+        if !value.trim().is_empty() {
+            config.dropbox_app_secret = value.trim().to_owned();
+        }
+    }
+    if let Ok(value) = std::env::var("STOATMD_DROPBOX_REDIRECT_PORT") {
+        if let Ok(port) = value.trim().parse::<u32>() {
+            if port > 0 && port <= u16::MAX as u32 {
+                config.dropbox_redirect_port = port;
+            }
+        }
+    }
+    if let Ok(value) = std::env::var("STOATMD_PURCHASE_REQUIRED") {
+        config.purchase_required = matches!(value.trim(), "1" | "true" | "TRUE" | "yes");
+    }
+}
+
+struct OAuthRunGuard;
+
+impl Drop for OAuthRunGuard {
+    fn drop(&mut self) {
+        OAUTH_RUNNING.store(false, Ordering::SeqCst);
+    }
+}
+
+fn run_oauth(
+    url_template: &str,
+    expected_state: &str,
+    port: Option<u32>,
+) -> Result<OAuthResultDto, String> {
+    if OAUTH_RUNNING.swap(true, Ordering::SeqCst) {
+        return Err("oauth_already_running".to_owned());
+    }
+    let _guard = OAuthRunGuard;
+    OAUTH_CANCELLED.store(false, Ordering::SeqCst);
+
+    let listener = match port.filter(|port| *port > 0) {
+        Some(port) if port <= u16::MAX as u32 => TcpListener::bind(("127.0.0.1", port as u16))
+            .map_err(|err| format!("oauth_bind:{port}:{err}"))?,
+        _ => TcpListener::bind(("127.0.0.1", 0)).map_err(|err| format!("oauth_bind:{err}"))?,
+    };
+    listener
+        .set_nonblocking(true)
+        .map_err(|err| format!("oauth_listen:{err}"))?;
+    let actual_port = listener
+        .local_addr()
+        .map_err(|err| format!("oauth_listen:{err}"))?
+        .port();
+    let redirect_uri = format!("http://127.0.0.1:{actual_port}{OAUTH_PATH}");
+    let url = url_template.replace("__REDIRECT__", &percent_encode(&redirect_uri));
+    open_external(&url).map_err(|err| format!("oauth_open:{err}"))?;
+
+    let deadline = Instant::now() + OAUTH_TIMEOUT;
+    while Instant::now() < deadline {
+        if OAUTH_CANCELLED.load(Ordering::SeqCst) {
+            return Err("oauth_cancelled".to_owned());
+        }
+        match listener.accept() {
+            Ok((stream, _)) => {
+                if let Some(result) = handle_oauth_callback(stream, expected_state) {
+                    return result.map(|code| OAuthResultDto {
+                        code,
+                        state: expected_state.to_owned(),
+                        redirect_uri,
+                    });
+                }
+            }
+            Err(err) if err.kind() == std::io::ErrorKind::WouldBlock => {
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            Err(err) => return Err(format!("oauth_accept:{err}")),
+        }
+    }
+    Err("oauth_timeout".to_owned())
+}
+
+fn handle_oauth_callback(
+    mut stream: TcpStream,
+    expected_state: &str,
+) -> Option<Result<String, String>> {
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
+    let mut buf = [0u8; 8192];
+    let mut len = 0;
+    while len < buf.len() {
+        match stream.read(&mut buf[len..]) {
+            Ok(0) => break,
+            Ok(n) => {
+                len += n;
+                if buf[..len].windows(4).any(|window| window == b"\r\n\r\n") {
+                    break;
+                }
+            }
+            Err(_) => break,
+        }
+    }
+    if len == 0 {
+        return None;
+    }
+    let request = String::from_utf8_lossy(&buf[..len]);
+    let target = request.lines().next()?.split_whitespace().nth(1)?.to_owned();
+    let is_callback = target == OAUTH_PATH || target.starts_with(&format!("{OAUTH_PATH}?"));
+    if !is_callback {
+        let _ = respond(stream, 404, "Not found");
+        return None;
+    }
+    let query = target.split_once('?').map(|(_, query)| query).unwrap_or("");
+    let params = parse_query(query);
+    if let Some(error) = params.get("error") {
+        let description = params.get("error_description").cloned().unwrap_or_default();
+        let _ = respond(stream, 200, callback_page(false));
+        return Some(Err(format!("oauth_error:{error}:{description}")));
+    }
+    let Some(code) = params.get("code").cloned() else {
+        let _ = respond(stream, 200, callback_page(false));
+        return Some(Err("oauth_no_code".to_owned()));
+    };
+    if params.get("state").map(String::as_str) != Some(expected_state) {
+        let _ = respond(stream, 400, callback_page(false));
+        return Some(Err("oauth_state_mismatch".to_owned()));
+    }
+    let _ = respond(stream, 200, callback_page(true));
+    Some(Ok(code))
+}
+
+fn respond(mut stream: TcpStream, status: u16, body: &str) -> std::io::Result<()> {
+    let reason = match status {
+        200 => "OK",
+        400 => "Bad Request",
+        404 => "Not Found",
+        _ => "Error",
+    };
+    let response = format!(
+        "HTTP/1.1 {status} {reason}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.as_bytes().len()
+    );
+    stream.write_all(response.as_bytes())?;
+    stream.flush()
+}
+
+fn callback_page(ok: bool) -> &'static str {
+    if ok {
+        "<!doctype html><meta charset=\"utf-8\"><title>StoatMD</title><body style=\"font-family:-apple-system,system-ui,sans-serif;padding:48px;line-height:1.6\"><h2>授权完成</h2><p>请返回 StoatMD。</p><p>Authorization complete — you can close this tab and return to StoatMD.</p></body>"
+    } else {
+        "<!doctype html><meta charset=\"utf-8\"><title>StoatMD</title><body style=\"font-family:-apple-system,system-ui,sans-serif;padding:48px;line-height:1.6\"><h2>授权未完成</h2><p>请回到 StoatMD 重试。</p><p>Authorization did not complete — return to StoatMD and try again.</p></body>"
+    }
+}
+
+fn percent_encode(input: &str) -> String {
+    let mut out = String::with_capacity(input.len() * 3);
+    for byte in input.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
+            out.push(byte as char);
+        } else {
+            out.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    out
+}
+
+fn percent_decode(input: &str) -> String {
+    let bytes = input.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'+' => {
+                out.push(b' ');
+                i += 1;
+            }
+            b'%' if i + 2 < bytes.len() => {
+                let hex = std::str::from_utf8(&bytes[i + 1..i + 3])
+                    .ok()
+                    .and_then(|hex| u8::from_str_radix(hex, 16).ok());
+                match hex {
+                    Some(byte) => {
+                        out.push(byte);
+                        i += 3;
+                    }
+                    None => {
+                        out.push(bytes[i]);
+                        i += 1;
+                    }
+                }
+            }
+            byte => {
+                out.push(byte);
+                i += 1;
+            }
+        }
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+fn parse_query(query: &str) -> std::collections::HashMap<String, String> {
+    let mut out = std::collections::HashMap::new();
+    for pair in query.split('&') {
+        if pair.is_empty() {
+            continue;
+        }
+        let (key, value) = pair.split_once('=').unwrap_or((pair, ""));
+        out.insert(percent_decode(key), percent_decode(value));
+    }
+    out
+}
+
+fn open_external(url: &str) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    let mut command = {
+        let mut command = std::process::Command::new("open");
+        command.arg(url);
+        command
+    };
+    #[cfg(target_os = "windows")]
+    let mut command = {
+        let mut command = std::process::Command::new("cmd");
+        command.args(["/C", "start", "", url]);
+        command
+    };
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let mut command = {
+        let mut command = std::process::Command::new("xdg-open");
+        command.arg(url);
+        command
+    };
+    let status = command.status().map_err(|err| err.to_string())?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("browser exited with {status}"))
+    }
+}
+
+fn valid_provider(provider: &str) -> Result<(), String> {
+    if provider.is_empty()
+        || !provider
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+    {
+        return Err(format!("invalid provider: {provider}"));
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+const KEYCHAIN_SERVICE: &str = "com.stoatmd.app.sync";
+
+#[cfg(target_os = "macos")]
+fn token_set(provider: &str, secret: &str) -> Result<(), String> {
+    valid_provider(provider)?;
+    let output = std::process::Command::new("/usr/bin/security")
+        .args([
+            "add-generic-password",
+            "-U",
+            "-s",
+            KEYCHAIN_SERVICE,
+            "-a",
+            provider,
+            "-w",
+            secret,
+        ])
+        .output()
+        .map_err(|err| err.to_string())?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).trim().to_owned())
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn token_get(provider: &str) -> Result<Option<String>, String> {
+    valid_provider(provider)?;
+    let output = std::process::Command::new("/usr/bin/security")
+        .args([
+            "find-generic-password",
+            "-s",
+            KEYCHAIN_SERVICE,
+            "-a",
+            provider,
+            "-w",
+        ])
+        .output()
+        .map_err(|err| err.to_string())?;
+    if output.status.success() {
+        return Ok(Some(
+            String::from_utf8_lossy(&output.stdout)
+                .trim_end_matches('\n')
+                .to_owned(),
+        ));
+    }
+    if output.status.code() == Some(44) {
+        return Ok(None);
+    }
+    Err(String::from_utf8_lossy(&output.stderr).trim().to_owned())
+}
+
+#[cfg(target_os = "macos")]
+fn token_delete(provider: &str) -> Result<(), String> {
+    valid_provider(provider)?;
+    let output = std::process::Command::new("/usr/bin/security")
+        .args([
+            "delete-generic-password",
+            "-s",
+            KEYCHAIN_SERVICE,
+            "-a",
+            provider,
+        ])
+        .output()
+        .map_err(|err| err.to_string())?;
+    if output.status.success() || output.status.code() == Some(44) {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).trim().to_owned())
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn token_path(provider: &str) -> Result<PathBuf, String> {
+    valid_provider(provider)?;
+    Ok(support_dir().join("tokens").join(format!("{provider}.secret")))
+}
+
+#[cfg(not(target_os = "macos"))]
+fn token_set(provider: &str, secret: &str) -> Result<(), String> {
+    let path = token_path(provider)?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|err| err.to_string())?;
+    }
+    std::fs::write(&path, secret).map_err(|err| err.to_string())?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))
+            .map_err(|err| err.to_string())?;
+    }
+    Ok(())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn token_get(provider: &str) -> Result<Option<String>, String> {
+    let path = token_path(provider)?;
+    match std::fs::read_to_string(&path) {
+        Ok(secret) => Ok(Some(secret)),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn token_delete(provider: &str) -> Result<(), String> {
+    let path = token_path(provider)?;
+    match std::fs::remove_file(&path) {
+        Ok(()) => Ok(()),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(err) => Err(err.to_string()),
+    }
 }
 
 /// 监视回调里忽略的相对路径（隐藏段或 node_modules）。

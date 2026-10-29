@@ -3,6 +3,7 @@ import { Button, Dialog, Input, Popover } from "nsh/base";
 import { Icon, type IconName } from "./Icon";
 import { localePref, setLocalePref, t, type LocalePref } from "./i18n";
 import { saveLocale } from "./prefs";
+import { SyncSettings } from "./SyncSettings";
 import { THEMES, applyTheme, colors, themeId, type ThemePreset } from "./theme";
 import {
   FONT_SIZE_MAX,
@@ -31,6 +32,8 @@ type Props = {
   onClose: () => void;
   vaultRoot?: string | null;
   onOpenVault?: () => void;
+  onSyncNow?: () => void;
+  onManageConflicts?: () => void;
 };
 
 const TABS: { id: SettingsTab; labelKey: string; icon: IconName }[] = [
@@ -660,56 +663,13 @@ export function SettingsSheet(props: Props) {
             </If>
 
             <If when={props.tab === "sync"}>
-              <View style={{ gap: 8 }}>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "600",
-                    letterSpacing: -0.14,
-                    color: colors().ink,
-                  }}
-                >
-                  {t("settings.sync")}
-                </Text>
-                <Text style={{ fontSize: 12.5, color: colors().ink2, lineHeight: 18 }}>
-                  {t("sync.later")}
-                </Text>
-                <Text style={{ fontSize: 13, color: colors().ink2, lineHeight: 22 }}>
-                  {t("sync.off")}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "600",
-                    letterSpacing: -0.14,
-                    color: colors().ink,
-                    marginTop: 14,
-                  }}
-                >
-                  {t("vault.section")}
-                </Text>
-                <Text style={{ fontSize: 12, color: colors().ink3, lineHeight: 18 }}>
-                  {props.vaultRoot ? props.vaultRoot : t("vault.none")}
-                </Text>
-                <If when={!!props.onOpenVault}>
-                  <View
-                    role="button"
-                    onPress={props.onOpenVault}
-                    style={{
-                      alignSelf: "flex-start",
-                      marginTop: 4,
-                      paddingHorizontal: 12,
-                      height: 30,
-                      borderRadius: 6,
-                      borderWidth: 1,
-                      borderColor: colors().thread,
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Text style={{ fontSize: 13, color: colors().ink }}>{t("vault.open")}</Text>
-                  </View>
-                </If>
-              </View>
+              <SyncSettings
+                open={props.open}
+                vaultRoot={props.vaultRoot}
+                onOpenVault={props.onOpenVault}
+                onSyncNow={props.onSyncNow}
+                onManageConflicts={props.onManageConflicts}
+              />
             </If>
           </View>
         </Scroll>

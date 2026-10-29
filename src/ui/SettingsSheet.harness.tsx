@@ -18,6 +18,10 @@ function Harness() {
         tab={tab()}
         onTab={(t) => tab.set(t)}
         onClose={() => open.set(false)}
+        vaultRoot="/tmp/stoatmd-test-vault"
+        onOpenVault={() => {}}
+        onSyncNow={() => {}}
+        onManageConflicts={() => {}}
       />
     </View>
   );

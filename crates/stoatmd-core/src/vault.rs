@@ -17,6 +17,8 @@ pub struct VaultEntry {
     pub is_dir: bool,
     /// 修改时间（毫秒，Unix epoch）。
     pub mtime_ms: u64,
+    /// 文件字节数（目录为 0）。
+    pub size: u64,
 }
 
 /// 读文件结果。
@@ -143,6 +145,7 @@ impl Vault {
                     name: name.clone(),
                     is_dir: true,
                     mtime_ms: mtime_ms(&meta),
+                    size: 0,
                 });
                 if recursive {
                     self.collect_dir(&path, true, out)?;
@@ -154,6 +157,7 @@ impl Vault {
                     name,
                     is_dir: false,
                     mtime_ms: mtime_ms(&meta),
+                    size: meta.len(),
                 });
             }
         }
@@ -220,6 +224,19 @@ impl Vault {
         fs::write(&path, content).map_err(|e| VaultError::Io(e.to_string()))?;
         let meta = fs::metadata(&path).map_err(|e| VaultError::Io(e.to_string()))?;
         Ok(mtime_ms(&meta))
+    }
+
+    /// 确保相对目录存在（同步下载嵌套笔记时补建父目录）。
+    pub fn ensure_dir(&self, rel: &str) -> Result<(), VaultError> {
+        let path = self.resolve(rel, false)?;
+        if path.exists() {
+            return if path.is_dir() {
+                Ok(())
+            } else {
+                Err(VaultError::NotADirectory(rel.to_owned()))
+            };
+        }
+        fs::create_dir_all(&path).map_err(|e| VaultError::Io(e.to_string()))
     }
 
     /// 重命名 / 移动（均须在库内）。
@@ -525,6 +542,24 @@ mod tests {
             .write("note.md", "from-app", Some(stale))
             .unwrap_err();
         assert!(matches!(err, VaultError::Conflict { .. }));
+    }
+
+    #[test]
+    fn ensure_dir_creates_nested_parents_inside_root() {
+        let (_dir, vault) = temp_vault();
+        vault.ensure_dir("a/b/c").unwrap();
+        assert!(vault.root().join("a/b/c").is_dir());
+        vault.ensure_dir("a/b/c").unwrap();
+        let err = vault.ensure_dir("../outside").unwrap_err();
+        assert!(matches!(err, VaultError::InvalidPath(_)));
+    }
+
+    #[test]
+    fn entries_carry_file_size() {
+        let (_dir, vault) = temp_vault();
+        vault.create("note.md", "hello").unwrap();
+        let entry = vault.list("").unwrap().into_iter().find(|e| !e.is_dir).unwrap();
+        assert_eq!(entry.size, 5);
     }
 
     #[test]

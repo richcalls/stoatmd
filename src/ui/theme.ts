@@ -333,3 +333,10 @@ export function isDarkTheme(): boolean {
 export function colors(): ThemePalette {
   return themePreset().palette;
 }
+
+/** 成功 / 冲突状态色（token 表没铺满 12 套，按明暗取通用值）。 */
+export function statusColor(kind: "ok" | "danger"): string {
+  const dark = isDarkTheme();
+  if (kind === "ok") return dark ? "#7FB08A" : "#5A8A62";
+  return dark ? "#D98B82" : "#B4544A";
+}
