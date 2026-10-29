@@ -17,6 +17,8 @@
   "toolbar.font": "Typography",
   "toolbar.settings": "Settings",
   "settings.title": "Settings",
+  "settings.close": "Close settings",
+  "settings.done": "Done",
   "settings.appearance": "Appearance",
   "settings.font": "Font",
   "settings.sync": "Sync",

@@ -1,5 +1,6 @@
 import { Scroll, Text, View } from "nsh";
 import { Editor, ResizablePanel, ResizablePanelGroup, TextView } from "nsh/base";
+import { ModeSwitch } from "./ModeSwitch";
 import { colors } from "./theme";
 import type { ViewMode } from "./Toolbar";
 
@@ -8,23 +9,13 @@ type Props = {
   source: string;
   onChange: (value: string) => void;
   mode: ViewMode;
+  onMode: (mode: ViewMode) => void;
 };
 
-/** 右栏：Editor + TextView；按模式显示仅编辑 / 分栏 / 仅预览。 */
+/** 右栏：顶栏模式切换 + Editor / TextView。 */
 export function EditorWorkspace(props: Props) {
   const editorPane = (
-    <View style={{ flex: 1, backgroundColor: colors().editor }}>
-      <Text
-        style={{
-          fontSize: 12,
-          color: colors().ink3,
-          paddingHorizontal: 16,
-          paddingTop: 12,
-          paddingBottom: 4,
-        }}
-      >
-        {props.fileName}
-      </Text>
+    <View style={{ flex: 1, backgroundColor: colors().editor }} testID="pane-editor">
       <Editor
         value={props.source}
         onChange={props.onChange}
@@ -42,7 +33,11 @@ export function EditorWorkspace(props: Props) {
   );
 
   const previewPane = (
-    <Scroll style={{ flex: 1, backgroundColor: colors().preview }} contentClass="px-6 py-4">
+    <Scroll
+      testID="pane-preview"
+      style={{ flex: 1, backgroundColor: colors().preview }}
+      contentClass="px-6 py-4"
+    >
       <View style={{ maxWidth: 672, width: "100%", alignSelf: "center" }}>
         <TextView
           markdown={props.source}
@@ -66,22 +61,52 @@ export function EditorWorkspace(props: Props) {
     </Scroll>
   );
 
+  let body: any;
   if (props.mode === "edit") {
-    return <View style={{ flex: 1 }}>{editorPane}</View>;
-  }
-  if (props.mode === "preview") {
-    return <View style={{ flex: 1 }}>{previewPane}</View>;
+    body = <View style={{ flex: 1 }}>{editorPane}</View>;
+  } else if (props.mode === "preview") {
+    body = <View style={{ flex: 1 }}>{previewPane}</View>;
+  } else {
+    body = (
+      <ResizablePanelGroup
+        axis="horizontal"
+        handleStyle={{ backgroundColor: colors().thread, width: 1 }}
+        handleAccessibilityLabel="Resize editor and preview"
+        style={{ flex: 1 }}
+      >
+        <ResizablePanel minSize={220}>{editorPane}</ResizablePanel>
+        <ResizablePanel minSize={220}>{previewPane}</ResizablePanel>
+      </ResizablePanelGroup>
+    );
   }
 
   return (
-    <ResizablePanelGroup
-      axis="horizontal"
-      handleStyle={{ backgroundColor: colors().thread, width: 1 }}
-      handleAccessibilityLabel="Resize editor and preview"
-      style={{ flex: 1 }}
-    >
-      <ResizablePanel minSize={220}>{editorPane}</ResizablePanel>
-      <ResizablePanel minSize={220}>{previewPane}</ResizablePanel>
-    </ResizablePanelGroup>
+    <View style={{ flex: 1, flexDirection: "column", backgroundColor: colors().editor }}>
+      {/* 编辑区顶栏：文件名左、模式右——对齐 ui-v1 editor-toolbar */}
+      <View
+        testID="editor-toolbar"
+        style={{
+          height: 40,
+          paddingHorizontal: 12,
+          flexDirection: "row",
+          alignItems: "center",
+          borderBottomWidth: 1,
+          borderBottomColor: colors().thread,
+          backgroundColor: colors().editor,
+          gap: 8,
+        }}
+      >
+        <Text
+          style={{ flex: 1, fontSize: 12, color: colors().ink3 }}
+          numberOfLines={1}
+        >
+          {props.fileName}
+        </Text>
+        <ModeSwitch mode={props.mode} onMode={props.onMode} />
+      </View>
+      <View style={{ flex: 1 }} testID={`workspace-mode-${props.mode}`}>
+        {body}
+      </View>
+    </View>
   );
 }

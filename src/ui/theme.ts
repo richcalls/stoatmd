@@ -1,13 +1,25 @@
 import { colorScheme, signal } from "nsh";
+import { loadSavedTheme, saveTheme } from "./prefs";
 
 /** 外观预设：默认织线纸白；纯白后置完整接线。 */
 export type ThemeId = "weave-paper" | "warm-charcoal" | "pure-white";
 
 export const themeId = signal<ThemeId>("weave-paper");
 
-/** 跟随系统或强制浅/深；暖夜炭强制深色，织线纸白/纯白强制浅色。 */
+const VALID: ThemeId[] = ["weave-paper", "warm-charcoal", "pure-white"];
+
+/** 跟随系统或强制浅/深；暖夜炭强制深色，织线纸白/纯白强制浅色。即时生效并写入 prefs。 */
 export function applyAppearanceForTheme(id: ThemeId) {
   themeId.set(id);
+  void saveTheme(id);
+}
+
+/** 启动时恢复主题偏好。 */
+export async function restoreTheme(): Promise<void> {
+  const saved = await loadSavedTheme();
+  if (saved && (VALID as string[]).includes(saved)) {
+    themeId.set(saved as ThemeId);
+  }
 }
 
 export function isDarkTheme(): boolean {

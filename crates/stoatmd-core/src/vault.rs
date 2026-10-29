@@ -4,6 +4,8 @@ use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use unicode_normalization::UnicodeNormalization;
+
 /// 库内一条目录项（相对路径，POSIX `/`）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VaultEntry {
@@ -122,7 +124,8 @@ impl Vault {
         for entry in rd {
             let entry = entry.map_err(|e| VaultError::Io(e.to_string()))?;
             let path = entry.path();
-            let name = entry.file_name().to_string_lossy().into_owned();
+            // 显示名与相对路径一律 NFC（macOS 目录项常为 NFD）
+            let name = nfc(&entry.file_name().to_string_lossy());
             let meta = entry.metadata().map_err(|e| VaultError::Io(e.to_string()))?;
             children.push((path, name, meta));
         }
@@ -255,6 +258,7 @@ impl Vault {
     /// 将相对路径解析为绝对路径；禁止逃出 root。
     ///
     /// `require_md`：叶子须为 `.md`（或尚不存在的 `.md` 目标）。
+    /// 路径组件按 NFC 匹配目录项（兼容 macOS NFD 文件名）。
     fn resolve(&self, rel: &str, require_md: bool) -> Result<PathBuf, VaultError> {
         let normalized = normalize_rel(rel)?;
         if require_md && !normalized.as_os_str().is_empty() {
@@ -266,24 +270,44 @@ impl Vault {
                 return Err(VaultError::InvalidPath(rel.to_owned()));
             }
         }
-        let joined = if normalized.as_os_str().is_empty() {
-            self.root.clone()
-        } else {
-            self.root.join(&normalized)
-        };
-        // 在存在的前缀上 canonicalize，再拼回后缀，防止 `..` 逃逸。
-        let (existing, rest) = split_existing(&joined);
-        let canon_existing =
-            fs::canonicalize(&existing).map_err(|e| VaultError::Io(e.to_string()))?;
-        if !canon_existing.starts_with(&self.root) {
-            return Err(VaultError::InvalidPath(rel.to_owned()));
+        if normalized.as_os_str().is_empty() {
+            return Ok(self.root.clone());
         }
-        let full = if rest.as_os_str().is_empty() {
-            canon_existing
+
+        // 逐段解析：先试直接拼接，再按 NFC 扫目录项（NFD 磁盘名）
+        let mut current = self.root.clone();
+        let mut missing: Vec<std::ffi::OsString> = Vec::new();
+        for comp in normalized.components() {
+            let Component::Normal(seg) = comp else {
+                return Err(VaultError::InvalidPath(rel.to_owned()));
+            };
+            if !missing.is_empty() {
+                missing.push(seg.to_os_string());
+                continue;
+            }
+            let direct = current.join(seg);
+            if direct.exists() {
+                current = direct;
+                continue;
+            }
+            match find_child_nfc(&current, &seg.to_string_lossy()) {
+                Some(found) => current = found,
+                None => missing.push(seg.to_os_string()),
+            }
+        }
+
+        let full = if missing.is_empty() {
+            fs::canonicalize(&current).map_err(|e| VaultError::Io(e.to_string()))?
         } else {
-            canon_existing.join(rest)
+            // 尚不存在的后缀（create 目标）：canonicalize 已存在前缀
+            let canon = fs::canonicalize(&current).map_err(|e| VaultError::Io(e.to_string()))?;
+            let mut full = canon;
+            for seg in missing {
+                full.push(seg);
+            }
+            full
         };
-        // 最终路径仍须落在 root 下（字符串前缀 + 组件边界）。
+
         if !is_within(&full, &self.root) {
             return Err(VaultError::InvalidPath(rel.to_owned()));
         }
@@ -294,11 +318,13 @@ impl Vault {
         let rel = abs
             .strip_prefix(&self.root)
             .map_err(|_| VaultError::InvalidPath(abs.display().to_string()))?;
-        Ok(rel
-            .components()
-            .map(|c| c.as_os_str().to_string_lossy())
-            .collect::<Vec<_>>()
-            .join("/"))
+        // macOS 文件名多为 NFD；统一成 NFC，避免与 UI/JS 字符串对不上
+        Ok(nfc(
+            &rel.components()
+                .map(|c| c.as_os_str().to_string_lossy())
+                .collect::<Vec<_>>()
+                .join("/"),
+        ))
     }
 }
 
@@ -335,16 +361,34 @@ fn mtime_ms(meta: &fs::Metadata) -> u64 {
         .unwrap_or(0)
 }
 
-/// 规范化相对路径：去掉 `.`，拒绝 `..`、绝对路径、空段、反斜杠逃逸。
+fn nfc(s: &str) -> String {
+    s.nfc().collect()
+}
+
+/// 在 `parent` 下找 NFC 名等于 `name` 的子项（兼容磁盘上的 NFD 名）。
+fn find_child_nfc(parent: &Path, name: &str) -> Option<PathBuf> {
+    let want = nfc(name);
+    let rd = fs::read_dir(parent).ok()?;
+    for entry in rd.flatten() {
+        let n = entry.file_name();
+        let s = n.to_string_lossy();
+        if nfc(&s) == want {
+            return Some(entry.path());
+        }
+    }
+    None
+}
+
+/// 规范化相对路径：NFC、去掉 `.`，拒绝 `..`、绝对路径、空段、反斜杠逃逸。
 fn normalize_rel(rel: &str) -> Result<PathBuf, VaultError> {
-    let rel = rel.trim().trim_start_matches('/');
+    let rel = nfc(rel.trim().trim_start_matches('/'));
     if rel.is_empty() {
         return Ok(PathBuf::new());
     }
     if rel.contains('\\') {
         return Err(VaultError::InvalidPath(rel.to_owned()));
     }
-    let path = Path::new(rel);
+    let path = Path::new(&rel);
     if path.is_absolute() {
         return Err(VaultError::InvalidPath(rel.to_owned()));
     }
@@ -357,40 +401,20 @@ fn normalize_rel(rel: &str) -> Result<PathBuf, VaultError> {
                     continue;
                 }
                 if s == ".." || s.contains('\0') {
-                    return Err(VaultError::InvalidPath(rel.to_owned()));
+                    return Err(VaultError::InvalidPath(rel.clone()));
                 }
-                out.push(s.as_ref());
+                out.push(nfc(&s));
             }
             Component::CurDir => {}
             Component::ParentDir => {
-                return Err(VaultError::InvalidPath(rel.to_owned()));
+                return Err(VaultError::InvalidPath(rel.clone()));
             }
             Component::RootDir | Component::Prefix(_) => {
-                return Err(VaultError::InvalidPath(rel.to_owned()));
+                return Err(VaultError::InvalidPath(rel.clone()));
             }
         }
     }
     Ok(out)
-}
-
-fn split_existing(path: &Path) -> (PathBuf, PathBuf) {
-    let mut existing = path.to_path_buf();
-    let mut parts: Vec<std::ffi::OsString> = Vec::new();
-    while !existing.exists() {
-        match (existing.file_name(), existing.parent()) {
-            (Some(name), Some(parent)) => {
-                parts.push(name.to_os_string());
-                existing = parent.to_path_buf();
-            }
-            _ => break,
-        }
-    }
-    parts.reverse();
-    let mut rest = PathBuf::new();
-    for part in parts {
-        rest.push(part);
-    }
-    (existing, rest)
 }
 
 fn is_within(path: &Path, root: &Path) -> bool {
@@ -532,18 +556,20 @@ mod tests {
         fs::create_dir_all(root.join(".obsidian")).unwrap();
         fs::create_dir_all(root.join(".git/objects")).unwrap();
         fs::create_dir_all(root.join("node_modules/pkg")).unwrap();
+        fs::create_dir_all(root.join("Clippings")).unwrap();
         fs::write(root.join("root.md"), "root").unwrap();
         fs::write(root.join("writing/hello.md"), "hello").unwrap();
         fs::write(root.join("writing/drafts/nested.md"), "nested").unwrap();
+        fs::write(root.join("Clippings/万字教程.md"), "clip").unwrap();
         fs::write(root.join(".obsidian/app.json"), "{}").unwrap();
         fs::write(root.join(".git/HEAD"), "ref").unwrap();
         fs::write(root.join("node_modules/pkg/readme.md"), "skip").unwrap();
 
-        // 浅层 list：根下只有 root.md + writing
+        // 浅层 list：根下只有文件 + 顶层目录
         let shallow = vault.list("").unwrap();
-        assert_eq!(shallow.len(), 2);
         assert!(shallow.iter().any(|e| e.name == "root.md" && !e.is_dir));
         assert!(shallow.iter().any(|e| e.name == "writing" && e.is_dir));
+        assert!(shallow.iter().any(|e| e.name == "Clippings" && e.is_dir));
         assert!(!shallow.iter().any(|e| e.path.contains("nested")));
 
         // 递归：含嵌套笔记与子目录，不含忽略目录内容
@@ -554,15 +580,47 @@ mod tests {
         assert!(paths.contains(&"writing/hello.md"));
         assert!(paths.contains(&"writing/drafts"));
         assert!(paths.contains(&"writing/drafts/nested.md"));
+        assert!(paths.contains(&"Clippings"));
+        assert!(paths.contains(&"Clippings/万字教程.md"));
         assert!(!paths.iter().any(|p| p.starts_with(".obsidian")));
         assert!(!paths.iter().any(|p| p.starts_with(".git")));
         assert!(!paths.iter().any(|p| p.starts_with("node_modules")));
 
-        // 相对某子目录递归
+        // 相对某子目录递归：复现「点 Clippings 中栏应有笔记」
+        let under_clip = vault.list_recursive("Clippings").unwrap();
+        let cpaths: Vec<&str> = under_clip.iter().map(|e| e.path.as_str()).collect();
+        assert!(
+            cpaths.contains(&"Clippings/万字教程.md"),
+            "Clippings 下应列出笔记，实际: {cpaths:?}"
+        );
+        assert!(!cpaths.iter().any(|p| *p == "root.md"));
+
         let under_writing = vault.list_recursive("writing").unwrap();
         let wpaths: Vec<&str> = under_writing.iter().map(|e| e.path.as_str()).collect();
         assert!(wpaths.contains(&"writing/drafts/nested.md"));
         assert!(wpaths.contains(&"writing/hello.md"));
         assert!(!wpaths.iter().any(|p| *p == "root.md"));
+    }
+
+    #[test]
+    fn nfc_query_finds_nfd_directory_on_disk() {
+        use unicode_normalization::UnicodeNormalization;
+        let (_dir, vault) = temp_vault();
+        // CJK 无分解；用 é 的 NFD（e + 组合音符）模拟 macOS 文件名
+        let nfd_name: String = "Cafe\u{0301}".nfd().collect(); // Café NFD
+        let nfc_name: String = "Café".nfc().collect();
+        assert_ne!(nfd_name.as_bytes(), nfc_name.as_bytes(), "NFD/NFC 字节应不同");
+        fs::create_dir(vault.root().join(&nfd_name)).unwrap();
+        fs::write(vault.root().join(&nfd_name).join("note.md"), "x").unwrap();
+
+        // 用 NFC 查询（模拟 UI 侧 NFC 字符串）应能列出
+        let listed = vault.list_recursive(&nfc_name).unwrap();
+        assert!(
+            listed.iter().any(|e| e.path.ends_with("note.md") && !e.is_dir),
+            "NFC 文件夹 id 应解析到 NFD 磁盘目录: {listed:?}"
+        );
+        // 对外路径统一 NFC
+        assert!(listed.iter().all(|e| e.path == nfc(&e.path)));
+        assert!(listed.iter().any(|e| e.path.starts_with(&nfc_name)));
     }
 }

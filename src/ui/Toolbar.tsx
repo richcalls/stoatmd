@@ -10,23 +10,22 @@ export type ViewMode = "edit" | "split" | "preview";
 type Props = {
   sidebarOpen: boolean;
   listOpen: boolean;
-  mode: ViewMode;
   onToggleSidebar: () => void;
   onToggleList: () => void;
-  onMode: (mode: ViewMode) => void;
   onFont: () => void;
   onSettings: () => void;
 };
 
 function ToolButton(props: {
+  testID?: string;
   active?: boolean;
   label: string;
   onPress: () => void;
   children: any;
 }) {
-  // 用 nsh/base Button 接管按压（顶栏 windowDrag 区域内仍可点）
   return (
     <Button
+      testID={props.testID}
       accessibilityLabel={props.label}
       selected={!!props.active}
       onPress={props.onPress}
@@ -39,6 +38,7 @@ function ToolButton(props: {
         backgroundColor: props.active ? colors().accentSoft : "transparent",
         borderWidth: props.active ? 1 : 0,
         borderColor: props.active ? colors().accent : "transparent",
+        flexShrink: 0,
       }}
       activeStyle={{ opacity: 0.75 }}
     >
@@ -47,7 +47,10 @@ function ToolButton(props: {
   );
 }
 
-/** 顶栏：左折叠 · 右 Code/Split/Eye | TextT/Gear（无 Palette）。 */
+/**
+ * 窗口顶栏：仅折叠 + 标题拖拽区 + 字体/设置。
+ * 模式切换改在 EditorWorkspace（编辑区右上角），避免 titleBar 拖拽吞点击。
+ */
 export function Toolbar(props: Props) {
   const ink = () => colors().ink2;
   const active = () => colors().accent;
@@ -55,7 +58,6 @@ export function Toolbar(props: Props) {
 
   return (
     <View
-      desktop={{ windowDrag: true }}
       style={{
         height: barH,
         paddingLeft: (titleBar().left || 12) + 8,
@@ -67,66 +69,42 @@ export function Toolbar(props: Props) {
         backgroundColor: colors().paper,
       }}
     >
-      {/* 从拖拽区排除交互控件，避免 macOS 把点击当成拖窗 */}
-      <View
-        desktop={{ windowDrag: false }}
-        style={{ flexDirection: "row", alignItems: "center", gap: 4, zIndex: 2 }}
-      >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 0 }}>
         <ToolButton
+          testID="toolbar-sidebar"
           active={props.sidebarOpen}
           label={t("toolbar.sidebar")}
           onPress={props.onToggleSidebar}
         >
           <Icon name="sidebar" color={props.sidebarOpen ? active() : ink()} size={16} />
         </ToolButton>
-        <ToolButton active={props.listOpen} label={t("toolbar.list")} onPress={props.onToggleList}>
+        <ToolButton
+          testID="toolbar-list"
+          active={props.listOpen}
+          label={t("toolbar.list")}
+          onPress={props.onToggleList}
+        >
           <Icon name="list-pane" color={props.listOpen ? active() : ink()} size={16} />
         </ToolButton>
       </View>
 
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+      {/* 仅中间条可拖窗，左右按钮不参与 windowDrag */}
+      <View
+        desktop={{ windowDrag: true }}
+        style={{ flex: 1, height: "100%", alignItems: "center", justifyContent: "center" }}
+      >
         <Text style={{ fontSize: 13, fontWeight: "510", color: colors().ink }}>{t("app.name")}</Text>
       </View>
 
-      <View
-        desktop={{ windowDrag: false }}
-        style={{ flexDirection: "row", alignItems: "center", gap: 4, zIndex: 2 }}
-      >
-        <ToolButton
-          active={props.mode === "edit"}
-          label={t("mode.edit")}
-          onPress={() => props.onMode("edit")}
-        >
-          <Icon name="code" color={props.mode === "edit" ? active() : ink()} size={16} />
-        </ToolButton>
-        <ToolButton
-          active={props.mode === "split"}
-          label={t("mode.split")}
-          onPress={() => props.onMode("split")}
-        >
-          <Icon name="split" color={props.mode === "split" ? active() : ink()} size={16} />
-        </ToolButton>
-        <ToolButton
-          active={props.mode === "preview"}
-          label={t("mode.preview")}
-          onPress={() => props.onMode("preview")}
-        >
-          <Icon name="eye" color={props.mode === "preview" ? active() : ink()} size={16} />
-        </ToolButton>
-
-        <View
-          style={{
-            width: 1,
-            height: 16,
-            backgroundColor: colors().thread,
-            marginHorizontal: 6,
-          }}
-        />
-
-        <ToolButton label={t("toolbar.font")} onPress={props.onFont}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 0 }}>
+        <ToolButton testID="toolbar-font" label={t("toolbar.font")} onPress={props.onFont}>
           <Icon name="text-t" color={ink()} size={16} />
         </ToolButton>
-        <ToolButton label={t("toolbar.settings")} onPress={props.onSettings}>
+        <ToolButton
+          testID="toolbar-settings"
+          label={t("toolbar.settings")}
+          onPress={props.onSettings}
+        >
           <Icon name="gear" color={ink()} size={16} />
         </ToolButton>
       </View>

@@ -17,6 +17,8 @@
   "toolbar.font": "字体",
   "toolbar.settings": "设置",
   "settings.title": "设置",
+  "settings.close": "关闭设置",
+  "settings.done": "完成",
   "settings.appearance": "外观",
   "settings.font": "字体",
   "settings.sync": "同步",

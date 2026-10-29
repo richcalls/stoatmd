@@ -17,38 +17,70 @@ export type NoteItem = {
   relativePath?: string;
 };
 
+/**
+ * 统一库内路径：NFC（对齐 macOS NFD 磁盘名）+ `/` 分隔 + 去首尾斜杠。
+ * 侧栏选中 id 与 listRecursive 返回的 path 都必须经此再比较。
+ */
+export function normalizeVaultPath(path: string): string {
+  return path
+    .normalize("NFC")
+    .replace(/\\/g, "/")
+    .replace(/^\/+/g, "")
+    .replace(/\/+$/g, "");
+}
+
+/** 笔记是否属于所选文件夹（根目录 `""` 表示整库）。 */
+export function noteBelongsToFolder(notePath: string, folderId: string): boolean {
+  const note = normalizeVaultPath(notePath);
+  const folder = normalizeVaultPath(folderId);
+  if (!folder) return true;
+  return note === folder || note.startsWith(folder + "/");
+}
+
 /** 把递归扫描到的目录变成侧栏节点（按路径排序）；始终带「根目录」。 */
 export function foldersFromEntries(entries: VaultEntryDto[]): FolderNode[] {
   const dirs = entries
-    .filter((e) => e.isDir)
-    .map((e) => ({
-      id: e.path,
-      name: e.name,
-      path: e.path,
-      depth: e.path.split("/").filter(Boolean).length,
-    }))
+    .filter((e) => e.isDir === true)
+    .map((e) => {
+      const path = normalizeVaultPath(e.path);
+      return {
+        id: path,
+        name: e.name.normalize("NFC"),
+        path,
+        depth: path.split("/").filter(Boolean).length,
+      };
+    })
     .sort((a, b) => a.path.localeCompare(b.path, undefined, { sensitivity: "base" }));
   return [{ id: "", name: "", path: "", depth: 0 }, ...dirs];
 }
 
-/** 当前目录（含嵌套子目录）下的 `.md` 笔记。 */
-export function notesFromEntries(entries: VaultEntryDto[], folderId = ""): NoteItem[] {
+/**
+ * 从全库递归条目中筛出当前文件夹（含嵌套）下的 `.md`。
+ * 不依赖 listRecursive(子目录) 的路径解析，避免 NFD/分隔符导致空列表。
+ */
+export function notesInFolder(entries: VaultEntryDto[], folderId = ""): NoteItem[] {
+  const folder = normalizeVaultPath(folderId);
   return entries
-    .filter((e) => !e.isDir)
+    .filter((e) => e.isDir !== true)
+    .filter((e) => noteBelongsToFolder(e.path, folder))
     .map((e) => {
+      const path = normalizeVaultPath(e.path);
       const relative =
-        folderId && e.path.startsWith(folderId + "/")
-          ? e.path.slice(folderId.length + 1)
-          : e.path;
+        folder && path.startsWith(folder + "/") ? path.slice(folder.length + 1) : path;
       return {
-        id: e.path,
-        path: e.path,
-        title: titleFromName(e.name),
+        id: path,
+        path,
+        title: titleFromName(e.name.normalize("NFC")),
         mtimeMs: e.mtimeMs,
         relativePath: relative.includes("/") ? relative : undefined,
       };
     })
     .sort((a, b) => b.mtimeMs - a.mtimeMs || a.path.localeCompare(b.path));
+}
+
+/** @deprecated 使用 notesInFolder；保留别名以免外部调用方断裂。 */
+export function notesFromEntries(entries: VaultEntryDto[], folderId = ""): NoteItem[] {
+  return notesInFolder(entries, folderId);
 }
 
 export function titleFromName(name: string): string {
@@ -63,12 +95,14 @@ export function titleFromContent(content: string, fallback: string): string {
 
 /** 在目录内生成不冲突的新文件名。 */
 export function nextUntitledPath(dir: string, existing: NoteItem[]): string {
+  const folder = normalizeVaultPath(dir);
   const names = new Set(
     existing
       .filter((n) => {
-        if (!dir) return !n.path.includes("/");
-        const parent = n.path.slice(0, Math.max(0, n.path.lastIndexOf("/")));
-        return parent === dir;
+        const parent = normalizeVaultPath(
+          n.path.slice(0, Math.max(0, n.path.lastIndexOf("/"))),
+        );
+        return parent === folder;
       })
       .map((n) => n.path.split("/").pop()!.toLowerCase()),
   );
@@ -76,7 +110,7 @@ export function nextUntitledPath(dir: string, existing: NoteItem[]): string {
   while (true) {
     const file = i === 1 ? "untitled.md" : `untitled-${i}.md`;
     if (!names.has(file.toLowerCase())) {
-      return dir ? `${dir}/${file}` : file;
+      return folder ? `${folder}/${file}` : file;
     }
     i += 1;
   }
@@ -123,7 +157,7 @@ export type OpenedNote = {
 export async function readNote(vault: Vault, path: string): Promise<OpenedNote> {
   const file: VaultFileDto = vault.read(path);
   return {
-    path,
+    path: normalizeVaultPath(path),
     content: file.content,
     mtimeMs: file.mtimeMs,
     dirty: false,
