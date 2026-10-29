@@ -1,7 +1,7 @@
 import { expect, test } from "nsh/test";
 import type { Vault } from "stoatmd/native";
 import { sha256Hex } from "./hash";
-import { buildLocalFiles, utf8Size } from "./runtime";
+import { assertLocalUnchanged, buildLocalFiles, utf8Size } from "./runtime";
 import { emptyBase } from "./types";
 
 type Entry = {
@@ -82,4 +82,30 @@ test("utf8Size：按 UTF-8 字节计数", () => {
   expect(utf8Size("abc")).toBe(3);
   expect(utf8Size("价格")).toBe(6);
   expect(utf8Size("café")).toBe(5);
+});
+
+function vaultWithMtime(files: Record<string, number>): Vault {
+  return {
+    mtime: (path: string) => {
+      const mtime = files[path];
+      if (mtime === undefined) throw new Error("not found");
+      return mtime;
+    },
+  } as unknown as Vault;
+}
+
+test("assertLocalUnchanged：下载新文件前本地突然出现同名文件时报冲突", () => {
+  const vault = vaultWithMtime({ "new.md": 5 });
+  expect(() => assertLocalUnchanged(vault, "new.md", null)).toThrow("appeared");
+});
+
+test("assertLocalUnchanged：本地不存在可安全写入；mtime 变了拒绝覆盖", () => {
+  const empty = vaultWithMtime({});
+  assertLocalUnchanged(empty, "new.md", null);
+
+  const disk = vaultWithMtime({ "a.md": 2 });
+  expect(() =>
+    assertLocalUnchanged(disk, "a.md", { path: "a.md", mtimeMs: 1, size: 3, hash: null }),
+  ).toThrow("changed");
+  assertLocalUnchanged(disk, "a.md", { path: "a.md", mtimeMs: 2, size: 3, hash: null });
 });

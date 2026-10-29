@@ -394,17 +394,17 @@ export class SyncRuntime {
       const tick = () => this.progress.set({ done: ++done, total });
 
       for (const action of plan.uploads) {
-        const content = vault.read(action.path).content;
+        const file = vault.read(action.path);
         const remoteFile = remoteFiles.find((r) => r.path === action.path) ?? null;
-        const uploaded = await remote.upload(root, action.path, content, {
+        const uploaded = await remote.upload(root, action.path, file.content, {
           existing: remoteFile,
         });
         this.setBase(action.path, {
           remoteId: uploaded.id,
           remoteRev: uploaded.rev,
-          localMtimeMs: action.local.mtimeMs,
-          localSize: action.local.size,
-          hash: action.local.hash ?? sha256Hex(content),
+          localMtimeMs: file.mtimeMs,
+          localSize: utf8Size(file.content),
+          hash: sha256Hex(file.content),
         });
         result.uploaded += 1;
         tick();
@@ -636,12 +636,17 @@ function localExists(vault: Vault, path: string): boolean {
 }
 
 /** 下载 / 删除前复核本地版本，避免覆盖同步期间刚敲进去的内容。 */
-function assertLocalUnchanged(
+export function assertLocalUnchanged(
   vault: Vault,
   path: string,
   local: LocalFile | null,
 ): void {
-  if (!local) return;
+  if (!local) {
+    if (localExists(vault, path)) {
+      throw new RemoteConflictError("local file appeared during sync", path);
+    }
+    return;
+  }
   let disk: number;
   try {
     disk = vault.mtime(path);

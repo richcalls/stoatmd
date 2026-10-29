@@ -172,6 +172,17 @@ export function MacShell() {
     selfWrites.set(normalizeVaultPath(path), Date.now() + SELF_WRITE_MS);
   };
 
+  /** 云端删除的当前笔记不再重新打开；让 refreshTree 自己切换或清空。 */
+  const stillOnCur = (v: Vault, path: string): boolean => {
+    if (opened()?.path !== path) return false;
+    try {
+      v.mtime(path);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const runSync = async () => {
     const v = vault();
     if (!v || !syncRuntime.isAttached()) return;
@@ -181,10 +192,10 @@ export function MacShell() {
     if (!result) return;
     if (result.conflicts.length > 0) syncConflictOpen.set(true);
     if (result.changedLocal.length > 0) {
+      const cur = opened();
       for (const path of result.changedLocal) markSelfWrite(path);
       refreshTree(v, folderId());
-      const cur = opened();
-      if (cur && result.changedLocal.includes(cur.path)) {
+      if (cur && result.changedLocal.includes(cur.path) && stillOnCur(v, cur.path)) {
         await openNote(v, cur.path, true);
         status.set(t("vault.reloaded"));
       }
