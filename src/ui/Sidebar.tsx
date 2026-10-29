@@ -2,7 +2,7 @@ import { Text, View } from "nsh";
 import { Icon } from "./Icon";
 import { t } from "./i18n";
 import { colors } from "./theme";
-import type { FolderNode } from "./vaultModel";
+import { normalizeVaultPath, type FolderNode } from "./vaultModel";
 
 type Props = {
   folders: FolderNode[];
@@ -70,7 +70,7 @@ export function Sidebar(props: Props) {
         <Each of={props.folders}>
           {(folder) => {
             const f = folder();
-            const on = props.selected === f.id;
+            const on = normalizeVaultPath(props.selected) === f.id;
             const c = colors();
             const label = f.id === "" ? t("vault.rootFolder") : f.name;
             return (

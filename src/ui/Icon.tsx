@@ -15,6 +15,7 @@ import plus from "../../assets/icons/plus.svg";
 import sidebar from "../../assets/icons/sidebar.svg";
 import split from "../../assets/icons/split.svg";
 import textT from "../../assets/icons/text-t.svg";
+import x from "../../assets/icons/x.svg";
 
 /**
  * Phosphor Regular SVG（`assets/icons/`，fill `#000` + `tintColor`）。
@@ -35,7 +36,8 @@ export type IconName =
   | "split"
   | "eye"
   | "sidebar"
-  | "list-pane";
+  | "list-pane"
+  | "x";
 
 const MAP = {
   notebook,
@@ -53,6 +55,7 @@ const MAP = {
   eye,
   sidebar,
   "list-pane": listPane,
+  x,
 } as const;
 
 export function Icon(props: { name: IconName; color: string; size?: number }) {

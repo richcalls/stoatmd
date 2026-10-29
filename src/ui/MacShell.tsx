@@ -1,7 +1,7 @@
 import { Text, View, cleanup, effect, platform, signal } from "nsh";
 import { AlertDialog } from "nsh/base";
 import { Menu, Window } from "nsh/desktop";
-import { Vault, VaultDialog } from "stoatmd/native";
+import { Vault, VaultDialog, type VaultEntryDto } from "stoatmd/native";
 import { EditorWorkspace } from "./EditorWorkspace";
 import { t } from "./i18n";
 import { NoteList } from "./NoteList";
@@ -13,7 +13,8 @@ import { Toolbar, type ViewMode } from "./Toolbar";
 import {
   foldersFromEntries,
   nextUntitledPath,
-  notesFromEntries,
+  normalizeVaultPath,
+  notesInFolder,
   readNote,
   titleFromName,
   type FolderNode,
@@ -46,46 +47,67 @@ export function MacShell() {
   const settingsOpen = signal(false);
   const settingsTab = signal<SettingsTab>("appearance");
   const conflictOpen = signal(false);
+  /** 取消过期的异步 openNote，避免清空列表后旧请求又写回正文。 */
+  let openGen = 0;
 
   const refreshTree = (v: Vault, keepFolder?: string) => {
-    // 递归扫描：侧栏要能看到嵌套文件夹
-    const entries = v.listRecursive("");
-    const nextFolders = foldersFromEntries(entries);
-    folders.set(nextFolders);
-    const preferred = keepFolder ?? folderId();
-    const exists = nextFolders.some((f) => f.id === preferred);
-    const nextFolder = exists ? preferred : "";
-    folderId.set(nextFolder);
-    refreshNotes(v, nextFolder, selectedNoteId());
-  };
-
-  const refreshNotes = (v: Vault, dir: string, keepNote?: string) => {
-    // 递归：当前文件夹及其子目录内的 .md 都进中间列表
-    const entries = v.listRecursive(dir);
-    const nextNotes = notesFromEntries(entries, dir);
-    notes.set(nextNotes);
-    const preferred = keepNote ?? selectedNoteId();
-    const hit = nextNotes.find((n) => n.id === preferred);
-    if (hit) {
-      selectedNoteId.set(hit.id);
-    } else if (nextNotes[0]) {
-      void openNote(v, nextNotes[0].id);
-    } else {
-      selectedNoteId.set("");
-      opened.set(null);
-      draft.set("");
+    try {
+      // 始终全库递归一次，再在 TS 侧过滤（避开子路径 resolve / NFD 不一致）
+      const entries = v.listRecursive("");
+      const nextFolders = foldersFromEntries(entries);
+      folders.set(nextFolders);
+      const preferred = normalizeVaultPath(keepFolder ?? folderId());
+      const exists = !preferred || nextFolders.some((f) => f.id === preferred);
+      const nextFolder = exists ? preferred : "";
+      folderId.set(nextFolder);
+      applyNotes(entries, nextFolder, selectedNoteId(), v);
+    } catch (err) {
+      status.set(String(err));
     }
   };
 
+  const refreshNotes = (v: Vault, dir: string, keepNote?: string) => {
+    try {
+      const entries = v.listRecursive("");
+      applyNotes(entries, dir, keepNote ?? selectedNoteId(), v);
+    } catch (err) {
+      status.set(String(err));
+    }
+  };
+
+  const applyNotes = (entries: VaultEntryDto[], dir: string, keepNote: string, v: Vault) => {
+    const nextNotes = notesInFolder(entries, dir);
+    notes.set(nextNotes);
+    const preferred = normalizeVaultPath(keepNote);
+    const hit = nextNotes.find((n) => n.id === preferred);
+    if (hit) {
+      selectedNoteId.set(hit.id);
+      return;
+    }
+    if (nextNotes[0]) {
+      void openNote(v, nextNotes[0].id);
+      return;
+    }
+    // 当前文件夹无笔记：取消进行中的 open，并清空编辑区
+    openGen += 1;
+    selectedNoteId.set("");
+    opened.set(null);
+    draft.set("");
+  };
+
   const openNote = async (v: Vault, path: string) => {
+    const gen = ++openGen;
     await flushSave();
+    if (gen !== openGen) return;
     try {
       const note = await readNote(v, path);
+      if (gen !== openGen) return;
       opened.set(note);
       draft.set(note.content);
-      selectedNoteId.set(path);
+      selectedNoteId.set(note.path);
       status.set("");
     } catch (err) {
+      if (gen !== openGen) return;
       status.set(String(err));
     }
   };
@@ -120,8 +142,9 @@ export function MacShell() {
   const selectFolder = (id: string) => {
     const v = vault();
     if (!v) return;
-    folderId.set(id);
-    refreshNotes(v, id);
+    const next = normalizeVaultPath(id);
+    folderId.set(next);
+    refreshNotes(v, next);
   };
 
   const selectNote = (id: string) => {
@@ -344,7 +367,7 @@ export function MacShell() {
   };
 
   const folderLabel = () => {
-    const id = folderId();
+    const id = normalizeVaultPath(folderId());
     if (!id) return t("vault.rootFolder");
     return folders().find((f) => f.id === id)?.name ?? id;
   };
@@ -366,10 +389,8 @@ export function MacShell() {
       <Toolbar
         sidebarOpen={sidebarOpen()}
         listOpen={listOpen()}
-        mode={mode()}
         onToggleSidebar={() => sidebarOpen.update((v) => !v)}
         onToggleList={() => listOpen.update((v) => !v)}
-        onMode={(m) => mode.set(m)}
         onFont={() => openSettings("font")}
         onSettings={() => openSettings("appearance")}
       />
@@ -463,6 +484,7 @@ export function MacShell() {
                 source={draft()}
                 onChange={onDraftChange}
                 mode={mode()}
+                onMode={(m) => mode.set(m)}
               />
             </If>
             <If when={!opened()}>
