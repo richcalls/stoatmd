@@ -123,20 +123,19 @@ impl Vault {
         self.core.root().display().to_string()
     }
 
-    /// 列出相对目录下的子目录与 `.md`。
+    /// 列出相对目录下的直接子目录与 `.md`（非递归）。
     pub fn list(&self, dir: String) -> Result<Vec<VaultEntryDto>, String> {
         self.core
             .list(&dir)
-            .map(|rows| {
-                rows.into_iter()
-                    .map(|e| VaultEntryDto {
-                        path: e.path,
-                        name: e.name,
-                        is_dir: e.is_dir,
-                        mtime_ms: e.mtime_ms,
-                    })
-                    .collect()
-            })
+            .map(map_entries)
+            .map_err(map_err)
+    }
+
+    /// 递归列出相对目录下的子目录与 `.md`（跳过隐藏目录与 node_modules）。
+    pub fn list_recursive(&self, dir: String) -> Result<Vec<VaultEntryDto>, String> {
+        self.core
+            .list_recursive(&dir)
+            .map(map_entries)
             .map_err(map_err)
     }
 
@@ -213,6 +212,25 @@ fn map_err(err: VaultError) -> String {
     err.to_string()
 }
 
+fn map_entries(rows: Vec<stoatmd_core::VaultEntry>) -> Vec<VaultEntryDto> {
+    rows.into_iter()
+        .map(|e| VaultEntryDto {
+            path: e.path,
+            name: e.name,
+            is_dir: e.is_dir,
+            mtime_ms: e.mtime_ms,
+        })
+        .collect()
+}
+
+/// 监视回调里忽略的相对路径（隐藏段或 node_modules）。
+fn ignored_watch_path(rel: &str) -> bool {
+    if rel.is_empty() {
+        return false;
+    }
+    rel.split('/').any(|seg| seg.starts_with('.') || seg.eq_ignore_ascii_case("node_modules"))
+}
+
 fn start_watcher(
     root: PathBuf,
     pending: Arc<Mutex<Vec<VaultChangeDto>>>,
@@ -242,6 +260,10 @@ fn start_watcher(
                             .join("/")
                     })
                     .unwrap_or_default();
+                // 递归监视根目录；丢弃 .git / .obsidian / node_modules 等噪声
+                if ignored_watch_path(&rel) {
+                    continue;
+                }
                 guard.push(VaultChangeDto {
                     path: rel,
                     kind: kind.clone(),

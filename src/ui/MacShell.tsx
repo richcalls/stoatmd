@@ -48,7 +48,8 @@ export function MacShell() {
   const conflictOpen = signal(false);
 
   const refreshTree = (v: Vault, keepFolder?: string) => {
-    const entries = v.list("");
+    // 递归扫描：侧栏要能看到嵌套文件夹
+    const entries = v.listRecursive("");
     const nextFolders = foldersFromEntries(entries);
     folders.set(nextFolders);
     const preferred = keepFolder ?? folderId();
@@ -59,8 +60,9 @@ export function MacShell() {
   };
 
   const refreshNotes = (v: Vault, dir: string, keepNote?: string) => {
-    const entries = v.list(dir);
-    const nextNotes = notesFromEntries(entries);
+    // 递归：当前文件夹及其子目录内的 .md 都进中间列表
+    const entries = v.listRecursive(dir);
+    const nextNotes = notesFromEntries(entries, dir);
     notes.set(nextNotes);
     const preferred = keepNote ?? selectedNoteId();
     const hit = nextNotes.find((n) => n.id === preferred);
@@ -292,17 +294,27 @@ export function MacShell() {
     ]);
   });
 
-  // 外部改文件：轮询监视事件
+  // 外部改文件：轮询递归监视事件（含子目录）
   effect(() => {
     const id = setInterval(() => {
       const v = vault();
-      const cur = opened();
-      if (!v || !cur || conflictOpen()) return;
+      if (!v || conflictOpen()) return;
       const changes = v.pollChanges();
-      const hit = changes.some(
-        (c) => c.path === cur.path || c.path === "" || cur.path.startsWith(c.path + "/"),
-      );
-      if (!hit) return;
+      if (changes.length === 0) return;
+      const cur = opened();
+      const folder = folderId();
+      const touchesCurrent =
+        !!cur &&
+        changes.some(
+          (c) =>
+            c.path === cur.path ||
+            c.path === "" ||
+            cur.path.startsWith(c.path + "/") ||
+            c.path.startsWith(cur.path),
+        );
+      // 任意库内变更都刷新树/列表，保证嵌套目录新增可见
+      refreshTree(v, folder);
+      if (!cur || !touchesCurrent) return;
       try {
         const diskMtime = v.mtime(cur.path);
         if (diskMtime === cur.mtimeMs) return;
@@ -311,11 +323,10 @@ export function MacShell() {
         } else {
           void openNote(v, cur.path).then(() => {
             status.set(t("vault.reloaded"));
-            refreshTree(v, folderId());
           });
         }
       } catch {
-        refreshTree(v, folderId());
+        // 当前文件可能已被删：树已刷新
       }
     }, POLL_MS);
     cleanup(() => {

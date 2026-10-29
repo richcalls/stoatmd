@@ -125,6 +125,9 @@ export function NoteList(props: Props) {
                 }}
               >
                 <Text style={{ fontSize: 14, fontWeight: "560", color: c.ink }}>{n.title}</Text>
+                <If when={!!n.relativePath}>
+                  <Text style={{ fontSize: 11, color: c.ink3, marginTop: 2 }}>{n.relativePath}</Text>
+                </If>
                 <Text style={{ fontSize: 12, color: c.ink2, marginTop: 3 }}>{when}</Text>
               </View>
             );
