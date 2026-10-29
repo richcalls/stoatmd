@@ -38,7 +38,10 @@ const S = {
   pollInFlight: false,
   pollQueued: false,
   loopStarted: false,
+  /** 轻推窗口：窗口内且偏移贴近 nudgeY 的事件是程序化滚动。 */
   nudgeUntil: 0,
+  nudgeY: 0,
+  nudgeId: 0,
   frames: 0,
   polls: 0,
   lastMoveAt: 0,
@@ -49,6 +52,7 @@ const S = {
 
 const ECHO_MS = 200;
 const ECHO_PX = 2;
+const NUDGE_ECHO_PX = 8;
 const PREVIEW_DRIVE_MS = 250;
 /** setScrollOffset 后原生的夹紧要等下一轮排版，等这么久再读。 */
 const MEASURE_SETTLE_MS = 100;
@@ -120,6 +124,8 @@ export function attachPreview(node: YNode | null) {
   S.previewContentH = 0;
   S.previewViewH = 0;
   // List 只在滚动时上报 contentSize / 视口，轻推一下让原生先报一次布局
+  S.nudgeId += 1;
+  S.nudgeY = 0;
   S.nudgeUntil = now() + 400;
   node.scrollTo({ y: 1, animated: false });
   setTimeout(() => {
@@ -128,24 +134,39 @@ export function attachPreview(node: YNode | null) {
   }, 120);
 }
 
-/** 预览换文后 List 的内容高度会变且不上报：轻推 1px 再回位，换来新的 contentSize。 */
+/** 预览换文后 List 的内容高度会变且不上报：反复轻推 1px 换来新的 contentSize。 */
 export function refreshPreviewMetrics() {
   const preview = S.preview;
   if (!preview || S.mode !== "split") return;
   scheduleMeasure(80);
-  const y = S.previewY;
-  S.nudgeUntil = now() + 400;
-  preview.scrollTo({ y: y + 1, animated: false });
-  setTimeout(() => {
-    if (S.preview !== preview || S.mode !== "split") return;
-    preview.scrollTo({ y, animated: false });
-    // 预览换文后以编辑区为准重新对齐：内容高度变了，原偏移对应的比例也变了
+  const id = ++S.nudgeId;
+  const sizeAtStart = S.previewContentH;
+  S.nudgeUntil = now() + 900;
+  let round = 0;
+  const step = () => {
+    if (S.nudgeId !== id || S.preview !== preview || S.mode !== "split") return;
+    // 贴边时向外的偏移会被夹紧、不产生滚动事件：朝可达方向推
+    const from = S.previewY;
+    S.nudgeY = from;
+    preview.scrollTo({ y: from > 0 ? from - 1 : from + 1, animated: false });
     setTimeout(() => {
-      if (S.preview !== preview || S.mode !== "split") return;
-      S.driver = "editor";
-      drivePreviewFromEditor(S.editorY);
-    }, 60);
-  }, 100);
+      if (S.nudgeId !== id || S.preview !== preview || S.mode !== "split") return;
+      preview.scrollTo({ y: from, animated: false });
+      round += 1;
+      // 数据更新要等下一轮排版才反映到 contentSize：没拿到新尺寸就再推一轮
+      if (S.previewContentH === sizeAtStart && round < 3) {
+        setTimeout(step, 130);
+        return;
+      }
+      // 预览换文后以编辑区为准重新对齐：内容高度变了，原偏移对应的比例也变了
+      setTimeout(() => {
+        if (S.nudgeId !== id || S.preview !== preview || S.mode !== "split") return;
+        S.driver = "editor";
+        drivePreviewFromEditor(S.editorY);
+      }, 60);
+    }, 50);
+  };
+  step();
 }
 
 /** 把预览跳到某个偏移（大纲跳转等）；随后的 onScroll 会像用户滚动一样带动编辑区。 */
@@ -154,14 +175,28 @@ export function scrollPreviewTo(y: number) {
   if (!preview) return;
   preview.scrollTo({ y, animated: false });
   if (y < 1e6) return;
-  // List 的行高估算在滚动中收敛，第一次到底会停在旧的内容高度上：随后几轮补滚
-  let tries = 6;
+  // List 的行高估算在滚动中收敛，内容高度会逐轮变大：补滚到尺寸稳定为止。
+  // 贴底时改用相邻 1px 的目标，旧内容高度下的「底」也能产生滚动事件、上报新尺寸。
+  let tries = 20;
+  let stableH = -1;
+  let stable = 0;
+  let near = false;
   const retry = () => {
     setTimeout(() => {
       if (S.preview !== preview || S.mode !== "split" || tries <= 0) return;
-      if (S.previewY >= previewScrollMax() - 2) return;
       tries -= 1;
-      preview.scrollTo({ y: 1e7, animated: false });
+      const max = previewScrollMax();
+      const atBottom = max > 0 && S.previewY >= max - 2;
+      const h = Math.round(S.previewContentH);
+      stable = atBottom && h === stableH ? stable + 1 : 0;
+      stableH = h;
+      if (stable >= 4) return;
+      if (atBottom) {
+        near = !near;
+        preview.scrollTo({ y: near ? max - 1 : max, animated: false });
+      } else {
+        preview.scrollTo({ y: 1e7, animated: false });
+      }
       retry();
     }, 120);
   };
@@ -215,8 +250,9 @@ export function handlePreviewScroll(e: ScrollEvent) {
   const t = now();
   // List 的偏移在估算行高收敛时会和指令目标差出几十像素，
   // 所以按「谁在驱动」的时间窗判回声，而不是逐像素比对。
+  const nudgeEcho = t < S.nudgeUntil && Math.abs(y - S.nudgeY) <= NUDGE_ECHO_PX;
   const echo =
-    t < S.nudgeUntil || (S.driver === "editor" && t - S.previewTargetAt <= ECHO_MS);
+    nudgeEcho || (S.driver === "editor" && t - S.previewTargetAt <= ECHO_MS);
   S.previewY = y;
   if (echo) {
     // 行高收敛后同一个比例的落点会漂开：按新的 contentSize 再驱动一次
@@ -224,6 +260,11 @@ export function handlePreviewScroll(e: ScrollEvent) {
       drivePreviewFromEditor(S.editorY);
     }
     return;
+  }
+  // 用户在轻推窗口里自己滚了：停掉轻推，别把预览拉回旧位置
+  if (t < S.nudgeUntil) {
+    S.nudgeUntil = 0;
+    S.nudgeId += 1;
   }
   S.previewTarget = -1;
   S.driver = "preview";

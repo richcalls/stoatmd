@@ -73,7 +73,7 @@ export function EditorWorkspace(props: Props) {
       >
         <Editor
           ref={attachHiddenEditor}
-          value={props.preview}
+          value={props.source}
           readOnly
           language="markdown"
           softWrap
