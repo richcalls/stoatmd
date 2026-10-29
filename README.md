@@ -13,3 +13,4 @@
 - [产品总述](docs/product/PRODUCT.md) · [云盘同步](docs/product/SYNC.md)
 - [技术设计 v1](docs/技术设计-v1.md)
 - [UI v1 设计说明](docs/ui-v1/DESIGN-NOTES.md)（风格 B · 织线）
+- [Logo 方向草案](docs/brand/stoatmd-logo/NOTES.md)（A 织线白鼬 · C 敏捷剪影）

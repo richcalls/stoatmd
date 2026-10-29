@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <g transform="translate(56,56) scale(4.0)">
+    <path d="M 18 58 C 20 48, 28 40, 38 38 C 44 30, 52 26, 60 28 C 68 22, 78 24, 84 32 C 90 40, 88 50, 82 54 C 86 58, 84 66, 76 68 C 68 70, 58 68, 50 66 C 42 70, 32 70, 24 66 C 18 64, 16 60, 18 58 Z" fill="none" stroke="#1C1A18" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 28 56 C 36 48, 48 42, 60 42 C 70 42, 78 46, 80 52" fill="none" stroke="#3D5A80" stroke-width="1.1" stroke-linecap="round" opacity="0.85"/>
+<path d="M 26 62 C 38 56, 52 52, 64 52 C 72 52, 78 54, 80 58" fill="none" stroke="#3D5A80" stroke-width="1.1" stroke-linecap="round" opacity="0.65"/>
+<path d="M 58 30 L 62 18 L 70 28" fill="none" stroke="#1C1A18" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 74 36 L 78 36" fill="none" stroke="#1C1A18" stroke-width="2.2" stroke-linecap="round"/>
+<path d="M 36 68 L 34 78 M 48 68 L 48 78 M 60 68 L 62 78" fill="none" stroke="#1C1A18" stroke-width="1.8" stroke-linecap="round"/>
+<path d="M 20 60 C 10 58, 6 50, 8 42 C 10 36, 16 34, 20 38" fill="none" stroke="#1C1A18" stroke-width="1.7" stroke-linecap="round"/>
+  </g>
+</svg>
