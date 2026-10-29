@@ -1,0 +1,9 @@
+# LoomMD
+
+本地 Markdown 笔记本。用 [nsh](https://nsh.dev)（Rust + TSX 混合）构建，首发 macOS + iOS。
+
+- 自选文件夹，普通 `.md` 文件
+- 源码编辑 + 切换 / 分栏预览
+- 本机永远免费；云盘同步买断与 MCP 见后续版本
+
+产品设计见 vault：`LoomMD 产品设计 2026-10-29.md`。
