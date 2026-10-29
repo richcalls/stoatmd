@@ -116,10 +116,29 @@ export function nextUntitledPath(dir: string, existing: NoteItem[]): string {
   }
 }
 
+const whenCache = new Map<string, string>();
+let whenCacheDay = "";
+
 export function formatWhen(mtimeMs: number, locale: string): string {
   if (!mtimeMs) return "";
-  const d = new Date(mtimeMs);
   const now = new Date();
+  // 列表滚动时每行都会调用：按「日期 + 语言 + mtime」缓存，跨天后整体失效
+  const day = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+  if (day !== whenCacheDay) {
+    whenCacheDay = day;
+    whenCache.clear();
+  }
+  const key = `${locale}|${mtimeMs}`;
+  const cached = whenCache.get(key);
+  if (cached !== undefined) return cached;
+  const formatted = formatWhenUncached(mtimeMs, locale, now);
+  if (whenCache.size >= 2048) whenCache.clear();
+  whenCache.set(key, formatted);
+  return formatted;
+}
+
+function formatWhenUncached(mtimeMs: number, locale: string, now: Date): string {
+  const d = new Date(mtimeMs);
   const sameDay =
     d.getFullYear() === now.getFullYear() &&
     d.getMonth() === now.getMonth() &&

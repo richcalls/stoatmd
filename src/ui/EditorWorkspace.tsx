@@ -7,6 +7,8 @@ import type { ViewMode } from "./Toolbar";
 type Props = {
   fileName: string;
   source: string;
+  /** 延迟同步的正文：预览只在输入停顿后重排，不跟随每个按键。 */
+  preview: string;
   onChange: (value: string) => void;
   mode: ViewMode;
   onMode: (mode: ViewMode) => void;
@@ -14,7 +16,7 @@ type Props = {
 
 /** 右栏：顶栏模式切换 + Editor / TextView。 */
 export function EditorWorkspace(props: Props) {
-  const editorPane = (
+  const editorPane = () => (
     <View style={{ flex: 1, backgroundColor: colors().editor }} testID="pane-editor">
       <Editor
         value={props.source}
@@ -25,14 +27,17 @@ export function EditorWorkspace(props: Props) {
         fontSize={13.5}
         lineHeight={24}
         style={{ flex: 1 }}
+        // 编辑器自己按显示行折行；行内再用 whitespace-nowrap 阻止 Text 二次折行，
+        // 否则测量误差会让行尾字符折到下一行、与下一行文字重叠。右侧留白容纳这点溢出。
+        classes={{ content: "whitespace-nowrap" }}
         styles={{
-          content: { backgroundColor: colors().editor, color: colors().ink },
+          content: { backgroundColor: colors().editor, color: colors().ink, paddingRight: 16 },
         }}
       />
     </View>
   );
 
-  const previewPane = (
+  const previewPane = () => (
     <Scroll
       testID="pane-preview"
       style={{ flex: 1, backgroundColor: colors().preview }}
@@ -40,7 +45,7 @@ export function EditorWorkspace(props: Props) {
     >
       <View style={{ maxWidth: 672, width: "100%", alignSelf: "center" }}>
         <TextView
-          markdown={props.source}
+          markdown={props.preview}
           selectable
           styles={{
             root: { color: colors().ink, fontSize: 15, lineHeight: 26 },
@@ -61,24 +66,26 @@ export function EditorWorkspace(props: Props) {
     </Scroll>
   );
 
-  let body: any;
-  if (props.mode === "edit") {
-    body = <View style={{ flex: 1 }}>{editorPane}</View>;
-  } else if (props.mode === "preview") {
-    body = <View style={{ flex: 1 }}>{previewPane}</View>;
-  } else {
-    body = (
+  // 组件只运行一次：按模式取内容必须是闭包，在 JSX 里调用才会跟随 props.mode 重建
+  const body = () => {
+    if (props.mode === "edit") {
+      return <View style={{ flex: 1 }}>{editorPane()}</View>;
+    }
+    if (props.mode === "preview") {
+      return <View style={{ flex: 1 }}>{previewPane()}</View>;
+    }
+    return (
       <ResizablePanelGroup
         axis="horizontal"
         handleStyle={{ backgroundColor: colors().thread, width: 1 }}
         handleAccessibilityLabel="Resize editor and preview"
         style={{ flex: 1 }}
       >
-        <ResizablePanel minSize={220}>{editorPane}</ResizablePanel>
-        <ResizablePanel minSize={220}>{previewPane}</ResizablePanel>
+        <ResizablePanel minSize={220}>{editorPane()}</ResizablePanel>
+        <ResizablePanel minSize={220}>{previewPane()}</ResizablePanel>
       </ResizablePanelGroup>
     );
-  }
+  };
 
   return (
     <View style={{ flex: 1, flexDirection: "column", backgroundColor: colors().editor }}>
@@ -105,7 +112,7 @@ export function EditorWorkspace(props: Props) {
         <ModeSwitch mode={props.mode} onMode={props.onMode} />
       </View>
       <View style={{ flex: 1 }} testID={`workspace-mode-${props.mode}`}>
-        {body}
+        {body()}
       </View>
     </View>
   );

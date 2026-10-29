@@ -70,7 +70,7 @@ export function Sidebar(props: Props) {
         <Each of={props.folders}>
           {(folder) => {
             const f = folder();
-            const on = normalizeVaultPath(props.selected) === f.id;
+            const on = () => normalizeVaultPath(props.selected) === f.id;
             const c = colors();
             const label = f.id === "" ? t("vault.rootFolder") : f.name;
             return (
@@ -87,14 +87,14 @@ export function Sidebar(props: Props) {
                   paddingRight: 10,
                   justifyContent: props.rail ? "center" : "flex-start",
                   borderRadius: 6,
-                  backgroundColor: on ? c.accentSoft : "transparent",
-                  borderLeftWidth: on && !props.rail ? 1 : 0,
-                  borderLeftColor: on ? c.accent : "transparent",
+                  backgroundColor: on() ? c.accentSoft : "transparent",
+                  borderLeftWidth: on() && !props.rail ? 1 : 0,
+                  borderLeftColor: on() ? c.accent : "transparent",
                 }}
               >
                 <Icon
                   name={f.id === "" ? "notebook" : "folder"}
-                  color={on ? c.accent : c.ink2}
+                  color={on() ? c.accent : c.ink2}
                   size={16}
                 />
                 <If when={!props.rail}>
@@ -102,7 +102,7 @@ export function Sidebar(props: Props) {
                     style={{
                       fontSize: 13,
                       fontWeight: "500",
-                      color: on ? c.accent : c.ink,
+                      color: on() ? c.accent : c.ink,
                       flex: 1,
                     }}
                   >

@@ -26,7 +26,10 @@ Window.setTitle("StoatMD");
 Window.setTitleBar("hidden", 44);
 
 const AUTOSAVE_MS = 700;
+const PREVIEW_MS = 250;
 const POLL_MS = 1500;
+/** 自己写入后这段时间内的 watcher 事件不算外部改动。 */
+const SELF_WRITE_MS = 4000;
 
 /** Mac 三栏壳：Vault 真文件 + 自动保存 + 冲突提示。 */
 export function MacShell() {
@@ -41,7 +44,10 @@ export function MacShell() {
   const selectedNoteId = signal("");
   const query = signal("");
   const opened = signal<OpenedNote | null>(null);
+  /** 打开笔记时的正文，作为 Editor 的 value；键入期间不再回灌。 */
   const draft = signal("");
+  /** 延迟同步给 Markdown 预览的正文，避免每次按键重排整篇。 */
+  const previewDraft = signal("");
   const status = signal("");
   const bootstrapped = signal(false);
   const settingsOpen = signal(false);
@@ -49,6 +55,10 @@ export function MacShell() {
   const conflictOpen = signal(false);
   /** 取消过期的异步 openNote，避免清空列表后旧请求又写回正文。 */
   let openGen = 0;
+  /** 编辑器里的最新正文（不等信号）；自动保存与预览都以它为准。 */
+  let liveText = "";
+  /** 自己写入过的文件，忽略随后 watcher 报回的变更。 */
+  const selfWrites = new Map<string, number>();
 
   const refreshTree = (v: Vault, keepFolder?: string) => {
     try {
@@ -75,6 +85,21 @@ export function MacShell() {
     }
   };
 
+  const clearEditor = () => {
+    // 当前文件夹无笔记：取消进行中的 open，并清空编辑区
+    openGen += 1;
+    selectedNoteId.set("");
+    opened.set(null);
+    liveText = "";
+    draft.set("");
+    cancelPreview();
+    previewDraft.set("");
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+  };
+
   const applyNotes = (entries: VaultEntryDto[], dir: string, keepNote: string, v: Vault) => {
     const nextNotes = notesInFolder(entries, dir);
     notes.set(nextNotes);
@@ -88,22 +113,22 @@ export function MacShell() {
       void openNote(v, nextNotes[0].id);
       return;
     }
-    // 当前文件夹无笔记：取消进行中的 open，并清空编辑区
-    openGen += 1;
-    selectedNoteId.set("");
-    opened.set(null);
-    draft.set("");
+    clearEditor();
   };
 
-  const openNote = async (v: Vault, path: string) => {
+  const openNote = async (v: Vault, path: string, skipFlush = false) => {
     const gen = ++openGen;
-    await flushSave();
+    // 冲突时选「重新加载」即丢弃本地改动：跳过 flush，也避免等外层 doSave 持有的 saving 造成死锁
+    if (!skipFlush) await flushSave();
     if (gen !== openGen) return;
     try {
       const note = await readNote(v, path);
       if (gen !== openGen) return;
+      liveText = note.content;
+      cancelPreview();
       opened.set(note);
       draft.set(note.content);
+      previewDraft.set(note.content);
       selectedNoteId.set(note.path);
       status.set("");
     } catch (err) {
@@ -112,7 +137,48 @@ export function MacShell() {
     }
   };
 
+  let previewTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const cancelPreview = () => {
+    if (previewTimer) {
+      clearTimeout(previewTimer);
+      previewTimer = null;
+    }
+  };
+
+  const schedulePreview = () => {
+    cancelPreview();
+    previewTimer = setTimeout(() => {
+      previewTimer = null;
+      previewDraft.set(liveText);
+    }, PREVIEW_MS);
+  };
+
+  const flushPreview = () => {
+    cancelPreview();
+    previewDraft.set(liveText);
+  };
+
+  const markSelfWrite = (path: string) => {
+    selfWrites.set(normalizeVaultPath(path), Date.now() + SELF_WRITE_MS);
+  };
+
+  /** 保存后只改这一篇的 mtime 并重排，不再全库扫描。 */
+  const patchNoteMtime = (path: string, mtimeMs: number) => {
+    const id = normalizeVaultPath(path);
+    let hit = false;
+    const next = notes().map((n) => {
+      if (n.id !== id) return n;
+      hit = true;
+      return { ...n, mtimeMs };
+    });
+    if (!hit) return;
+    next.sort((a, b) => b.mtimeMs - a.mtimeMs || a.path.localeCompare(b.path));
+    notes.set(next);
+  };
+
   const openVaultAt = async (root: string) => {
+    await flushSave();
     try {
       const v = Vault.open(root);
       vault.set(v);
@@ -122,7 +188,11 @@ export function MacShell() {
       folderId.set("");
       selectedNoteId.set("");
       opened.set(null);
+      liveText = "";
       draft.set("");
+      cancelPreview();
+      previewDraft.set("");
+      selfWrites.clear();
       refreshTree(v, "");
       status.set("");
     } catch (err) {
@@ -139,10 +209,12 @@ export function MacShell() {
     }
   };
 
-  const selectFolder = (id: string) => {
+  const selectFolder = async (id: string) => {
     const v = vault();
     if (!v) return;
     const next = normalizeVaultPath(id);
+    // 切到空文件夹时 applyNotes 会直接 clearEditor：先落盘，避免吞掉未保存输入
+    await flushSave();
     folderId.set(next);
     refreshNotes(v, next);
   };
@@ -171,10 +243,22 @@ export function MacShell() {
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let saving = false;
 
+  const scheduleSave = () => {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      void doSave();
+    }, AUTOSAVE_MS);
+  };
+
   const flushSave = async () => {
     if (saveTimer) {
       clearTimeout(saveTimer);
       saveTimer = null;
+    }
+    // 等正在进行的写盘落定，再补存一次（避免切笔记时丢掉最后几个字）
+    while (saving) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 10));
     }
     await doSave();
   };
@@ -184,20 +268,27 @@ export function MacShell() {
     const cur = opened();
     if (!v || !cur || !cur.dirty || saving) return;
     saving = true;
+    const content = liveText;
     status.set(t("vault.saving"));
     try {
-      const result = v.write(cur.path, draft(), cur.mtimeMs);
+      const result = v.write(cur.path, content, cur.mtimeMs);
       if (result.conflict) {
         await handleConflict(v, cur.path);
       } else {
-        opened.set({
-          path: cur.path,
-          content: draft(),
-          mtimeMs: result.mtimeMs,
-          dirty: false,
-        });
+        markSelfWrite(cur.path);
+        patchNoteMtime(cur.path, result.mtimeMs);
         status.set(t("vault.saved"));
-        refreshNotes(v, folderId(), cur.path);
+        // 写盘期间可能已经切到别的笔记：只更新仍打开的那篇
+        if (opened()?.path === cur.path) {
+          const stillDirty = liveText !== content;
+          opened.set({
+            path: cur.path,
+            content: liveText,
+            mtimeMs: result.mtimeMs,
+            dirty: stillDirty,
+          });
+          if (stillDirty) scheduleSave();
+        }
       }
     } catch (err) {
       status.set(String(err));
@@ -219,19 +310,25 @@ export function MacShell() {
         ],
       });
       if (action === "keep") {
-        const result = v.write(path, draft(), null);
+        const content = liveText;
+        const result = v.write(path, content, null);
         if (result.ok) {
-          opened.set({
-            path,
-            content: draft(),
-            mtimeMs: result.mtimeMs,
-            dirty: false,
-          });
+          markSelfWrite(path);
+          patchNoteMtime(path, result.mtimeMs);
           status.set(t("vault.saved"));
-          refreshNotes(v, folderId(), path);
+          if (opened()?.path === path) {
+            const stillDirty = liveText !== content;
+            opened.set({
+              path,
+              content: liveText,
+              mtimeMs: result.mtimeMs,
+              dirty: stillDirty,
+            });
+            if (stillDirty) scheduleSave();
+          }
         }
       } else if (action === "reload") {
-        await openNote(v, path);
+        await openNote(v, path, true);
         status.set(t("vault.reloaded"));
       }
     } finally {
@@ -240,14 +337,19 @@ export function MacShell() {
   };
 
   const onDraftChange = (value: string) => {
-    draft.set(value);
+    liveText = value;
     const cur = opened();
     if (!cur) return;
-    opened.set({ ...cur, dirty: true });
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      void doSave();
-    }, AUTOSAVE_MS);
+    if (!cur.dirty) opened.set({ ...cur, dirty: true });
+    scheduleSave();
+    schedulePreview();
+  };
+
+  const changeMode = (m: ViewMode) => {
+    // 切换模式会重建编辑区：先把最新正文同步过去，预览也立即跟上
+    if (liveText !== draft()) draft.set(liveText);
+    flushPreview();
+    mode.set(m);
   };
 
   // 启动：恢复上次库根
@@ -324,18 +426,28 @@ export function MacShell() {
       if (!v || conflictOpen()) return;
       const changes = v.pollChanges();
       if (changes.length === 0) return;
+      const now = Date.now();
+      for (const [path, until] of selfWrites) {
+        if (until <= now) selfWrites.delete(path);
+      }
+      // 自己刚保存的写入不算外部改动：否则每次自动保存都要全库重扫
+      const foreign = changes.filter((c) => {
+        const until = selfWrites.get(normalizeVaultPath(c.path));
+        return !(until && until > now);
+      });
+      if (foreign.length === 0) return;
       const cur = opened();
       const folder = folderId();
       const touchesCurrent =
         !!cur &&
-        changes.some(
+        foreign.some(
           (c) =>
             c.path === cur.path ||
             c.path === "" ||
             cur.path.startsWith(c.path + "/") ||
             c.path.startsWith(cur.path),
         );
-      // 任意库内变更都刷新树/列表，保证嵌套目录新增可见
+      // 外部变更才刷新树/列表，保证嵌套目录新增可见
       refreshTree(v, folder);
       if (!cur || !touchesCurrent) return;
       try {
@@ -358,6 +470,7 @@ export function MacShell() {
         clearTimeout(saveTimer);
         saveTimer = null;
       }
+      cancelPreview();
     });
   });
 
@@ -482,9 +595,10 @@ export function MacShell() {
               <EditorWorkspace
                 fileName={fileName()}
                 source={draft()}
+                preview={previewDraft()}
                 onChange={onDraftChange}
                 mode={mode()}
-                onMode={(m) => mode.set(m)}
+                onMode={changeMode}
               />
             </If>
             <If when={!opened()}>
