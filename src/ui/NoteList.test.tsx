@@ -16,6 +16,13 @@ test("NoteList：搜索词应过滤列表", async () => {
   expect(app.texts()).not.toContain("草稿");
 });
 
+test("NoteList：当前目录直属笔记（无子路径副标题）应显示", async () => {
+  const app = await open("./NoteList.harness.tsx", { width: 800, height: 600 });
+  await app.press("id:feed");
+  expect(app.texts()).toContain("根级笔记");
+  expect(app.texts()).not.toContain("root.md");
+});
+
 test("NoteList：点击笔记应回调选中的路径", async () => {
   const app = await open("./NoteList.harness.tsx", { width: 800, height: 600 });
   await app.press("id:feed");
