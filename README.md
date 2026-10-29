@@ -5,8 +5,40 @@
 - 定名 **StoatMD** · 域名 [stoatmd.com](https://stoatmd.com) · 曾用名 LoomMD
 - 自选文件夹，普通 `.md` 文件（Vault：open / list / read / write / create / rename / delete）
 - 源码编辑 + 仅编辑 / 分栏 / 仅预览；停顿自动保存；外部改文件冲突提示
-- 本机永远免费；云盘同步在本地库跑通后接入
+- 本机永远免费；云盘同步在本地库跑通后接入（**应用买断制**，不为同步再绑订阅）
 - **不做 MCP**
+
+## StoatMD 适合谁
+
+### 为什么做 StoatMD
+
+Obsidian 要多端同步，基本得买它的官方订阅。但这套同步是封闭的：很难交给远程 AI / Agent 用，手机上也不好接可用的 AI 工作流。虽有 Git / GitHub 一类第三方办法，手机难用、各端同步也不顺；若再叠 iCloud，`.git` 目录会膨胀，容量与文件数指数级增加。
+
+StoatMD 要解决的就是这件事：**笔记用你自己的云盘（Google Drive、Dropbox）同步**，多端都能用，也方便交给 AI / Agent（含远程、手机）读写归档，而不是被锁进官方订阅同步里。应用本身是**买断制**，不为同步再绑一套订阅。**不做 iCloud**。
+
+**典型场景**：用 Grok Bot 整理资料 → 汇总、归档进你自己的笔记库。
+
+### 和 Typora 相比
+
+StoatMD **不做所见即所得**，而是保留纯 Markdown 源码编辑与独立预览（仅编辑 / 分栏 / 仅预览）。更适合习惯直接编辑源文件、又需要即时看到排版效果的人。
+
+### 和 Obsidian 相比
+
+- Obsidian 官方同步要订阅，且难交给远程 AI / Agent
+- GitHub 同步在手机上很难用；GitHub + iCloud 会让 `.git` 膨胀
+- StoatMD 用你自己的 **Google Drive / Dropbox** 多端同步；笔记对 Personal Agent / 远程 AI 可读写归档
+- 本机永远免费；开启同步走**买断**付费墙（不做订阅制）
+
+### 和妙言一类产品相比
+
+理念接近：原生轻量、源码编辑 + 独立预览、本机文件夹是真相。但妙言类产品多锁在**全苹果生态**，通常也不能让 AI 远程推笔记、给 Agent 调用同一库。StoatMD **不锁死全苹果生态**，正式支持云盘同步，并让 AI / Agent 可远程读写归档。
+
+### 明确不做
+
+- MCP / AgentBridge（无自有服务器；Personal Agent 走云盘文件即可）
+- 所见即所得（WYSIWYG）
+- 实时协作
+- 自建服务器 / 自建账号同步
 
 ## 文档
 
