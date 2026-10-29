@@ -2,6 +2,8 @@ import { Text, View, cleanup, effect, platform, signal } from "nsh";
 import { AlertDialog } from "nsh/base";
 import { Menu, Window } from "nsh/desktop";
 import { Vault, VaultDialog, type VaultEntryDto } from "stoatmd/native";
+import { syncRuntime } from "../sync/runtime";
+import { ConflictDialog } from "./ConflictDialog";
 import { EditorWorkspace } from "./EditorWorkspace";
 import { t } from "./i18n";
 import { NoteList } from "./NoteList";
@@ -30,6 +32,11 @@ const PREVIEW_MS = 250;
 const POLL_MS = 1500;
 /** 自己写入后这段时间内的 watcher 事件不算外部改动。 */
 const SELF_WRITE_MS = 4000;
+/** 保存后延迟推送到云端，避开连续输入。 */
+const SYNC_AFTER_SAVE_MS = 2500;
+/** 定时拉取云端变化；冲突未处理时暂停，等用户选择。 */
+const SYNC_PULL_MS = 90_000;
+const SYNC_START_DELAY_MS = 1200;
 
 /** Mac 三栏壳：Vault 真文件 + 自动保存 + 冲突提示。 */
 export function MacShell() {
@@ -53,12 +60,14 @@ export function MacShell() {
   const settingsOpen = signal(false);
   const settingsTab = signal<SettingsTab>("appearance");
   const conflictOpen = signal(false);
+  const syncConflictOpen = signal(false);
   /** 取消过期的异步 openNote，避免清空列表后旧请求又写回正文。 */
   let openGen = 0;
   /** 编辑器里的最新正文（不等信号）；自动保存与预览都以它为准。 */
   let liveText = "";
   /** 自己写入过的文件，忽略随后 watcher 报回的变更。 */
   const selfWrites = new Map<string, number>();
+  let syncTimer: ReturnType<typeof setTimeout> | null = null;
 
   const refreshTree = (v: Vault, keepFolder?: string) => {
     try {
@@ -163,6 +172,34 @@ export function MacShell() {
     selfWrites.set(normalizeVaultPath(path), Date.now() + SELF_WRITE_MS);
   };
 
+  const runSync = async () => {
+    const v = vault();
+    if (!v || !syncRuntime.isAttached()) return;
+    if (syncRuntime.phase() === "conflict") return;
+    await flushSave();
+    const result = await syncRuntime.syncNow();
+    if (!result) return;
+    if (result.conflicts.length > 0) syncConflictOpen.set(true);
+    if (result.changedLocal.length > 0) {
+      for (const path of result.changedLocal) markSelfWrite(path);
+      refreshTree(v, folderId());
+      const cur = opened();
+      if (cur && result.changedLocal.includes(cur.path)) {
+        await openNote(v, cur.path, true);
+        status.set(t("vault.reloaded"));
+      }
+    }
+  };
+
+  const scheduleSyncPush = () => {
+    if (!syncRuntime.isAttached()) return;
+    if (syncTimer) clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => {
+      syncTimer = null;
+      void runSync();
+    }, SYNC_AFTER_SAVE_MS);
+  };
+
   /** 保存后只改这一篇的 mtime 并重排，不再全库扫描。 */
   const patchNoteMtime = (path: string, mtimeMs: number) => {
     const id = normalizeVaultPath(path);
@@ -195,6 +232,10 @@ export function MacShell() {
       selfWrites.clear();
       refreshTree(v, "");
       status.set("");
+      syncRuntime.attach(v);
+      setTimeout(() => {
+        if (vault() === v) void runSync();
+      }, SYNC_START_DELAY_MS);
     } catch (err) {
       status.set(String(err));
     }
@@ -278,6 +319,7 @@ export function MacShell() {
         markSelfWrite(cur.path);
         patchNoteMtime(cur.path, result.mtimeMs);
         status.set(t("vault.saved"));
+        scheduleSyncPush();
         // 写盘期间可能已经切到别的笔记：只更新仍打开的那篇
         if (opened()?.path === cur.path) {
           const stillDirty = liveText !== content;
@@ -375,6 +417,8 @@ export function MacShell() {
         } catch {
           // 路径失效则等待用户重选
         }
+      } else {
+        syncRuntime.attach(null);
       }
     })();
   });
@@ -470,7 +514,7 @@ export function MacShell() {
   effect(() => {
     const id = setInterval(() => {
       const v = vault();
-      if (!v || conflictOpen()) return;
+      if (!v || conflictOpen() || syncRuntime.phase() === "syncing") return;
       const changes = v.pollChanges();
       if (changes.length === 0) return;
       const now = Date.now();
@@ -517,8 +561,22 @@ export function MacShell() {
         clearTimeout(saveTimer);
         saveTimer = null;
       }
+      if (syncTimer) {
+        clearTimeout(syncTimer);
+        syncTimer = null;
+      }
       cancelPreview();
     });
+  });
+
+  // 定时拉取云端变化（保存后另有防抖推送）
+  effect(() => {
+    const id = setInterval(() => {
+      if (!syncRuntime.isAttached()) return;
+      if (syncRuntime.phase() === "conflict" || syncRuntime.phase() === "syncing") return;
+      void runSync();
+    }, SYNC_PULL_MS);
+    cleanup(() => clearInterval(id));
   });
 
   const folderLabel = () => {
@@ -621,9 +679,17 @@ export function MacShell() {
                 onOpenVault={() => {
                   void pickAndOpen();
                 }}
-                onSync={() => openSettings("sync")}
+                onSync={() => {
+                  if (syncRuntime.conflicts().length > 0) {
+                    syncConflictOpen.set(true);
+                  } else {
+                    openSettings("sync");
+                  }
+                }}
                 vaultRoot={vaultRoot()}
                 rail={sidebarMode() === "rail"}
+                syncPhase={syncRuntime.phase()}
+                syncConflictCount={syncRuntime.conflicts().length}
               />
             </View>
           </If>
@@ -703,6 +769,18 @@ export function MacShell() {
         vaultRoot={vaultRoot()}
         onOpenVault={() => {
           void pickAndOpen();
+        }}
+        onSyncNow={() => {
+          void runSync();
+        }}
+        onManageConflicts={() => syncConflictOpen.set(true)}
+      />
+
+      <ConflictDialog
+        open={syncConflictOpen()}
+        onClose={() => syncConflictOpen.set(false)}
+        onResolved={() => {
+          void runSync();
         }}
       />
     </View>

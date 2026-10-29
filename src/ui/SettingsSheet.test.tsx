@@ -22,6 +22,22 @@ test("设置：12 套主题可选并持久化", async () => {
   expect(app.storage()["prefs.theme"]).toBe("pure-white");
 });
 
+test("同步：未连接展示两家网盘；缺客户端凭据时明确提示且不进入授权", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", desktop);
+  await app.press("id:settings-tab-sync");
+  expect(app.texts()).toContain("开启同步");
+
+  await app.press("id:sync-enable");
+  expect(app.shows("id:sync-provider-google")).toBe(true);
+  expect(app.shows("id:sync-provider-dropbox")).toBe(true);
+  expect(app.texts()).toContain("Google Drive");
+
+  await app.press("id:sync-provider-google");
+  await app.waitUntil(() => app.shows("id:sync-local-error"));
+  expect(app.texts().some((text) => text.includes("STOATMD_GOOGLE_CLIENT_ID"))).toBe(true);
+  expect(app.shows("id:sync-auth-cancel")).toBe(false);
+});
+
 test("设置：字体下拉可选系统默认并持久化，语言切换即时生效", async () => {
   const app = await open("./SettingsSheet.harness.tsx", {
     ...desktop,

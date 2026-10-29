@@ -1,7 +1,8 @@
 import { Text, View } from "nsh";
+import type { SyncPhase } from "../sync/runtime";
 import { Icon } from "./Icon";
 import { t } from "./i18n";
-import { colors } from "./theme";
+import { colors, statusColor } from "./theme";
 import { normalizeVaultPath, type FolderNode } from "./vaultModel";
 
 type Props = {
@@ -12,10 +13,33 @@ type Props = {
   onSync: () => void;
   vaultRoot: string | null;
   rail?: boolean;
+  syncPhase?: SyncPhase;
+  syncConflictCount?: number;
 };
 
 /** 左栏：真实库文件夹树；rail 时仅图标轨。 */
 export function Sidebar(props: Props) {
+  const syncLabel = (): string => {
+    const phase = props.syncPhase ?? "off";
+    if (phase === "conflict") {
+      return `${props.syncConflictCount ?? 0} ${t("sync.conflicts")}`;
+    }
+    if (phase === "authorizing") return t("sync.authorizing");
+    if (phase === "syncing") return t("sync.syncing");
+    if (phase === "synced") return t("sync.synced");
+    if (phase === "offline") return t("sync.offline");
+    if (phase === "error") return t("sync.error");
+    return t("sync.off");
+  };
+
+  const syncDotColor = (): string => {
+    const phase = props.syncPhase ?? "off";
+    if (phase === "conflict" || phase === "error") return statusColor("danger");
+    if (phase === "synced") return statusColor("ok");
+    if (phase === "authorizing" || phase === "syncing") return colors().accent;
+    return colors().ink3;
+  };
+
   return (
     <View
       style={{
@@ -147,7 +171,7 @@ export function Sidebar(props: Props) {
       >
         <Icon name="cloud" color={colors().ink2} size={14} />
         <If when={!props.rail}>
-          <Text style={{ fontSize: 12, color: colors().ink2, flex: 1 }}>{t("sync.off")}</Text>
+          <Text style={{ fontSize: 12, color: colors().ink2, flex: 1 }}>{syncLabel()}</Text>
         </If>
         <If when={!props.rail}>
           <View
@@ -155,8 +179,7 @@ export function Sidebar(props: Props) {
               width: 6,
               height: 6,
               borderRadius: 3,
-              backgroundColor: colors().ink3,
-              opacity: 0.7,
+              backgroundColor: syncDotColor(),
             }}
           />
         </If>

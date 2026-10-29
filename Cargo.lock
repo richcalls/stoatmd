@@ -1154,6 +1154,7 @@ dependencies = [
  "objc2-core-foundation",
  "objc2-core-text",
  "rfd",
+ "serde_json",
  "stoatmd-core",
 ]
 
