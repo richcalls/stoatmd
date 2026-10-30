@@ -109,6 +109,7 @@
   "settings.font.empty": "Aucune police correspondante",
   "settings.font.size": "Taille",
   "settings.font.lineHeight": "Interligne",
+  "settings.font.reset": "Réinitialiser",
   "settings.font.preview": "Un bon texte déploie une structure, pas un tas d’étincelles.",
   "settings.locale": "Langue",
   "settings.locale.system": "Suivre le système",

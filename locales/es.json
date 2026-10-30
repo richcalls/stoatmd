@@ -109,6 +109,7 @@
   "settings.font.empty": "No hay fuentes coincidentes",
   "settings.font.size": "Tamaño",
   "settings.font.lineHeight": "Altura de línea",
+  "settings.font.reset": "Restablecer",
   "settings.font.preview": "Un buen texto despliega una estructura, no un montón de chispas.",
   "settings.locale": "Idioma",
   "settings.locale.system": "Seguir el sistema",

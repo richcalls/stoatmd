@@ -109,6 +109,7 @@
   "settings.font.empty": "沒有符合的字體",
   "settings.font.size": "字級",
   "settings.font.lineHeight": "行高",
+  "settings.font.reset": "恢復預設",
   "settings.font.preview": "好的文章不是靈感的堆砌，而是結構的展開。",
   "settings.locale": "語言",
   "settings.locale.system": "跟隨系統",

@@ -11,11 +11,15 @@ import {
 } from "./prefs";
 
 /** 正文字体、字号、行高只作用于预览；源码区始终等宽。字体为空串时用 Kami 衬线。 */
-export const fontFamily = signal("");
+export const DEFAULT_FONT_FAMILY = "";
+export const DEFAULT_FONT_SIZE = 15;
+export const DEFAULT_FONT_LINE_HEIGHT = KAMI_READING_LINE_HEIGHT;
+
+export const fontFamily = signal(DEFAULT_FONT_FAMILY);
 /** 系统可用字体族（macOS 由原生桥枚举；不可用时为空）。 */
 export const systemFonts = signal<readonly string[]>([]);
-export const fontSize = signal(15);
-export const fontLineHeight = signal(KAMI_READING_LINE_HEIGHT);
+export const fontSize = signal(DEFAULT_FONT_SIZE);
+export const fontLineHeight = signal(DEFAULT_FONT_LINE_HEIGHT);
 
 export const FONT_SIZE_MIN = 12;
 export const FONT_SIZE_MAX = 24;
@@ -69,6 +73,22 @@ export function applyFontLineHeight(next: number) {
   );
   fontLineHeight.set(value);
   void saveFontLineHeight(String(value));
+}
+
+/** 是否仍是 Kami 默认排版（字体跟随系统衬线、默认字号与行高）。 */
+export function isDefaultTypography(): boolean {
+  return (
+    fontFamily() === DEFAULT_FONT_FAMILY &&
+    Math.round(fontSize()) === DEFAULT_FONT_SIZE &&
+    Math.abs(fontLineHeight() - DEFAULT_FONT_LINE_HEIGHT) < 0.001
+  );
+}
+
+/** 一键恢复默认排版并覆盖已保存的偏好。 */
+export function resetTypography() {
+  applyFontFamily(DEFAULT_FONT_FAMILY);
+  applyFontSize(DEFAULT_FONT_SIZE);
+  applyFontLineHeight(DEFAULT_FONT_LINE_HEIGHT);
 }
 
 /** 启动时恢复字体偏好；无效值回落到默认。 */

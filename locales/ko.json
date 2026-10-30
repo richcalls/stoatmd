@@ -109,6 +109,7 @@
   "settings.font.empty": "일치하는 글꼴이 없습니다",
   "settings.font.size": "크기",
   "settings.font.lineHeight": "줄 높이",
+  "settings.font.reset": "기본값으로 복원",
   "settings.font.preview": "좋은 글은 영감의 더미가 아니라 구조의 펼침이다.",
   "settings.locale": "언어",
   "settings.locale.system": "시스템 따르기",

@@ -109,6 +109,7 @@
   "settings.font.empty": "No matching fonts",
   "settings.font.size": "Size",
   "settings.font.lineHeight": "Line height",
+  "settings.font.reset": "Reset to defaults",
   "settings.font.preview": "A good piece of writing expands a structure, not a pile of sparks.",
   "settings.locale": "Language",
   "settings.locale.system": "Follow System",
