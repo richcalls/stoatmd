@@ -1,4 +1,5 @@
 import { setColorScheme, signal } from "nsh";
+import { KAMI } from "./kami";
 import { loadSavedTheme, saveTheme } from "./prefs";
 
 /** 外观预设：DESIGN.md 的 12 套 token（8 light + 4 dark）。 */
@@ -33,7 +34,6 @@ export type ThemePalette = {
   syntaxBold: string;
   quote: string;
   codeBg: string;
-  quoteBg: string;
   searchBg: string;
 };
 
@@ -48,13 +48,11 @@ const lightSyntax = {
   syntaxBold: "#8B5E3C",
   quote: "#4F6B4F",
   codeBg: "rgba(139,94,60,0.08)",
-  quoteBg: "rgba(90,122,90,0.07)",
 };
 const darkSyntax = {
   syntaxBold: "#C4A484",
   quote: "#8FAF8F",
   codeBg: "rgba(196,164,132,0.12)",
-  quoteBg: "rgba(143,175,143,0.10)",
 };
 const lightField = { searchBg: "rgba(44,42,38,0.05)" };
 const darkField = { searchBg: "rgba(255,255,255,0.06)" };
@@ -65,19 +63,22 @@ export const THEMES: readonly ThemePreset[] = [
     nameKey: "settings.theme.weavePaper",
     mode: "light",
     palette: {
-      paper: "#F7F3EB",
-      sidebar: "#F1EBE2",
-      list: "#FAF7F1",
-      editor: "#FFFCF7",
-      preview: "#FFFCF7",
-      ink: "#2C2A26",
-      ink2: "#5F5A54",
-      ink3: "#6E6860",
-      thread: "#DDD5C8",
-      accent: "#3D5A80",
-      accentSoft: "#E4EBF3",
-      ...lightSyntax,
-      ...lightField,
+      // 默认外观直接采用 Kami 的羊皮纸 + 墨蓝 token
+      paper: KAMI.parchment,
+      sidebar: KAMI.inlineCodeBg,
+      list: KAMI.ivory,
+      editor: KAMI.ivory,
+      preview: KAMI.parchment,
+      ink: KAMI.nearBlack,
+      ink2: KAMI.olive,
+      ink3: KAMI.stone,
+      thread: KAMI.border,
+      accent: KAMI.brand,
+      accentSoft: KAMI.brandTint,
+      syntaxBold: KAMI.darkWarm,
+      quote: KAMI.olive,
+      codeBg: KAMI.inlineCodeBg,
+      searchBg: "rgba(20,20,19,0.05)",
     },
   },
   {

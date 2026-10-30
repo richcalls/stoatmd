@@ -1,6 +1,6 @@
 import { expect, open, test } from "nsh/test";
 
-const options = { width: 800, height: 600, locale: "zh-CN" };
+const options = { width: 800, height: 600, locale: "zh-CN", platform: "macos" as const };
 
 test("文件树：后到的笔记嵌套显示，点击笔记回调路径", async () => {
   const app = await open("./Sidebar.harness.tsx", options);
@@ -50,6 +50,13 @@ test("文件树：搜索忽略折叠、平铺结果并带父文件夹名", async
 
   await app.type("id:sidebar-search", "不存在的笔记");
   expect(app.shows("text:没有匹配的笔记")).toBe(true);
+});
+
+test("文件树：右键笔记会带路径触发文件菜单", async () => {
+  const app = await open("./Sidebar.harness.tsx", options);
+  await app.press("id:feed");
+  await app.rightClick("label:计划");
+  expect(app.texts()).toContain("Projects/Stoat/计划.md");
 });
 
 test("文件树：新建按钮与底部同步入口可用", async () => {

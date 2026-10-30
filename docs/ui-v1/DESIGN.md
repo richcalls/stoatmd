@@ -31,24 +31,27 @@
 
 非靛蓝主题中：`--indigo` / `--indigo-soft` **token 名可保留**，值映射为该套的 accent / accent-soft。
 
-语法色（各套可微调，默认跟随）：标题=`--accent`；粗体标记=`--ink-3`；行内代码浅 `#8B5E3C` / 深 `#C4A484`；引用浅 `#4F6B4F` / 深 `#8FAF8F`。
+语法色（各套可微调，默认跟随）：标题=`--accent`；粗体标记=`--ink-3`；其他主题行内代码浅 `#8B5E3C` / 深 `#C4A484`，引用浅 `#4F6B4F` / 深 `#8FAF8F`；默认套按 Kami：行内代码 `#3D3D3A` / `#F0EEE6`，引用 `#504E49`。
 
 ### 默认两套（稿面与 `shared.css`）
 
-#### 浅色默认 · 织线纸白 Weave Paper
+#### 浅色默认 · Kami 羊皮纸 Kami Parchment
+
+文章排版与色板移植自 [Kami](https://github.com/tw93/kami)（MIT，见仓库 `THIRD_PARTY_NOTICES.md`）。
 
 | Token | Hex | 用途 |
 |-------|-----|------|
-| `--paper` | `#F7F3EB` | 窗口/页面底 |
-| `--sidebar` | `#F1EBE2` | 左栏文件树略深 |
-| `--list` | `#FAF7F1` | 面板列表底 |
-| `--editor` / `--preview` | `#FFFCF7` | 右栏略亮 |
-| `--ink` | `#2C2A26` | 主文字 |
-| `--ink-2` | `#5F5A54` | 次文字 |
-| `--ink-3` | `#6E6860` | 占位/弱 |
-| `--thread` | `#DDD5C8` | 1px 栏分隔 |
-| `--indigo` / accent | `#3D5A80` | 选中织线、链接 |
-| `--indigo-soft` / accent-soft | `#E4EBF3` | 选中行底 |
+| `--paper` | `#F5F4ED` | 窗口/页面底 · parchment |
+| `--sidebar` | `#F0EEE6` | 左栏文件树略深 · inline-code-bg |
+| `--list` | `#FAF9F5` | 面板列表底 · ivory |
+| `--editor` | `#FAF9F5` | 右侧源码区 · ivory |
+| `--preview` | `#F5F4ED` | 预览纸张 · parchment |
+| `--ink` | `#141413` | 主文字 · near-black |
+| `--ink-2` | `#504E49` | 次文字 · olive |
+| `--ink-3` | `#6B6A64` | 占位/弱 · stone |
+| `--thread` | `#E8E6DC` | 1px 栏分隔 · border |
+| `--indigo` / accent | `#1B365D` | 选中织线、链接 · ink blue |
+| `--indigo-soft` / accent-soft | `#EEF2F7` | 选中行底 · brand tint |
 
 #### 深色默认 · 暖夜炭 Warm Charcoal
 
@@ -67,15 +70,17 @@
 
 ## 织线规则
 
-- 栏分隔、工具条底边、引用条：**一律 1px** `--thread` 或 `--indigo`
+- 栏分隔、工具条底边：**一律 1px** `--thread` 或 `--indigo`
+- 预览引用**不加底色、不加侧边线**（Kami）：缩进 + olive 文字即可
 - 选中态：淡 accent 底 + **左侧 1px accent 织线**（禁止 2px+ 彩条）
 - 顶栏底边：纯色 1px thread，**不要**装饰性渐变织线
 
 ## 字体与字号（Operate）
 
-系统 UI 字体即可（SF Pro / PingFang）；源码用 SF Mono / Menlo。  
-用户可在**设置 → 字体**改：正文字体（下拉选择系统字体，可搜索，含系统默认）、字号、行高；预览一行真文案。源码高亮区仍用等宽，不受正文字体影响。  
-固定 rem 阶梯，比例约 1.125–1.2。预览正文测宽约 **65–75ch**（`max-width: 42rem`）。
+系统 UI 字体用于界面（SF Pro / PingFang）；源码用 SF Mono / Menlo。  
+**预览默认采用 Kami 文章排版**：衬线正文（macOS 优先 Songti SC，回退 STSong / Source Han Serif / Noto Serif CJK / Charter / Georgia）、行高 **1.55**、中文 tracking 0.3pt；标题字重锁定 **500**，不合成粗体。  
+用户可在**设置 → 字体**改：正文字体（下拉选择系统字体，可搜索，默认「Kami 默认（衬线）」）、字号、行高；预览一行真文案。源码高亮区仍用等宽，不受正文字体影响。  
+预览正文测宽约 **720px**（`max-width: 720`），对应 Kami 的屏幕阅读测宽。
 
 | 场景 | 字号 | 字重 |
 |------|------|------|
@@ -84,7 +89,7 @@
 | 笔记列表标题 | 14 | 560 |
 | 相对时间 | 12 | 400 |
 | 源码 | 13.5 / lh 1.75 | 400 mono |
-| 预览 H1 / H2 / 正文 | 26 / 18 / 15 | 650 / 600 / 400 |
+| 预览 H1 / H2 / H3 / 正文 | 31 / 23 / 19 / 15（随设置字号缩放） | 500 / 500 / 500 / 400 |
 | iPhone 导航标题 | 16 | 600 |
 
 ## 浏览器表面
@@ -108,7 +113,7 @@
 
 | # | 名称（中 / EN） | Mode | paper | ink | accent | 备注 |
 |---|-----------------|------|-------|-----|--------|------|
-| 1 | 织线纸白 / Weave Paper | light | `#F7F3EB` | `#2C2A26` | `#3D5A80` | **浅色默认** |
+| 1 | Kami 羊皮纸 / Kami Parchment | light | `#F5F4ED` | `#141413` | `#1B365D` | **浅色默认**（Kami） |
 | 2 | 纯白 / Pure White | light | `#FFFFFF` | `#1A1A1A` | `#3D5A80` | **必须有**；主底纯白 |
 | 3 | 鼠尾草 / Sage | light | `#F2F4F0` | `#2A2E28` | `#5A7A62` | |
 | 4 | 墨灰 / Ink Gray | light | `#F4F4F2` | `#2C2C2A` | `#555555` | |
@@ -123,20 +128,23 @@
 
 （原「石灰」与墨灰过近，本表以 **纯白** 替换，保证亮色含 `#FFFFFF` 套。）
 
-### 1 · 织线纸白 Weave Paper · light · 默认
+### 1 · Kami 羊皮纸 Kami Parchment · light · 默认
+
+文章排版与 token 移植自 [Kami](https://github.com/tw93/kami)（MIT）。
 
 | Token | Hex |
 |-------|-----|
-| `--paper` / `--bg` | `#F7F3EB` |
-| `--sidebar` | `#F1EBE2` |
-| `--list` | `#FAF7F1` |
-| `--editor` / `--preview` / surface | `#FFFCF7` |
-| `--ink` | `#2C2A26` |
-| `--ink-2` / `--ink-muted` | `#5F5A54` |
-| `--ink-3` | `#6E6860` |
-| `--thread` | `#DDD5C8` |
-| `--accent` / `--indigo` | `#3D5A80` |
-| `--accent-soft` / `--indigo-soft` | `#E4EBF3` |
+| `--paper` / `--bg` | `#F5F4ED` |
+| `--sidebar` | `#F0EEE6` |
+| `--list` | `#FAF9F5` |
+| `--editor` | `#FAF9F5` |
+| `--preview` | `#F5F4ED` |
+| `--ink` | `#141413` |
+| `--ink-2` / `--ink-muted` | `#504E49` |
+| `--ink-3` | `#6B6A64` |
+| `--thread` | `#E8E6DC` |
+| `--accent` / `--indigo` | `#1B365D` |
+| `--accent-soft` / `--indigo-soft` | `#EEF2F7` |
 
 ### 2 · 纯白 Pure White · light · **必选套**
 

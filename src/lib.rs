@@ -345,6 +345,26 @@ impl Vault {
         self.core.delete(&path).map_err(map_err)
     }
 
+    /// 库内相对路径的绝对路径（Finder 定位、复制路径用）。
+    pub fn absolute(&self, path: String) -> Result<String, String> {
+        self.core
+            .absolute(&path)
+            .map(|abs| abs.display().to_string())
+            .map_err(map_err)
+    }
+
+    /// 在系统文件管理器中选中该文件。
+    pub fn reveal(&self, path: String) -> Result<(), String> {
+        let abs = self.core.absolute(&path).map_err(map_err)?;
+        reveal_path(&abs)
+    }
+
+    /// 移到系统废纸篓（可从废纸篓恢复）。
+    pub fn trash(&self, path: String) -> Result<(), String> {
+        let abs = self.core.absolute(&path).map_err(map_err)?;
+        trash_path(&abs)
+    }
+
     /// 查询 mtime。
     pub fn mtime(&self, path: String) -> Result<u64, String> {
         self.core.mtime(&path).map_err(map_err)
@@ -745,6 +765,50 @@ fn open_external(url: &str) -> Result<(), String> {
     } else {
         Err(format!("browser exited with {status}"))
     }
+}
+
+fn reveal_path(path: &Path) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    let mut command = {
+        let mut command = std::process::Command::new("open");
+        command.arg("-R").arg(path);
+        command
+    };
+    #[cfg(target_os = "windows")]
+    let mut command = {
+        let mut command = std::process::Command::new("explorer");
+        command.arg(format!("/select,{}", path.display()));
+        command
+    };
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let mut command = {
+        let mut command = std::process::Command::new("xdg-open");
+        command.arg(path.parent().unwrap_or(path));
+        command
+    };
+    let status = command.status().map_err(|err| err.to_string())?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("file manager exited with {status}"))
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn trash_path(path: &Path) -> Result<(), String> {
+    use objc2_foundation::{NSFileManager, NSString, NSURL};
+
+    let manager = NSFileManager::defaultManager();
+    let ns_path = NSString::from_str(&path.to_string_lossy());
+    let url = NSURL::fileURLWithPath(&ns_path);
+    manager
+        .trashItemAtURL_resultingItemURL_error(&url, None)
+        .map_err(|err| err.localizedDescription().to_string())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn trash_path(_path: &Path) -> Result<(), String> {
+    Err("move to trash is only supported on macOS".to_owned())
 }
 
 fn valid_provider(provider: &str) -> Result<(), String> {

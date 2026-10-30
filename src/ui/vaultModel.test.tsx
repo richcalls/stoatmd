@@ -1,10 +1,12 @@
 import { expect, test } from "nsh/test";
 import {
+  duplicateNotePath,
   foldersFromEntries,
   libraryRows,
   normalizeVaultPath,
   noteBelongsToFolder,
   notesInFolder,
+  renamedNotePath,
   type FolderNode,
   type NoteItem,
 } from "./vaultModel";
@@ -93,6 +95,27 @@ test("libraryRows：折叠文件夹会隐藏子孙，其他分支不受影响", 
   expect(rows.some((r) => r.id === "Diary/今天.md")).toBe(true);
   const folder = rows.find((r) => r.kind === "folder" && r.id === "Projects");
   expect(folder && folder.kind === "folder" && folder.collapsed).toBe(true);
+});
+
+test("renamedNotePath：沿用扩展名，拒绝空名、路径分隔符与隐藏名", () => {
+  expect(renamedNotePath("Projects/计划.md", " 新计划 ")).toEqual({
+    ok: true,
+    path: "Projects/新计划.md",
+  });
+  expect(renamedNotePath("a.markdown", "b.MD")).toEqual({ ok: true, path: "b.MD" });
+  expect(renamedNotePath("a.md", "  ")).toEqual({ ok: false, error: "empty" });
+  expect(renamedNotePath("a.md", "x/y")).toEqual({ ok: false, error: "invalid" });
+  expect(renamedNotePath("a.md", ".hidden")).toEqual({ ok: false, error: "invalid" });
+  expect(renamedNotePath("a.md", "..")).toEqual({ ok: false, error: "invalid" });
+});
+
+test("duplicateNotePath：同目录副本命名，冲突时递增序号", () => {
+  const existing = ["Diary/今天.md", "Diary/今天 副本.md", "Diary/今天 副本 2.md"];
+  expect(duplicateNotePath("Diary/今天.md", existing, "副本")).toBe(
+    "Diary/今天 副本 3.md",
+  );
+  expect(duplicateNotePath("root.md", ["root.md"], "copy")).toBe("root copy.md");
+  expect(duplicateNotePath("a.markdown", [], "copy")).toBe("a copy.markdown");
 });
 
 test("libraryRows：搜索忽略折叠，平铺匹配笔记并带父文件夹名", () => {

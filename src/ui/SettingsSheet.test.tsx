@@ -38,7 +38,7 @@ test("同步：未连接展示两家网盘；缺客户端凭据时明确提示�
   expect(app.shows("id:sync-auth-cancel")).toBe(false);
 });
 
-test("设置：字体下拉可选系统默认并持久化，语言切换即时生效", async () => {
+test("设置：字体下拉可选 Kami 默认并持久化，语言切换即时生效", async () => {
   const app = await open("./SettingsSheet.harness.tsx", {
     ...desktop,
     storage: {
@@ -51,7 +51,7 @@ test("设置：字体下拉可选系统默认并持久化，语言切换即时�
   await app.press("id:font-select");
   await app.waitUntil(() => app.shows("id:font-search"));
   expect(app.shows("id:font-options")).toBe(true);
-  await app.press("id:font-option-system");
+  await app.press("id:font-option-kami");
   await app.press("id:font-size-inc");
   await app.press("id:font-size-inc");
   await app.press("id:font-size-inc");
@@ -60,11 +60,11 @@ test("设置：字体下拉可选系统默认并持久化，语言切换即时�
     () =>
       app.storage()["prefs.fontFamily"] === "system" &&
       app.storage()["prefs.fontSize"] === "18" &&
-      app.storage()["prefs.fontLineHeight"] === "1.8",
+      app.storage()["prefs.fontLineHeight"] === "1.6",
   );
-  expect(app.texts()).toContain("系统默认");
+  expect(app.texts()).toContain("Kami 默认（衬线）");
   expect(app.storage()["prefs.fontSize"]).toBe("18");
-  expect(app.storage()["prefs.fontLineHeight"]).toBe("1.8");
+  expect(app.storage()["prefs.fontLineHeight"]).toBe("1.6");
 
   await app.press("id:settings-tab-appearance");
   await app.press("id:locale-en");

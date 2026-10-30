@@ -1,5 +1,6 @@
 import { signal } from "nsh";
 import { SystemFonts } from "stoatmd/native";
+import { KAMI_READING_LINE_HEIGHT, kamiSerifFamily } from "./kami";
 import {
   loadSavedFontFamily,
   loadSavedFontLineHeight,
@@ -9,12 +10,12 @@ import {
   saveFontSize,
 } from "./prefs";
 
-/** 正文字体、字号、行高只作用于预览；源码区始终等宽。字体为空串时用系统默认。 */
+/** 正文字体、字号、行高只作用于预览；源码区始终等宽。字体为空串时用 Kami 衬线。 */
 export const fontFamily = signal("");
 /** 系统可用字体族（macOS 由原生桥枚举；不可用时为空）。 */
 export const systemFonts = signal<readonly string[]>([]);
 export const fontSize = signal(15);
-export const fontLineHeight = signal(1.75);
+export const fontLineHeight = signal(KAMI_READING_LINE_HEIGHT);
 
 export const FONT_SIZE_MIN = 12;
 export const FONT_SIZE_MAX = 24;
@@ -22,9 +23,10 @@ export const LINE_HEIGHT_MIN = 1.3;
 export const LINE_HEIGHT_MAX = 2.2;
 export const LINE_HEIGHT_STEP = 0.05;
 
-export function fontFamilyName(): string | undefined {
+/** 预览实际使用的字体：用户选定优先，否则用本机可用的 Kami 衬线。 */
+export function previewFontFamily(): string {
   const family = fontFamily();
-  return family === "" ? undefined : family;
+  return family === "" ? kamiSerifFamily(systemFonts()) : family;
 }
 
 /** 字体桥只枚举一次；宿主没有桥时保持为空，下次打开再试。 */
