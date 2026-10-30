@@ -47,7 +47,7 @@ export function Sidebar(props: Props) {
   const syncLabel = (): string => {
     const phase = props.syncPhase ?? "off";
     if (phase === "conflict") {
-      return `${props.syncConflictCount ?? 0} ${t("sync.conflicts")}`;
+      return t("sync.conflictsCount", { n: props.syncConflictCount ?? 0 });
     }
     if (phase === "authorizing") return t("sync.authorizing");
     if (phase === "syncing") return t("sync.syncing");

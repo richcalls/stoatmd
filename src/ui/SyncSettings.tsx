@@ -5,7 +5,7 @@ import { SyncError, type RemoteDir } from "../sync/provider";
 import { providerLabelKey, remoteRoot, syncRuntime } from "../sync/runtime";
 import type { ProviderId } from "../sync/types";
 import { Icon, type IconName } from "./Icon";
-import { locale, t } from "./i18n";
+import { intlTag, locale, t } from "./i18n";
 import { colors, statusColor } from "./theme";
 
 type Stage = "idle" | "providers" | "authorizing" | "folders";
@@ -31,9 +31,9 @@ export function formatSyncMoment(ms: number): string {
   if (diff < 60_000) return t("sync.justNow");
   const minutes = Math.floor(diff / 60_000);
   if (minutes < 60) {
-    return locale() === "en" ? `${minutes} min ago` : `${minutes} 分钟前`;
+    return t("time.minutesAgo", { n: minutes });
   }
-  return new Date(ms).toLocaleTimeString(locale() === "en" ? "en-US" : "zh-CN", {
+  return new Date(ms).toLocaleTimeString(intlTag(locale()), {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -238,7 +238,7 @@ export function SyncSettings(props: SyncSettingsProps) {
         : t("sync.firstSync");
     }
     if (phase === "conflict") {
-      return `${syncRuntime.conflicts().length} ${t("sync.conflicts")}`;
+      return t("sync.conflictsCount", { n: syncRuntime.conflicts().length });
     }
     if (phase === "offline") return t("sync.offline");
     if (phase === "error") {

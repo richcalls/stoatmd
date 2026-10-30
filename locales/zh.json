@@ -12,7 +12,7 @@
   "sync.synced": "已同步",
   "sync.justNow": "刚刚同步",
   "sync.never": "尚未同步",
-  "sync.conflicts": "冲突",
+  "sync.conflictsCount": "{n} 冲突",
   "sync.offline": "离线 · 仅本机",
   "sync.error": "同步出错",
   "sync.enable": "开启同步",
@@ -112,8 +112,6 @@
   "settings.font.preview": "好的文章不是灵感的堆砌，而是结构的展开。",
   "settings.locale": "语言",
   "settings.locale.system": "跟随系统",
-  "settings.locale.zh": "中文",
-  "settings.locale.en": "English",
   "note.new": "新建笔记",
   "note.empty": "还没有笔记",
   "common.cancel": "取消",
@@ -157,5 +155,8 @@
   "vault.conflict.title": "文件已在外部被修改",
   "vault.conflict.description": "磁盘上的内容与编辑器不一致。保留本地编辑将覆盖磁盘；重载将丢弃未保存的修改。",
   "vault.conflict.keep": "保留本地",
-  "vault.conflict.reload": "从磁盘重载"
+  "vault.conflict.reload": "从磁盘重载",
+  "time.today": "今天 {time}",
+  "time.yesterday": "昨天 {time}",
+  "time.minutesAgo": "{n} 分钟前"
 }

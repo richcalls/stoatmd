@@ -408,7 +408,7 @@ export function MacShell() {
       titleFromName(path.split("/").pop() ?? path);
     const action = await AlertDialog.show({
       title: t("trash.title"),
-      description: t("trash.desc").replace("{name}", title),
+      description: t("trash.desc", { name: title }),
       actions: [
         { id: "cancel", label: t("common.cancel"), role: "cancel" },
         { id: "trash", label: t("context.trash"), role: "destructive" },

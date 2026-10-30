@@ -12,7 +12,7 @@
   "sync.synced": "Synced",
   "sync.justNow": "Just now",
   "sync.never": "Never synced",
-  "sync.conflicts": "conflicts",
+  "sync.conflictsCount": "{n} conflicts",
   "sync.offline": "Offline · local only",
   "sync.error": "Sync error",
   "sync.enable": "Turn on sync",
@@ -112,8 +112,6 @@
   "settings.font.preview": "A good piece of writing expands a structure, not a pile of sparks.",
   "settings.locale": "Language",
   "settings.locale.system": "Follow System",
-  "settings.locale.zh": "中文",
-  "settings.locale.en": "English",
   "note.new": "New note",
   "note.empty": "No notes yet",
   "common.cancel": "Cancel",
@@ -157,5 +155,8 @@
   "vault.conflict.title": "File changed on disk",
   "vault.conflict.description": "The file on disk differs from the editor. Keep local edits to overwrite disk, or reload to discard unsaved changes.",
   "vault.conflict.keep": "Keep local",
-  "vault.conflict.reload": "Reload from disk"
+  "vault.conflict.reload": "Reload from disk",
+  "time.today": "Today {time}",
+  "time.yesterday": "Yesterday {time}",
+  "time.minutesAgo": "{n} min ago"
 }

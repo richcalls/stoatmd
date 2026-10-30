@@ -67,8 +67,11 @@ test("设置：字体下拉可选 Kami 默认并持久化，语言切换即时�
   expect(app.storage()["prefs.fontLineHeight"]).toBe("1.6");
 
   await app.press("id:settings-tab-appearance");
+  await app.press("id:locale-select");
+  await app.waitUntil(() => app.shows("id:locale-options"));
   await app.press("id:locale-en");
   await app.waitUntil(() => app.storage()["prefs.locale"] === "en");
+  await app.waitFor("id:locale-options", { state: "gone", timeout: 3000 });
   expect(app.texts()).toContain("Settings");
   expect(app.texts()).toContain("Appearance");
 });
@@ -99,4 +102,31 @@ test("设置：字体搜索可过滤系统字体、无匹配有空态、选中�
   await app.type("id:font-search", "zzzzqqqq");
   await app.waitFor("text:没有匹配的字体", { timeout: 3000 });
   expect(app.shows("id:settings-dialog")).toBe(true);
+});
+
+test("设置：界面语言为下拉框，切到日本語后持久化并即时翻译", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", desktop);
+  await app.press("id:settings-tab-appearance");
+  // 默认跟随系统：下拉框收起时只显示当前项，展开后列出全部九项。
+  expect(app.shows("id:locale-options")).toBe(false);
+  expect(app.texts()).toContain("跟随系统");
+  await app.press("id:locale-select");
+  await app.waitUntil(() => app.shows("id:locale-options"));
+  expect(app.shows("id:locale-en")).toBe(true);
+  expect(app.shows("id:locale-zh")).toBe(true);
+  expect(app.shows("id:locale-zh-Hant")).toBe(true);
+  expect(app.shows("id:locale-ja")).toBe(true);
+  expect(app.shows("id:locale-ko")).toBe(true);
+  expect(app.shows("id:locale-de")).toBe(true);
+  expect(app.shows("id:locale-fr")).toBe(true);
+  expect(app.shows("id:locale-es")).toBe(true);
+  expect(app.texts()).toContain("简体中文");
+  expect(app.texts()).toContain("繁體中文");
+  expect(app.texts()).toContain("Español");
+  await app.press("id:locale-ja");
+  await app.waitUntil(() => app.storage()["prefs.locale"] === "ja");
+  await app.waitFor("id:locale-options", { state: "gone", timeout: 3000 });
+  expect(app.texts()).toContain("外観");
+  expect(app.texts()).toContain("言語");
+  expect(app.texts()).toContain("日本語");
 });
