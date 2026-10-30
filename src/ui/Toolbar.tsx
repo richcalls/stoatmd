@@ -1,4 +1,4 @@
-import { Text, View } from "nsh";
+import { Text, View, signal } from "nsh";
 import { Button } from "nsh/base";
 import { titleBar } from "nsh/desktop";
 import { Icon } from "./Icon";
@@ -10,31 +10,71 @@ export type ViewMode = "edit" | "split" | "preview";
 /** 左栏：展开 / 隐藏。 */
 export type SidebarMode = "expanded" | "hidden";
 
-/** macOS 原生标题栏：只留居中文案，整条可拖窗。 */
-export function TitleBar() {
+/** 顶栏右侧的悬停区宽度：鼠标进入这里才露出文件树开关（对齐 Otty）。 */
+const TITLEBAR_SIDE_ZONE = 220;
+
+type TitleBarProps = {
+  showSidebarToggle: boolean;
+  onToggleSidebar: () => void;
+};
+
+/** macOS 原生标题栏：居中产品名，右侧悬停显示文件树开关，整条可拖窗。 */
+export function TitleBar(props: TitleBarProps) {
   const barH = Math.max(titleBar().height || 52, 52);
+  const hoverRight = signal(false);
   return (
     <View
       desktop={{ windowDrag: true }}
       style={{
         height: barH,
+        flexDirection: "row",
         alignItems: "center",
-        justifyContent: "center",
         borderBottomWidth: 1,
         borderBottomColor: colors().thread,
         backgroundColor: colors().sidebar,
       }}
     >
-      <Text style={{ fontSize: 13, fontWeight: "510", color: colors().ink2 }}>
-        {t("app.name")}
-      </Text>
+      <View style={{ width: TITLEBAR_SIDE_ZONE }} />
+      <View
+        testID="titlebar-center"
+        style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+      >
+        <Text style={{ fontSize: 13, fontWeight: "510", color: colors().ink2 }}>
+          {t("app.name")}
+        </Text>
+      </View>
+      <If when={props.showSidebarToggle}>
+        <View
+          testID="titlebar-sidebar-zone"
+          onHoverIn={() => hoverRight.set(true)}
+          onHoverOut={() => hoverRight.set(false)}
+          style={{
+            width: TITLEBAR_SIDE_ZONE,
+            height: "100%",
+            alignItems: "flex-end",
+            justifyContent: "center",
+            paddingRight: 14,
+          }}
+        >
+          <If when={hoverRight()}>
+            <ToolButton
+              testID="toolbar-sidebar"
+              label={t("toolbar.sidebar")}
+              onPress={props.onToggleSidebar}
+            >
+              <Icon name="sidebar" color={colors().ink2} size={16} />
+            </ToolButton>
+          </If>
+        </View>
+      </If>
+      <If when={!props.showSidebarToggle}>
+        <View style={{ width: TITLEBAR_SIDE_ZONE }} />
+      </If>
     </View>
   );
 }
 
 type Props = {
-  sidebarMode: SidebarMode;
-  onCycleSidebar: () => void;
   onFont: () => void;
   onSettings: () => void;
 };
@@ -42,13 +82,14 @@ type Props = {
 type WorkspaceProps = Props & {
   mode: ViewMode;
   onMode: (mode: ViewMode) => void;
+  /** 当前笔记标题；没有打开笔记时为空。 */
+  title?: string;
   /** 没有库时只留字体/设置：栏布局与编辑模式无从谈起。 */
   minimal?: boolean;
 };
 
 function ToolButton(props: {
   testID?: string;
-  active?: boolean;
   label: string;
   onPress: () => void;
   children: any;
@@ -58,7 +99,6 @@ function ToolButton(props: {
       testID={props.testID}
       accessibilityLabel={props.label}
       tooltip={<Text style={{ fontSize: 12 }}>{props.label}</Text>}
-      selected={!!props.active}
       onPress={props.onPress}
       style={{
         width: 28,
@@ -66,7 +106,7 @@ function ToolButton(props: {
         borderRadius: 6,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: props.active ? colors().accentSoft : "transparent",
+        backgroundColor: "transparent",
         flexShrink: 0,
       }}
       activeStyle={{ opacity: 0.75 }}
@@ -76,10 +116,9 @@ function ToolButton(props: {
   );
 }
 
-/** 编辑区工具条：左侧栏布局，右侧模式 | 字体 · 设置（对齐 ui-v1 editor-toolbar）。 */
+/** 编辑区工具条：左侧当前笔记标题，右侧模式 | 字体 · 设置（对齐 ui-v1 editor-toolbar）。 */
 export function WorkspaceToolbar(props: WorkspaceProps) {
   const ink = () => colors().ink2;
-  const active = () => colors().accent;
   return (
     <View
       testID="workspace-toolbar"
@@ -94,23 +133,24 @@ export function WorkspaceToolbar(props: WorkspaceProps) {
       }}
     >
       <If when={!props.minimal}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 0 }}>
-          <ToolButton
-            testID="toolbar-sidebar"
-            active={props.sidebarMode !== "hidden"}
-            label={t("toolbar.sidebar")}
-            onPress={props.onCycleSidebar}
+        <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+          <Text
+            testID="toolbar-title"
+            numberOfLines={1}
+            style={{
+              fontSize: 16,
+              fontWeight: "600",
+              letterSpacing: 0.2,
+              color: colors().ink,
+            }}
           >
-            <Icon
-              name="sidebar"
-              color={props.sidebarMode !== "hidden" ? active() : ink()}
-              size={16}
-            />
-          </ToolButton>
+            {props.title ?? ""}
+          </Text>
         </View>
       </If>
-
-      <View style={{ flex: 1 }} />
+      <If when={props.minimal}>
+        <View style={{ flex: 1 }} />
+      </If>
 
       <If when={!props.minimal}>
         <View style={{ flexDirection: "row", alignItems: "center", flexShrink: 0 }}>

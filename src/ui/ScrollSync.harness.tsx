@@ -22,7 +22,6 @@ function Harness() {
     <View style={{ flex: 1, flexDirection: "column" }}>
       <View style={{ flex: 1 }}>
         <EditorWorkspace
-          fileName="long.md"
           source={DOC}
           preview={docText()}
           onChange={() => {}}
