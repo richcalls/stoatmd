@@ -11,6 +11,7 @@ import { Icon } from "./Icon";
 import { locale, t } from "./i18n";
 import { watchEditorScroll } from "./scrollSync";
 import { colors } from "./theme";
+import { controlFocusStyle, controlHoverStyle, controlPressStyle, iconButtonStyle } from "./chrome";
 import type { ViewMode } from "./Toolbar";
 import { formatDateTime } from "./vaultModel";
 
@@ -46,15 +47,17 @@ function TabButton(props: {
       accessibilityLabel={props.label}
       onPress={props.onPress}
       style={{
-        height: 27,
+        height: 30,
         paddingHorizontal: 8,
-        borderRadius: 5,
+        borderRadius: 6,
         flexDirection: "row",
         alignItems: "center",
         gap: 5,
         backgroundColor: props.active ? colors().searchBg : "transparent",
       }}
-      activeStyle={{ opacity: 0.75 }}
+      hoverStyle={controlHoverStyle()}
+      focusStyle={controlFocusStyle()}
+      activeStyle={controlPressStyle()}
     >
       <Icon
         name={props.icon}
@@ -64,7 +67,7 @@ function TabButton(props: {
       <Text
         style={{
           fontSize: 12,
-          fontWeight: props.active ? "560" : "450",
+          fontWeight: props.active ? "500" : "400",
           color: props.active ? colors().ink : colors().ink2,
         }}
       >
@@ -163,9 +166,9 @@ export function ArticleInspector(props: Props) {
           flexDirection: "row",
           alignItems: "center",
           gap: 3,
-          paddingHorizontal: 12,
-          paddingTop: 13,
-          paddingBottom: 14,
+          paddingHorizontal: 10,
+          paddingTop: 10,
+          paddingBottom: 18,
         }}
       >
         <TabButton
@@ -188,14 +191,10 @@ export function ArticleInspector(props: Props) {
           accessibilityLabel={t("inspector.close")}
           tooltip={<Text style={{ fontSize: 12 }}>{t("inspector.close")}</Text>}
           onPress={props.onClose}
-          style={{
-            width: 25,
-            height: 25,
-            borderRadius: 5,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          activeStyle={{ opacity: 0.7 }}
+          style={iconButtonStyle}
+          hoverStyle={controlHoverStyle()}
+          focusStyle={controlFocusStyle()}
+          activeStyle={controlPressStyle()}
         >
           <Icon name="x" color={colors().ink3} size={13} />
         </Button>
@@ -235,6 +234,7 @@ export function ArticleInspector(props: Props) {
                   return (
                     <Button
                       testID={`outline-${heading().id}`}
+                      selected={active()}
                       accessibilityLabel={heading().text}
                       tooltip={<Text style={{ fontSize: 12 }}>{heading().text}</Text>}
                       onPress={() => jump(heading())}
@@ -243,17 +243,19 @@ export function ArticleInspector(props: Props) {
                         paddingVertical: 5,
                         paddingRight: 9,
                         paddingLeft: 9 + (heading().level - 1) * 11,
-                        borderRadius: 4,
+                        borderRadius: 6,
                         backgroundColor: active() ? colors().accentSoft : "transparent",
                         justifyContent: "center",
                       }}
-                      activeStyle={{ opacity: 0.75 }}
+                      hoverStyle={active() ? { backgroundColor: colors().accentSoft } : controlHoverStyle()}
+                      focusStyle={controlFocusStyle()}
+                      activeStyle={controlPressStyle()}
                     >
                       <Text
                         numberOfLines={1}
                         style={{
-                          fontSize: heading().level === 1 ? 12 : 11,
-                          fontWeight: active() ? "560" : "450",
+                          fontSize: 12,
+                          fontWeight: active() ? "500" : "400",
                           color: active() ? colors().accent : colors().ink2,
                         }}
                       >

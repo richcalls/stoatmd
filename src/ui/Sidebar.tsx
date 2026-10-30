@@ -1,12 +1,12 @@
-import { List, Text, View } from "nsh";
-import { Input } from "nsh/base";
+import { List, Text, View, signal } from "nsh";
+import { Button, Input } from "nsh/base";
 import type { SyncPhase } from "../sync/runtime";
 import { Icon, type IconName } from "./Icon";
 import { t } from "./i18n";
 import { colors, statusColor } from "./theme";
+import { chromeColors, controlFocusStyle, controlHoverStyle, controlPressStyle } from "./chrome";
 import {
   libraryRows,
-  normalizeVaultPath,
   vaultNameFromRoot,
   type FolderNode,
   type NoteItem,
@@ -34,8 +34,18 @@ type Props = {
   syncConflictCount?: number;
 };
 
-/** 左栏：搜索 + 可折叠文件树（笔记嵌套在文件夹下），底部同步状态。 */
+const headerButtonStyle = {
+  width: 26,
+  height: 26,
+  borderRadius: 5,
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+} as const;
+
+/** 左栏：库标题、搜索、紧凑文件树与底部同步状态。 */
 export function Sidebar(props: Props) {
+  const searchFocused = signal(false);
   const rootLabel = (): string => vaultNameFromRoot(props.vaultRoot) || t("vault.rootFolder");
 
   const rows = () =>
@@ -66,111 +76,107 @@ export function Sidebar(props: Props) {
     <View
       style={{
         flex: 1,
-        backgroundColor: colors().sidebar,
-        paddingTop: 14,
-        paddingBottom: 10,
+        paddingTop: 0,
+        paddingBottom: 9,
         paddingHorizontal: 8,
       }}
     >
       <View
         style={{
-          paddingHorizontal: 4,
-          paddingBottom: 10,
+          paddingHorizontal: 3,
+          paddingBottom: 12,
           gap: 8,
-          borderBottomWidth: 1,
-          borderBottomColor: colors().thread,
         }}
       >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 0, height: 30 }}>
+          <Button
+            hoverStyle={controlHoverStyle()}
+            focusStyle={controlFocusStyle()}
+            activeStyle={controlPressStyle()}
+            accessibilityLabel={rootLabel()}
+            onPress={() => props.onSelectFolder("")}
+            style={{
+              minWidth: 0,
+              flexShrink: 1,
+              height: 26,
+              paddingHorizontal: 5,
+              borderRadius: 5,
+              justifyContent: "center",
+            }}
+          >
+            <Text
+              numberOfLines={1}
+              style={{ fontSize: 12, fontWeight: "600", color: colors().ink2 }}
+            >
+              {rootLabel()}
+            </Text>
+          </Button>
+          <Button
+            testID="sidebar-open"
+            accessibilityLabel={t("vault.open")}
+            tooltip={<Text style={{ fontSize: 12 }}>{t("vault.open")}</Text>}
+            onPress={props.onOpenVault}
+            style={headerButtonStyle}
+            hoverStyle={controlHoverStyle()}
+            focusStyle={controlFocusStyle()}
+            activeStyle={controlPressStyle()}
+          >
+            <Icon name="caret-down" color={colors().ink3} size={9} />
+          </Button>
+          <View style={{ flex: 1 }} />
+          <Button
+            testID="sidebar-new"
+            accessibilityLabel={t("note.new")}
+            tooltip={<Text style={{ fontSize: 12 }}>{t("note.new")}</Text>}
+            onPress={props.onNewNote}
+            style={headerButtonStyle}
+            hoverStyle={controlHoverStyle()}
+            focusStyle={controlFocusStyle()}
+            activeStyle={controlPressStyle()}
+          >
+            <Icon name="pencil" color={colors().ink3} size={14} />
+          </Button>
+        </View>
+
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 7,
-            height: 30,
-            borderRadius: 7,
-            backgroundColor: colors().searchBg,
-            paddingHorizontal: 10,
+            gap: 6,
+            height: 28,
+            borderRadius: 6,
+            borderWidth: 1,
+            borderColor: searchFocused() ? colors().accent : "transparent",
+            backgroundColor: chromeColors().hover,
+            paddingHorizontal: 8,
           }}
         >
           <Icon name="magnifying-glass" color={colors().ink3} size={13} />
           <Input
             testID="sidebar-search"
+            accessibilityLabel={t("search.placeholder")}
+            onFocus={() => searchFocused.set(true)}
+            onBlur={() => searchFocused.set(false)}
             value={props.query}
             onChange={(text) => props.onQuery(text)}
             placeholder={t("search.placeholder")}
             style={{
               flex: 1,
-              fontSize: 12.5,
+              fontSize: 12,
               color: colors().ink,
               backgroundColor: "transparent",
               borderWidth: 0,
               padding: 0,
-              height: 26,
+              height: 24,
             }}
           />
-        </View>
-
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
-          <View
-            role="button"
-            accessibilityLabel={rootLabel()}
-            onPress={() => props.onSelectFolder("")}
-            style={{
-              flex: 1,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 7,
-              height: 28,
-              paddingHorizontal: 6,
-              borderRadius: 6,
-            }}
-          >
-            <Icon name="notebook" color={colors().ink2} size={15} />
-            <Text
-              numberOfLines={1}
-              style={{ flex: 1, fontSize: 13, fontWeight: "560", color: colors().ink }}
-            >
-              {rootLabel()}
-            </Text>
-          </View>
-          <View
-            role="button"
-            testID="sidebar-new"
-            accessibilityLabel={t("note.new")}
-            onPress={props.onNewNote}
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: 6,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: colors().accentSoft,
-            }}
-          >
-            <Icon name="plus" color={colors().accent} size={14} />
-          </View>
-          <View
-            role="button"
-            testID="sidebar-open"
-            accessibilityLabel={t("vault.open")}
-            onPress={props.onOpenVault}
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: 6,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Icon name="folder" color={colors().ink3} size={15} />
-          </View>
         </View>
       </View>
 
       {/* 虚拟化文件树：行被复用，所有取值都通过 row() 读取，不能捕获成常量。 */}
       <List
         style={{ flex: 1 }}
-        contentStyle={{ paddingTop: 6, paddingBottom: 12 }}
+        contentStyle={{ paddingTop: 0, paddingBottom: 12 }}
         each={rows()}
         keyExtractor={(row) => `${row.kind}:${row.id}`}
         empty={
@@ -193,9 +199,9 @@ export function Sidebar(props: Props) {
             const r = row();
             return r.kind === "note" && r.id === props.selectedNoteId;
           };
-          const targeting = (): boolean => {
+          const expanded = (): boolean | undefined => {
             const r = row();
-            return r.kind === "folder" && r.id === normalizeVaultPath(props.folderId);
+            return r.kind === "folder" ? !r.collapsed : undefined;
           };
           const label = (): string => {
             const r = row();
@@ -213,6 +219,14 @@ export function Sidebar(props: Props) {
             <View
               role="button"
               accessibilityLabel={label()}
+              accessibilityState={{
+                selected: selected(),
+                expanded: expanded(),
+              }}
+              tooltip={<Text style={{ fontSize: 12 }}>{label()}</Text>}
+              hoverStyle={selected() ? { backgroundColor: chromeColors().selection } : controlHoverStyle()}
+              focusStyle={controlFocusStyle()}
+              activeStyle={controlPressStyle()}
               onPress={() => {
                 const r = row();
                 if (r.kind === "folder") {
@@ -230,35 +244,34 @@ export function Sidebar(props: Props) {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 6,
-                height: 30,
+                height: 28,
                 marginBottom: 1,
-                paddingLeft: 6 + row().depth * 12,
-                paddingRight: 8,
+                paddingLeft: 5 + row().depth * 12,
+                paddingRight: 7,
                 borderRadius: 6,
-                backgroundColor: selected() ? colors().accentSoft : "transparent",
-                borderLeftWidth: selected() ? 1 : 0,
-                borderLeftColor: selected() ? colors().accent : "transparent",
+                borderWidth: 1,
+                borderColor: selected() ? chromeColors().selectionEdge : "transparent",
+                backgroundColor: selected() ? chromeColors().selection : "transparent",
+                boxShadow: selected() ? "0 1px 2px rgba(0,0,0,0.03)" : "none",
               }}
             >
               <If when={isFolder()}>
-                <Icon name={caret()} color={colors().ink3} size={11} />
-                <Icon
-                  name="folder"
-                  color={targeting() ? colors().accent : colors().ink2}
-                  size={14}
-                />
+                <View style={{ width: 9, alignItems: "center" }}>
+                  <Icon name={caret()} color={colors().ink3} size={8} />
+                </View>
+                <Icon name="folder" color={colors().ink3} size={14} />
               </If>
               <If when={!isFolder()}>
-                <View style={{ width: 11 }} />
-                <Icon name="file-text" color={colors().ink3} size={13} />
+                <View style={{ width: 9 }} />
+                <Icon name="file-text" color={selected() ? colors().ink2 : colors().ink3} size={13} />
               </If>
               <Text
                 numberOfLines={1}
                 style={{
                   flex: 1,
-                  fontSize: 13,
-                  fontWeight: selected() ? "560" : "450",
-                  color: selected() ? colors().accent : colors().ink,
+                  fontSize: 12,
+                  fontWeight: selected() || isFolder() ? "500" : "400",
+                  color: selected() ? colors().ink : colors().ink2,
                 }}
               >
                 {label()}
@@ -266,7 +279,7 @@ export function Sidebar(props: Props) {
               <If when={hint() !== ""}>
                 <Text
                   numberOfLines={1}
-                  style={{ maxWidth: 88, fontSize: 11, color: colors().ink3 }}
+                  style={{ maxWidth: 60, fontSize: 10.5, color: colors().ink3 }}
                 >
                   {hint()}
                 </Text>
@@ -276,25 +289,34 @@ export function Sidebar(props: Props) {
         }}
       </List>
 
-      <View
-        role="button"
+      <Button
+        hoverStyle={controlHoverStyle()}
+        focusStyle={controlFocusStyle()}
+        activeStyle={controlPressStyle()}
         testID="sidebar-sync"
         accessibilityLabel={t("settings.sync")}
         onPress={props.onSync}
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 8,
+          gap: 7,
           marginTop: 6,
           paddingHorizontal: 8,
-          paddingVertical: 7,
-          borderRadius: 7,
+          height: 28,
+          borderRadius: 6,
         }}
       >
-        <Icon name="cloud" color={colors().ink2} size={14} />
+        <View
+          style={{
+            width: 5,
+            height: 5,
+            borderRadius: 3,
+            backgroundColor: syncDotColor(),
+          }}
+        />
         <Text
           numberOfLines={1}
-          style={{ fontSize: 11.5, color: colors().ink2, flex: 1, minWidth: 0 }}
+          style={{ fontSize: 11, color: colors().ink2, flex: 1, minWidth: 0 }}
         >
           {syncLabel()}
         </Text>
@@ -305,15 +327,7 @@ export function Sidebar(props: Props) {
         >
           {t("sidebar.noteCount", { n: props.notes.length })}
         </Text>
-        <View
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: 3,
-            backgroundColor: syncDotColor(),
-          }}
-        />
-      </View>
+      </Button>
     </View>
   );
 }

@@ -14,7 +14,8 @@ import { scrollEditorToLine, scrollPreviewToIndex } from "./scrollSync";
 import { SettingsSheet, type SettingsTab } from "./SettingsSheet";
 import { Sidebar } from "./Sidebar";
 import { colors, statusColor } from "./theme";
-import { SIDEBAR_WIDTH, WindowBar, type SidebarMode, type ViewMode } from "./Toolbar";
+import { chromeColors, controlFocusStyle, controlHoverStyle, controlPressStyle } from "./chrome";
+import { SIDEBAR_WIDTH, WINDOW_BAR_HEIGHT, WindowBar, type SidebarMode, type ViewMode } from "./Toolbar";
 import {
   duplicateNotePath,
   foldersFromEntries,
@@ -31,7 +32,7 @@ import {
 } from "./vaultModel";
 
 Window.setTitle("StoatMD");
-Window.setTitleBar("hidden", 52);
+Window.setTitleBar("hidden", WINDOW_BAR_HEIGHT);
 
 const AUTOSAVE_MS = 700;
 const PREVIEW_MS = 250;
@@ -859,6 +860,7 @@ export function MacShell() {
       style={{
         flex: 1,
         backgroundColor: vault() ? colors().sidebar : colors().paper,
+        backgroundImage: vault() ? chromeColors().shellFinish : "none",
         flexDirection: "column",
       }}
     >
@@ -898,8 +900,11 @@ export function MacShell() {
           >
             {t("vault.empty.hint")}
           </Text>
-          <View
-            role="button"
+          <Button
+            accessibilityLabel={t("vault.open")}
+            hoverStyle={{ opacity: 0.9 }}
+            focusStyle={{ ...controlFocusStyle(), outlineOffset: 2 }}
+            activeStyle={{ opacity: 0.75 }}
             onPress={() => {
               void pickAndOpen();
             }}
@@ -918,7 +923,7 @@ export function MacShell() {
             >
               {t("vault.open")}
             </Text>
-          </View>
+          </Button>
           <If when={!!status()}>
             <Text style={{ fontSize: 12, color: colors().ink3, marginTop: 8 }}>{status()}</Text>
           </If>
@@ -963,7 +968,15 @@ export function MacShell() {
           </If>
 
           {/* 工作区是一块内嵌画布：距右、底 9px，圆角 10px */}
-          <View style={{ flex: 1, minWidth: 0, paddingRight: 9, paddingBottom: 9 }}>
+          <View
+            style={{
+              flex: 1,
+              minWidth: 0,
+              paddingLeft: sidebarMode() === "hidden" ? 9 : 0,
+              paddingRight: 9,
+              paddingBottom: 9,
+            }}
+          >
             <View
               testID="workspace-canvas"
               style={{
@@ -973,7 +986,8 @@ export function MacShell() {
                 overflow: "hidden",
                 borderRadius: 10,
                 borderWidth: 1,
-                borderColor: colors().thread,
+                borderColor: chromeColors().panelEdge,
+                boxShadow: chromeColors().panelShadow,
                 backgroundColor: colors().paper,
                 position: "relative",
               }}
@@ -1030,7 +1044,7 @@ export function MacShell() {
                 </View>
               </If>
 
-              {/* 收起时画布右缘留一个小「目录」标签 */}
+              {/* 目录入口位于正文上方留白内，横排文案兼容各语言。 */}
               <If when={!!opened() && !inspectorOpen()}>
                 <Button
                   testID="inspector-peek"
@@ -1039,29 +1053,24 @@ export function MacShell() {
                   onPress={() => inspectorOpen.set(true)}
                   style={{
                     position: "absolute",
-                    top: 20,
-                    right: 0,
-                    flexDirection: "column",
+                    top: 10,
+                    right: 10,
+                    height: 28,
+                    flexDirection: "row",
                     alignItems: "center",
-                    gap: 6,
-                    paddingVertical: 10,
-                    paddingHorizontal: 6,
-                    borderTopLeftRadius: 6,
-                    borderBottomLeftRadius: 6,
-                    backgroundColor: colors().searchBg,
+                    gap: 5,
+                    paddingHorizontal: 8,
+                    borderRadius: 6,
+                    backgroundColor: colors().paper,
                   }}
-                  activeStyle={{ opacity: 0.75 }}
+                  hoverStyle={controlHoverStyle()}
+                  focusStyle={controlFocusStyle()}
+                  activeStyle={controlPressStyle()}
                 >
                   <Icon name="list-tree" color={colors().ink3} size={13} />
-                  <View style={{ alignItems: "center", gap: 1 }}>
-                    <Each of={Array.from(t("inspector.open"))}>
-                      {(ch) => (
-                        <Text style={{ fontSize: 10.5, lineHeight: 12, color: colors().ink3 }}>
-                          {ch()}
-                        </Text>
-                      )}
-                    </Each>
-                  </View>
+                  <Text style={{ fontSize: 11, color: colors().ink3 }}>
+                    {t("inspector.open")}
+                  </Text>
                 </Button>
               </If>
             </View>
