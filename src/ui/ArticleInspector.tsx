@@ -148,6 +148,7 @@ export function ArticleInspector(props: Props) {
   return (
     <View
       testID="article-inspector"
+      accessibilityLabel={t("inspector.panel")}
       style={{
         flex: 1,
         minWidth: 0,

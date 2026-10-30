@@ -1028,7 +1028,7 @@ export function MacShell() {
               <If when={!!opened() && !inspectorOpen()}>
                 <Button
                   testID="inspector-peek"
-                  accessibilityLabel={t("inspector.openHint")}
+                  accessibilityLabel={t("inspector.open")}
                   tooltip={<Text style={{ fontSize: 12 }}>{t("inspector.openHint")}</Text>}
                   onPress={() => inspectorOpen.set(true)}
                   style={{
