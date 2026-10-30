@@ -17,9 +17,11 @@ import {
   fontFamily,
   fontLineHeight,
   fontSize,
+  isDefaultTypography,
   lineHeightPx,
   loadSystemFonts,
   previewFontFamily,
+  resetTypography,
   systemFonts,
 } from "./typography";
 
@@ -624,16 +626,41 @@ export function SettingsSheet(props: Props) {
 
             <If when={props.tab === "font"}>
               <View style={{ gap: 4 }}>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "600",
-                    letterSpacing: -0.14,
-                    color: colors().ink,
-                  }}
-                >
-                  {t("settings.font")}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                  <Text
+                    style={{
+                      flex: 1,
+                      fontSize: 14,
+                      fontWeight: "600",
+                      letterSpacing: -0.14,
+                      color: colors().ink,
+                    }}
+                  >
+                    {t("settings.font")}
+                  </Text>
+                  <Button
+                    testID="font-reset"
+                    accessibilityLabel={t("settings.font.reset")}
+                    disabled={isDefaultTypography()}
+                    disabledStyle={{ opacity: 0.4 }}
+                    onPress={resetTypography}
+                    style={{
+                      height: 26,
+                      paddingHorizontal: 9,
+                      borderRadius: 6,
+                      borderWidth: 1,
+                      borderColor: colors().thread,
+                      backgroundColor: colors().list,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                    activeStyle={{ opacity: 0.7 }}
+                  >
+                    <Text style={{ fontSize: 12.5, color: colors().ink2 }}>
+                      {t("settings.font.reset")}
+                    </Text>
+                  </Button>
+                </View>
                 <Text style={{ fontSize: 12.5, color: colors().ink2, lineHeight: 18 }}>
                   {t("settings.font.desc")}
                 </Text>

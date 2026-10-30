@@ -76,6 +76,32 @@ test("设置：字体下拉可选 Kami 默认并持久化，语言切换即时�
   expect(app.texts()).toContain("Appearance");
 });
 
+test("设置：字体一键恢复默认，字体 / 字号 / 行高回 Kami 并覆盖偏好", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", {
+    ...desktop,
+    storage: {
+      "prefs.fontFamily": "Helvetica",
+      "prefs.fontSize": "18",
+      "prefs.fontLineHeight": "1.6",
+    },
+  });
+  await app.press("id:settings-tab-font");
+  expect(app.texts()).toContain("Helvetica");
+  expect(app.texts()).toContain("18");
+  expect(app.texts()).toContain("1.6");
+
+  await app.press("id:font-reset");
+  await app.waitUntil(
+    () =>
+      app.storage()["prefs.fontFamily"] === "system" &&
+      app.storage()["prefs.fontSize"] === "15" &&
+      app.storage()["prefs.fontLineHeight"] === "1.55",
+  );
+  expect(app.texts()).toContain("Kami 默认（衬线）");
+  expect(app.texts()).toContain("15");
+  expect(app.texts()).toContain("1.55");
+});
+
 test("设置：字体搜索可过滤系统字体、无匹配有空态、选中后持久化", async () => {
   const app = await open("./SettingsSheet.harness.tsx", desktop);
   await app.press("id:settings-tab-font");

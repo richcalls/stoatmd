@@ -109,6 +109,7 @@
   "settings.font.empty": "Keine passenden Schriften",
   "settings.font.size": "Größe",
   "settings.font.lineHeight": "Zeilenhöhe",
+  "settings.font.reset": "Auf Standard zurücksetzen",
   "settings.font.preview": "Ein guter Text entfaltet eine Struktur, keine Anhäufung von Einfällen.",
   "settings.locale": "Sprache",
   "settings.locale.system": "Systemeinstellung",

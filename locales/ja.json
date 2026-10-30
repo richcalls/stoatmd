@@ -109,6 +109,7 @@
   "settings.font.empty": "一致するフォントがありません",
   "settings.font.size": "サイズ",
   "settings.font.lineHeight": "行の高さ",
+  "settings.font.reset": "初期値に戻す",
   "settings.font.preview": "良い文章はひらめきの寄せ集めではなく、構造を広げるものだ。",
   "settings.locale": "言語",
   "settings.locale.system": "システムに従う",
