@@ -298,6 +298,7 @@ export type OpenedNote = {
   path: string;
   content: string;
   mtimeMs: number;
+  createdMs: number;
   dirty: boolean;
 };
 
@@ -307,6 +308,29 @@ export async function readNote(vault: Vault, path: string): Promise<OpenedNote> 
     path: normalizeVaultPath(path),
     content: file.content,
     mtimeMs: file.mtimeMs,
+    createdMs: file.createdMs,
     dirty: false,
   };
+}
+
+/** 库根显示名（路径最后一段）；为空时由调用方给本地化占位。 */
+export function vaultNameFromRoot(root: string | null): string {
+  return (root ?? "").split(/[\\/]/).filter(Boolean).pop() ?? "";
+}
+
+/** 文件时间（日期 + 时间）；未知（0）返回空串。 */
+export function formatDateTime(ms: number, locale: Locale): string {
+  if (!ms) return "";
+  const date = new Date(ms);
+  const tag = intlTag(locale);
+  const day = date.toLocaleDateString(tag, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const time = date.toLocaleTimeString(tag, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${day} ${time}`;
 }

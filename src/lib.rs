@@ -214,6 +214,8 @@ pub struct VaultFileDto {
     pub content: String,
     /// 修改时间（毫秒）。
     pub mtime_ms: u64,
+    /// 创建时间（毫秒）；文件系统不提供时回退为修改时间。
+    pub created_ms: u64,
 }
 
 /// 写盘结果。
@@ -290,6 +292,7 @@ impl Vault {
             .map(|f| VaultFileDto {
                 content: f.content,
                 mtime_ms: f.mtime_ms,
+                created_ms: f.created_ms,
             })
             .map_err(map_err)
     }

@@ -1,11 +1,14 @@
 import { TextView } from "nsh/base";
-import type { TextViewBlock } from "nsh/base";
+import type { TextViewBlock, TextViewDocument } from "nsh/base";
 
 export type PreviewModel = {
   blocks: TextViewBlock[];
   /** List 的行高初值：越接近真实块高，滚动同步与滚动条越稳定。 */
   estimatedItemSize: number;
 };
+
+/** 阅读画布顶部留白（与 List 的 contentStyle 保持一致）。 */
+export const PREVIEW_TOP_PADDING = 44;
 
 /** 排版偏好（预览正文）；估算随字号/行高缩放。 */
 export type PreviewMetrics = {
@@ -62,6 +65,29 @@ function estimateBlockHeight(block: TextViewBlock, metrics: PreviewMetrics): num
 let cachedKey: string | null = null;
 let cached: PreviewModel = { blocks: [], estimatedItemSize: 64 };
 
+let parsedKey: string | null = null;
+let parsedDocumentCache: TextViewDocument | null = null;
+
+/** 去掉 YAML frontmatter：元数据只在信息栏读取，不进入正文、目录与统计。 */
+export function bodyWithoutFrontmatter(markdown: string): string {
+  const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
+  if (lines[0]?.trim() !== "---") return markdown;
+  for (let i = 1; i < lines.length; i += 1) {
+    const line = lines[i].trim();
+    if (line === "---" || line === "...") return lines.slice(i + 1).join("\n");
+  }
+  return markdown;
+}
+
+/** 同一正文只解析一次：预览、目录与统计共用这份解析树。 */
+export function parsedDocument(markdown: string): TextViewDocument {
+  if (parsedKey === markdown && parsedDocumentCache) return parsedDocumentCache;
+  const document = TextView.parse(bodyWithoutFrontmatter(markdown));
+  parsedKey = markdown;
+  parsedDocumentCache = document;
+  return document;
+}
+
 /** 预览按块拆给 List：整篇 TextView 不虚拟化，长文档会拖垮整窗帧率。 */
 export function previewModel(
   markdown: string,
@@ -69,7 +95,7 @@ export function previewModel(
 ): PreviewModel {
   const key = `${markdown}\u0000${metrics.fontSize}\u0000${metrics.lineHeight}`;
   if (key === cachedKey) return cached;
-  const document = TextView.parse(markdown);
+  const document = parsedDocument(markdown);
   const blocks = [...document.blocks];
   if (document.footnotes?.length) {
     for (const footnote of document.footnotes) blocks.push(...footnote.children);
@@ -77,7 +103,8 @@ export function previewModel(
   let total = 0;
   let previous: TextViewBlock | undefined;
   for (const block of blocks) {
-    total += estimateBlockHeight(block, metrics) + previewGap(previous, block, metrics.fontSize / BASE_SIZE);
+    total += previewGap(previous, block, metrics.fontSize / BASE_SIZE);
+    total += estimateBlockHeight(block, metrics);
     previous = block;
   }
   const average = blocks.length > 0 ? total / blocks.length : 64;

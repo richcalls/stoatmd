@@ -1,16 +1,20 @@
-import { Clipboard, Text, View, cleanup, effect, platform, signal } from "nsh";
+import { Clipboard, Text, View, cleanup, effect, keymap, platform, signal } from "nsh";
 import { AlertDialog, Button, Dialog, Input } from "nsh/base";
 import { Menu, Window } from "nsh/desktop";
 import { Vault, VaultDialog, type VaultEntryDto } from "stoatmd/native";
 import { syncRuntime } from "../sync/runtime";
+import { ArticleInspector, type InspectorTab } from "./ArticleInspector";
+import { articleModel, type OutlineEntry } from "./articleModel";
 import { ConflictDialog } from "./ConflictDialog";
 import { EditorWorkspace } from "./EditorWorkspace";
+import { Icon } from "./Icon";
 import { t } from "./i18n";
 import { loadSavedRoot, saveRoot } from "./prefs";
+import { scrollEditorToLine, scrollPreviewToIndex } from "./scrollSync";
 import { SettingsSheet, type SettingsTab } from "./SettingsSheet";
 import { Sidebar } from "./Sidebar";
 import { colors, statusColor } from "./theme";
-import { TitleBar, WorkspaceToolbar, type SidebarMode, type ViewMode } from "./Toolbar";
+import { SIDEBAR_WIDTH, WindowBar, type SidebarMode, type ViewMode } from "./Toolbar";
 import {
   duplicateNotePath,
   foldersFromEntries,
@@ -20,6 +24,7 @@ import {
   readNote,
   renamedNotePath,
   titleFromName,
+  vaultNameFromRoot,
   type FolderNode,
   type NoteItem,
   type OpenedNote,
@@ -38,11 +43,18 @@ const SYNC_AFTER_SAVE_MS = 2500;
 /** 定时拉取云端变化；冲突未处理时暂停，等用户选择。 */
 const SYNC_PULL_MS = 90_000;
 const SYNC_START_DELAY_MS = 1200;
+/** 窄窗口下右栏改为覆盖画布，避免挤压正文。 */
+const NARROW_OVERLAY = 920;
 
-/** Mac 两栏壳：左栏文件树 + 右栏编辑/预览。 */
+/** Mac 两栏壳：左栏文件树 + 内嵌画布（编辑/预览） + 可收起文章栏。 */
 export function MacShell() {
   const sidebarMode = signal<SidebarMode>("expanded");
   const mode = signal<ViewMode>("split");
+  const inspectorOpen = signal(false);
+  const inspectorTab = signal<InspectorTab>("outline");
+  /** 阅读模式视口顶部块，供目录滚动高亮。 */
+  const visibleBlock = signal(0);
+  const windowWidth = signal(0);
   const vault = signal<Vault | null>(null);
   const vaultRoot = signal<string | null>(null);
   const folders = signal<FolderNode[]>([]);
@@ -132,6 +144,8 @@ export function MacShell() {
     openGen += 1;
     selectedNoteId.set("");
     opened.set(null);
+    inspectorOpen.set(false);
+    visibleBlock.set(0);
     liveText = "";
     draft.set("");
     cancelPreview();
@@ -170,6 +184,7 @@ export function MacShell() {
       liveText = note.content;
       cancelPreview();
       opened.set(note);
+      visibleBlock.set(0);
       draft.set(note.content);
       previewDraft.set(note.content);
       selectedNoteId.set(note.path);
@@ -274,6 +289,8 @@ export function MacShell() {
       collapsed.set([]);
       query.set("");
       opened.set(null);
+      inspectorOpen.set(false);
+      visibleBlock.set(0);
       liveText = "";
       draft.set("");
       cancelPreview();
@@ -537,7 +554,7 @@ export function MacShell() {
         if (opened()?.path === cur.path) {
           const stillDirty = liveText !== content;
           opened.set({
-            path: cur.path,
+            ...cur,
             content: liveText,
             mtimeMs: result.mtimeMs,
             dirty: stillDirty,
@@ -577,6 +594,7 @@ export function MacShell() {
               path,
               content: liveText,
               mtimeMs: result.mtimeMs,
+              createdMs: opened()?.createdMs ?? 0,
               dirty: stillDirty,
             });
             if (stillDirty) scheduleSave();
@@ -791,25 +809,68 @@ export function MacShell() {
     return cur.path.split("/").pop() ?? cur.path;
   };
 
+  const noteTitle = () => (opened() ? titleFromName(fileName()) : "");
+  const vaultName = () => vaultNameFromRoot(vaultRoot());
+  /** 目录与统计共用同一份（防抖后的）正文快照。 */
+  const article = () => articleModel(previewDraft());
+  const narrow = () => windowWidth() > 0 && windowWidth() < NARROW_OVERLAY;
+
+  const jumpToHeading = (heading: OutlineEntry) => {
+    if (!opened()) return;
+    if (mode() === "preview") {
+      scrollPreviewToIndex(heading.blockIndex);
+      return;
+    }
+    scrollEditorToLine(heading.line);
+  };
+
+  // 文章栏打开时 Escape 收起；有弹窗时不抢占，留给弹窗自己处理
+  effect(() => {
+    if (!inspectorOpen()) return;
+    if (settingsOpen() || renamePath() !== null || conflictOpen() || syncConflictOpen()) return;
+    const off = keymap.bind("escape", () => inspectorOpen.set(false));
+    cleanup(off);
+  });
+  // 菜单里的「设置…」在无头/无系统菜单的环境也走这条快捷键
+  keymap.bind("mod+,", () => openSettings("appearance"));
+
+  const renderInspector = () => (
+    <ArticleInspector
+      tab={inspectorTab()}
+      onTab={(tab) => inspectorTab.set(tab)}
+      onClose={() => inspectorOpen.set(false)}
+      mode={mode()}
+      model={article()}
+      createdMs={opened()?.createdMs ?? 0}
+      modifiedMs={opened()?.mtimeMs ?? 0}
+      path={opened()?.path ?? ""}
+      visibleBlock={visibleBlock()}
+      onJump={jumpToHeading}
+    />
+  );
+
   return (
     <View
+      onLayout={(b) => windowWidth.set(b.size.width)}
       style={{
         flex: 1,
-        backgroundColor: colors().paper,
+        backgroundColor: vault() ? colors().sidebar : colors().paper,
         flexDirection: "column",
       }}
     >
-      <TitleBar showSidebarToggle={!!vault()} onToggleSidebar={cycleSidebar} />
+      <WindowBar
+        showSidebarToggle={!!vault()}
+        sidebarOpen={sidebarMode() !== "hidden"}
+        onToggleSidebar={cycleSidebar}
+        vaultName={vault() ? vaultName() : ""}
+        title={noteTitle()}
+        showModes={!!opened()}
+        mode={mode()}
+        onMode={changeMode}
+      />
 
       <If when={!vault()}>
         <View style={{ flex: 1, flexDirection: "column" }}>
-          <WorkspaceToolbar
-            minimal
-            mode={mode()}
-            onMode={changeMode}
-            onFont={() => openSettings("font")}
-            onSettings={() => openSettings("appearance")}
-          />
           <View
             style={{
               flex: 1,
@@ -860,9 +921,9 @@ export function MacShell() {
       </If>
 
       <If when={!!vault()}>
-        <View style={{ flex: 1, flexDirection: "row" }}>
+        <View style={{ flex: 1, flexDirection: "row", minHeight: 0 }}>
           <If when={sidebarMode() !== "hidden"}>
-            <View style={{ width: 260, minWidth: 240 }}>
+            <View style={{ width: SIDEBAR_WIDTH, flexShrink: 0 }}>
               <Sidebar
                 folders={folders()}
                 notes={notes()}
@@ -895,48 +956,109 @@ export function MacShell() {
             </View>
           </If>
 
-          <View style={{ flex: 1, minWidth: 320, flexDirection: "column" }}>
-            <WorkspaceToolbar
-              title={opened() ? titleFromName(fileName()) : ""}
-              mode={mode()}
-              onMode={changeMode}
-              onFont={() => openSettings("font")}
-              onSettings={() => openSettings("appearance")}
-            />
-            <If when={!!opened()}>
-              <EditorWorkspace
-                source={draft()}
-                preview={previewDraft()}
-                onChange={onDraftChange}
-                mode={mode()}
-              />
-            </If>
-            <If when={!opened()}>
-              <View
-                style={{
-                  flex: 1,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: colors().editor,
-                }}
-              >
-                <Text style={{ fontSize: 13, color: colors().ink3 }}>{t("note.empty")}</Text>
+          {/* 工作区是一块内嵌画布：距右、底 9px，圆角 10px */}
+          <View style={{ flex: 1, minWidth: 0, paddingRight: 9, paddingBottom: 9 }}>
+            <View
+              testID="workspace-canvas"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                flexDirection: "row",
+                overflow: "hidden",
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: colors().thread,
+                backgroundColor: colors().paper,
+                position: "relative",
+              }}
+            >
+              <View style={{ flex: 1, minWidth: 0, flexDirection: "column" }}>
+                <If when={!!opened()}>
+                  <EditorWorkspace
+                    source={draft()}
+                    preview={previewDraft()}
+                    onChange={onDraftChange}
+                    mode={mode()}
+                    onVisibleBlock={(index) => visibleBlock.set(index)}
+                  />
+                </If>
+                <If when={!opened()}>
+                  <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontSize: 13, color: colors().ink3 }}>{t("note.empty")}</Text>
+                  </View>
+                </If>
+                <If when={!!status()}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: colors().ink3,
+                      paddingHorizontal: 12,
+                      paddingVertical: 4,
+                      borderTopWidth: 1,
+                      borderTopColor: colors().thread,
+                      backgroundColor: colors().paper,
+                    }}
+                  >
+                    {status()}
+                  </Text>
+                </If>
               </View>
-            </If>
-            <If when={!!status()}>
-              <Text
-                style={{
-                  fontSize: 11,
-                  color: colors().ink3,
-                  paddingHorizontal: 12,
-                  paddingVertical: 4,
-                  borderTopWidth: 1,
-                  borderTopColor: colors().thread,
-                }}
-              >
-                {status()}
-              </Text>
-            </If>
+
+              <If when={!!opened() && inspectorOpen()}>
+                <View
+                  style={
+                    narrow()
+                      ? {
+                          position: "absolute",
+                          top: 0,
+                          right: 0,
+                          bottom: 0,
+                          width: 222,
+                          zIndex: 10,
+                          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.22)",
+                        }
+                      : { width: 222, flexShrink: 0 }
+                  }
+                >
+                  {renderInspector()}
+                </View>
+              </If>
+
+              {/* 收起时画布右缘留一个小「目录」标签 */}
+              <If when={!!opened() && !inspectorOpen()}>
+                <Button
+                  testID="inspector-peek"
+                  accessibilityLabel={t("inspector.open")}
+                  tooltip={<Text style={{ fontSize: 12 }}>{t("inspector.openHint")}</Text>}
+                  onPress={() => inspectorOpen.set(true)}
+                  style={{
+                    position: "absolute",
+                    top: 20,
+                    right: 0,
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 6,
+                    paddingVertical: 10,
+                    paddingHorizontal: 6,
+                    borderTopLeftRadius: 6,
+                    borderBottomLeftRadius: 6,
+                    backgroundColor: colors().searchBg,
+                  }}
+                  activeStyle={{ opacity: 0.75 }}
+                >
+                  <Icon name="list-tree" color={colors().ink3} size={13} />
+                  <View style={{ alignItems: "center", gap: 1 }}>
+                    <Each of={Array.from(t("inspector.open"))}>
+                      {(ch) => (
+                        <Text style={{ fontSize: 10.5, lineHeight: 12, color: colors().ink3 }}>
+                          {ch()}
+                        </Text>
+                      )}
+                    </Each>
+                  </View>
+                </Button>
+              </If>
+            </View>
           </View>
         </View>
       </If>

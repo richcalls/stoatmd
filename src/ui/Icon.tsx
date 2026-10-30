@@ -10,7 +10,9 @@ import eye from "../../assets/icons/eye.svg";
 import fileText from "../../assets/icons/file-text.svg";
 import folder from "../../assets/icons/folder.svg";
 import gear from "../../assets/icons/gear.svg";
+import info from "../../assets/icons/info.svg";
 import lightbulb from "../../assets/icons/lightbulb.svg";
+import listTree from "../../assets/icons/list-tree.svg";
 import magnifyingGlass from "../../assets/icons/magnifying-glass.svg";
 import notebook from "../../assets/icons/notebook.svg";
 import palette from "../../assets/icons/palette.svg";
@@ -37,6 +39,8 @@ export type IconName =
   | "plus"
   | "cloud"
   | "gear"
+  | "info"
+  | "list-tree"
   | "text-t"
   | "code"
   | "split"
@@ -60,6 +64,8 @@ const MAP = {
   plus,
   cloud,
   gear,
+  info,
+  "list-tree": listTree,
   "text-t": textT,
   code,
   split,

@@ -24,3 +24,9 @@ test("previewModel：相同正文与排版命中缓存", () => {
   const other = previewModel(MD, { fontSize: 16, lineHeight: 26 });
   expect(other === first).toBe(false);
 });
+
+test("previewModel：frontmatter 不进正文，预览从第一个正文块开始", () => {
+  const model = previewModel("---\ntags: [知识]\n---\n# 标题\n\n正文");
+  expect(model.blocks.length).toBe(2);
+  expect(model.blocks[0].type).toBe("heading");
+});

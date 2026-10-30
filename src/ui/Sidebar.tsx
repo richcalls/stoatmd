@@ -7,6 +7,7 @@ import { colors, statusColor } from "./theme";
 import {
   libraryRows,
   normalizeVaultPath,
+  vaultNameFromRoot,
   type FolderNode,
   type NoteItem,
 } from "./vaultModel";
@@ -35,11 +36,7 @@ type Props = {
 
 /** 左栏：搜索 + 可折叠文件树（笔记嵌套在文件夹下），底部同步状态。 */
 export function Sidebar(props: Props) {
-  const rootLabel = (): string => {
-    const root = props.vaultRoot ?? "";
-    const base = root.split(/[\\/]/).filter(Boolean).pop();
-    return base || t("vault.rootFolder");
-  };
+  const rootLabel = (): string => vaultNameFromRoot(props.vaultRoot) || t("vault.rootFolder");
 
   const rows = () =>
     libraryRows(props.folders, props.notes, props.collapsed, props.query, rootLabel());
@@ -70,9 +67,7 @@ export function Sidebar(props: Props) {
       style={{
         flex: 1,
         backgroundColor: colors().sidebar,
-        borderRightWidth: 1,
-        borderRightColor: colors().thread,
-        paddingTop: 12,
+        paddingTop: 14,
         paddingBottom: 10,
         paddingHorizontal: 8,
       }}
@@ -237,7 +232,7 @@ export function Sidebar(props: Props) {
                 gap: 6,
                 height: 30,
                 marginBottom: 1,
-                paddingLeft: 6 + row().depth * 14,
+                paddingLeft: 6 + row().depth * 12,
                 paddingRight: 8,
                 borderRadius: 6,
                 backgroundColor: selected() ? colors().accentSoft : "transparent",
@@ -297,7 +292,19 @@ export function Sidebar(props: Props) {
         }}
       >
         <Icon name="cloud" color={colors().ink2} size={14} />
-        <Text style={{ fontSize: 12, color: colors().ink2, flex: 1 }}>{syncLabel()}</Text>
+        <Text
+          numberOfLines={1}
+          style={{ fontSize: 11.5, color: colors().ink2, flex: 1, minWidth: 0 }}
+        >
+          {syncLabel()}
+        </Text>
+        <Text
+          testID="sidebar-count"
+          numberOfLines={1}
+          style={{ fontSize: 10.5, color: colors().ink3 }}
+        >
+          {t("sidebar.noteCount", { n: props.notes.length })}
+        </Text>
         <View
           style={{
             width: 6,

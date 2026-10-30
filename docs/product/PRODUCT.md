@@ -71,5 +71,6 @@
 |------|------|
 | [SYNC.md](./SYNC.md) | 云盘同步专章（流程、提供商、冲突、付费） |
 | [../技术设计-v1.md](../技术设计-v1.md) | 工程栈与 v1 实现范围（含产品已定交叉引用） |
+| [../ui-v2/README.md](../ui-v2/README.md) | **当前 macOS 窗口布局**：统一窗口栏、通高左栏、内嵌画布、可收起文章栏 |
 | [../ui-v1/PRODUCT.md](../ui-v1/PRODUCT.md) | UI 定稿旁产品事实（StoatMD） |
-| [../ui-v1/DESIGN-NOTES.md](../ui-v1/DESIGN-NOTES.md) | UI v1 视觉与交互；设置导航仅外观 / 字体 / 同步 |
+| [../ui-v1/DESIGN-NOTES.md](../ui-v1/DESIGN-NOTES.md) | UI v1 视觉与交互；设置导航仅外观 / 字体 / 同步（布局部分以 ui-v2 为准） |
