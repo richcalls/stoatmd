@@ -1,3 +1,4 @@
+import { uiTextSize } from "./typography";
 import { Text, View, effect, platform, signal } from "nsh";
 import { Button } from "nsh/base";
 import { titleBar } from "nsh/desktop";
@@ -41,7 +42,7 @@ function ToolButton(props: {
       <Button
         testID={props.testID}
         accessibilityLabel={props.label}
-        tooltip={<Text style={{ fontSize: 12 }}>{props.label}</Text>}
+        tooltip={<Text style={{ fontSize: uiTextSize(12) }}>{props.label}</Text>}
         onPress={props.onPress}
         selected={props.selected}
         style={{ ...iconButtonStyle, opacity: props.revealed ? 1 : 0 }}
@@ -125,7 +126,7 @@ export function WindowBar(props: Props) {
           testID="toolbar-title"
           numberOfLines={1}
           style={{
-            fontSize: 13,
+            fontSize: uiTextSize(),
             fontWeight: "500",
             color: colors().ink2,
             textAlign: "center",

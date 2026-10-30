@@ -137,3 +137,16 @@ test("ScrollSync：预览追加内容后应保留滚动位置并更新内容高�
   console.log("after append", JSON.stringify(after));
   expect(after.p).toBeGreaterThan(500);
 });
+
+test("ScrollSync：编辑字号放大后重新测量，双栏仍能同步到底", async () => {
+  const app = await open("./ScrollSync.harness.tsx", { width: 1200, height: 800, platform: "macos" });
+  await app.waitUntil(() => snap(app).em > 0 && snap(app).pm > 0);
+  const before = snap(app);
+  await app.press("id:large-editor");
+  await app.waitUntil(() => snap(app).ec > before.ec * 1.25);
+  await app.press("id:to-bottom");
+  await waitBottom(app);
+  const after = snap(app);
+  expect(after.em).toBeGreaterThan(before.em);
+  expect(Math.abs(after.e / after.em - after.p / after.pm)).toBeLessThan(0.02);
+});

@@ -1,6 +1,7 @@
 import { Text, View, mount, signal } from "nsh";
 import { EditorWorkspace } from "./EditorWorkspace";
 import { scrollPreviewTo, scrollSyncSnapshot } from "./scrollSync";
+import { applyEditorFontSize } from "./typography";
 
 const section = (i: number) =>
   `## 第 ${i + 1} 节\n\n这一节用来把预览撑高，正文混合中文与 english words，滚动同步时两侧比例应基本一致。\n\n- 第一点 ${i + 1}\n- 第二点 ${i + 1}\n- 第三点 ${i + 1}`;
@@ -34,6 +35,9 @@ function Harness() {
         </View>
         <View testID="to-top" role="button" onPress={() => scrollPreviewTo(0)}>
           <Text>top</Text>
+        </View>
+        <View testID="large-editor" role="button" onPress={() => applyEditorFontSize(22)}>
+          <Text>large editor</Text>
         </View>
         <View
           testID="append"

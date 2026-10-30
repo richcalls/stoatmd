@@ -1,3 +1,4 @@
+import { uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
 import { Scroll, Text, View, effect, signal } from "nsh";
 import { AlertDialog, Dialog } from "nsh/base";
 import { credentialsFor, credentialsHint, loadSyncConfig } from "../sync/config";
@@ -260,7 +261,7 @@ export function SyncSettings(props: SyncSettingsProps) {
   const sectionTitle = (text: string) => (
     <Text
       style={{
-        fontSize: 14,
+        fontSize: uiTextSize(14),
         fontWeight: "600",
         letterSpacing: -0.14,
         color: colors().ink,
@@ -271,7 +272,7 @@ export function SyncSettings(props: SyncSettingsProps) {
   );
 
   const secondary = (text: string) => (
-    <Text style={{ fontSize: 12.5, color: colors().ink2, lineHeight: 18 }}>{text}</Text>
+    <Text style={{ fontSize: uiTextSize(12.5), color: colors().ink2, lineHeight: uiLineHeight(18) }}>{text}</Text>
   );
 
   const actionButton = (props2: {
@@ -287,7 +288,7 @@ export function SyncSettings(props: SyncSettingsProps) {
       testID={props2.testID}
       onPress={props2.disabled ? undefined : props2.onPress}
       style={{
-        height: 30,
+        height: uiControlHeight(30),
         paddingHorizontal: 12,
         borderRadius: 6,
         borderWidth: props2.primary ? 0 : 1,
@@ -300,7 +301,7 @@ export function SyncSettings(props: SyncSettingsProps) {
     >
       <Text
         style={{
-          fontSize: 13,
+          fontSize: uiTextSize(13),
           fontWeight: props2.primary ? "560" : "500",
           color: props2.primary
             ? colors().accentInk
@@ -330,10 +331,10 @@ export function SyncSettings(props: SyncSettingsProps) {
               onPress: startProviders,
             })}
             <If when={!props.vaultRoot}>
-              <Text style={{ fontSize: 12, color: colors().ink3 }}>{t("sync.noVault")}</Text>
+              <Text style={{ fontSize: uiTextSize(12), color: colors().ink3 }}>{t("sync.noVault")}</Text>
             </If>
           </View>
-          <Text style={{ fontSize: 12, color: colors().ink3, lineHeight: 18 }}>
+          <Text style={{ fontSize: uiTextSize(12), color: colors().ink3, lineHeight: uiLineHeight(18) }}>
             {t("sync.agentHint")}
           </Text>
         </View>
@@ -355,7 +356,7 @@ export function SyncSettings(props: SyncSettingsProps) {
                       void chooseProvider(id);
                     }}
                     style={{
-                      height: 62,
+                      height: uiControlHeight(62),
                       paddingHorizontal: 14,
                       borderRadius: 9,
                       borderWidth: 1,
@@ -369,7 +370,7 @@ export function SyncSettings(props: SyncSettingsProps) {
                     <View
                       style={{
                         width: 30,
-                        height: 30,
+                        height: uiControlHeight(30),
                         borderRadius: 8,
                         backgroundColor: colors().accentSoft,
                         alignItems: "center",
@@ -379,14 +380,14 @@ export function SyncSettings(props: SyncSettingsProps) {
                       <Icon name={providerIcon(id)} color={colors().accent} size={16} />
                     </View>
                     <View style={{ flex: 1, gap: 3 }}>
-                      <Text style={{ fontSize: 13.5, fontWeight: "600", color: colors().ink }}>
+                      <Text style={{ fontSize: uiTextSize(13.5), fontWeight: "600", color: colors().ink }}>
                         {t(providerLabelKey(id))}
                       </Text>
-                      <Text style={{ fontSize: 12, color: colors().ink2 }}>
+                      <Text style={{ fontSize: uiTextSize(12), color: colors().ink2 }}>
                         {t("sync.agentHint")}
                       </Text>
                     </View>
-                    <Text style={{ fontSize: 14, color: colors().ink3 }}>›</Text>
+                    <Text style={{ fontSize: uiTextSize(14), color: colors().ink3 }}>›</Text>
                   </View>
                 );
               }}
@@ -420,12 +421,12 @@ export function SyncSettings(props: SyncSettingsProps) {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <If when={stack().length > 1}>
               <View role="button" testID="sync-folder-up" onPress={() => void goUp()}>
-                <Text style={{ fontSize: 15, color: colors().ink2 }}>‹</Text>
+                <Text style={{ fontSize: uiTextSize(15), color: colors().ink2 }}>‹</Text>
               </View>
             </If>
             <Text
               testID="sync-folder-path"
-              style={{ flex: 1, fontSize: 12.5, color: colors().ink, fontWeight: "500" }}
+              style={{ flex: 1, fontSize: uiTextSize(12.5), color: colors().ink, fontWeight: "500" }}
               numberOfLines={1}
             >
               {stack()
@@ -446,12 +447,12 @@ export function SyncSettings(props: SyncSettingsProps) {
             <Scroll style={{ height: 176 }}>
               <View style={{ padding: 6, gap: 2 }}>
                 <If when={folderLoading()}>
-                  <Text style={{ fontSize: 12, color: colors().ink3, padding: 8 }}>
+                  <Text style={{ fontSize: uiTextSize(12), color: colors().ink3, padding: 8 }}>
                     {t("sync.folder.loading")}
                   </Text>
                 </If>
                 <If when={!folderLoading() && subfolders().length === 0}>
-                  <Text style={{ fontSize: 12, color: colors().ink3, padding: 8 }}>
+                  <Text style={{ fontSize: uiTextSize(12), color: colors().ink3, padding: 8 }}>
                     {t("sync.folder.empty")}
                   </Text>
                 </If>
@@ -464,7 +465,7 @@ export function SyncSettings(props: SyncSettingsProps) {
                         testID={`sync-folder-${dir.name}`}
                         onPress={() => void enterFolder(dir)}
                         style={{
-                          height: 30,
+                          height: uiControlHeight(30),
                           paddingHorizontal: 8,
                           borderRadius: 6,
                           flexDirection: "row",
@@ -473,10 +474,10 @@ export function SyncSettings(props: SyncSettingsProps) {
                         }}
                       >
                         <Icon name="folder" color={colors().ink2} size={14} />
-                        <Text style={{ flex: 1, fontSize: 13, color: colors().ink }} numberOfLines={1}>
+                        <Text style={{ flex: 1, fontSize: uiTextSize(13), color: colors().ink }} numberOfLines={1}>
                           {dir.name}
                         </Text>
-                        <Text style={{ fontSize: 14, color: colors().ink3 }}>›</Text>
+                        <Text style={{ fontSize: uiTextSize(14), color: colors().ink3 }}>›</Text>
                       </View>
                     );
                   }}
@@ -525,7 +526,7 @@ export function SyncSettings(props: SyncSettingsProps) {
               <View
                 style={{
                   width: 30,
-                  height: 30,
+                  height: uiControlHeight(30),
                   borderRadius: 8,
                   backgroundColor: colors().accentSoft,
                   alignItems: "center",
@@ -539,10 +540,10 @@ export function SyncSettings(props: SyncSettingsProps) {
                 />
               </View>
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={{ fontSize: 13.5, fontWeight: "600", color: colors().ink }}>
+                <Text style={{ fontSize: uiTextSize(13.5), fontWeight: "600", color: colors().ink }}>
                   {t(providerLabelKey(connected()!.provider))}
                 </Text>
-                <Text style={{ fontSize: 12, color: colors().ink2 }} numberOfLines={1}>
+                <Text style={{ fontSize: uiTextSize(12), color: colors().ink2 }} numberOfLines={1}>
                   {connected()!.account || t("sync.connected")}
                 </Text>
               </View>
@@ -561,7 +562,7 @@ export function SyncSettings(props: SyncSettingsProps) {
                     backgroundColor: statusDot(),
                   }}
                 />
-                <Text testID="sync-status" style={{ fontSize: 12, color: colors().ink2 }}>
+                <Text testID="sync-status" style={{ fontSize: uiTextSize(12), color: colors().ink2 }}>
                   {statusLabel()}
                 </Text>
               </View>
@@ -571,18 +572,18 @@ export function SyncSettings(props: SyncSettingsProps) {
 
             <View style={{ gap: 6 }}>
               <View style={{ flexDirection: "row", gap: 8 }}>
-                <Text style={{ width: 76, fontSize: 12, color: colors().ink3 }}>
+                <Text style={{ width: 76, fontSize: uiTextSize(12), color: colors().ink3 }}>
                   {t("sync.remotePath")}
                 </Text>
-                <Text style={{ flex: 1, fontSize: 12, color: colors().ink2 }} numberOfLines={1}>
+                <Text style={{ flex: 1, fontSize: uiTextSize(12), color: colors().ink2 }} numberOfLines={1}>
                   {connected()!.remotePath || `/${connected()!.remoteName || t("sync.folder.root")}`}
                 </Text>
               </View>
               <View style={{ flexDirection: "row", gap: 8 }}>
-                <Text style={{ width: 76, fontSize: 12, color: colors().ink3 }}>
+                <Text style={{ width: 76, fontSize: uiTextSize(12), color: colors().ink3 }}>
                   {t("sync.lastSync")}
                 </Text>
-                <Text style={{ flex: 1, fontSize: 12, color: colors().ink2 }}>
+                <Text style={{ flex: 1, fontSize: uiTextSize(12), color: colors().ink2 }}>
                   {formatSyncMoment(syncRuntime.lastSyncAt())}
                 </Text>
               </View>
@@ -592,8 +593,8 @@ export function SyncSettings(props: SyncSettingsProps) {
               <Text
                 testID="sync-error"
                 style={{
-                  fontSize: 12,
-                  lineHeight: 18,
+                  fontSize: uiTextSize(12),
+                  lineHeight: uiLineHeight(18),
                   color:
                     syncRuntime.phase() === "error" ? statusColor("danger") : colors().ink2,
                 }}
@@ -647,7 +648,7 @@ export function SyncSettings(props: SyncSettingsProps) {
       <If when={!!localError()}>
         <Text
           testID="sync-local-error"
-          style={{ fontSize: 12, lineHeight: 18, color: statusColor("danger") }}
+          style={{ fontSize: uiTextSize(12), lineHeight: uiLineHeight(18), color: statusColor("danger") }}
         >
           {localError()}
         </Text>
@@ -657,7 +658,7 @@ export function SyncSettings(props: SyncSettingsProps) {
 
       <View style={{ gap: 4 }}>
         {sectionTitle(t("vault.section"))}
-        <Text style={{ fontSize: 12, color: colors().ink3, lineHeight: 18 }}>
+        <Text style={{ fontSize: uiTextSize(12), color: colors().ink3, lineHeight: uiLineHeight(18) }}>
           {props.vaultRoot ? props.vaultRoot : t("vault.none")}
         </Text>
         <If when={!!props.onOpenVault}>
@@ -694,7 +695,7 @@ export function SyncSettings(props: SyncSettingsProps) {
       >
         {sectionTitle(t("sync.paywall.title"))}
         {secondary(t("sync.paywall.desc"))}
-        <Text style={{ fontSize: 12, color: colors().ink3 }}>{t("sync.paywall.note")}</Text>
+        <Text style={{ fontSize: uiTextSize(12), color: colors().ink3 }}>{t("sync.paywall.note")}</Text>
         <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 4 }}>
           {actionButton({
             testID: "sync-paywall-ok",

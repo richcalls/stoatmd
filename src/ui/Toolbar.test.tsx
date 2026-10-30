@@ -2,12 +2,12 @@ import { expect, open, test } from "nsh/test";
 
 const options = { width: 900, height: 600, locale: "zh-CN", platform: "macos" as const };
 
-test("窗口栏：居中标题仅显示当前笔记，标题为 13/500", async () => {
+test("窗口栏：居中标题仅显示当前笔记，标题为 14/500", async () => {
   const app = await open("./Toolbar.harness.tsx", options);
   expect(app.shows("text:带娃笔记")).toBe(false);
   expect(app.shows("text:写作的框架")).toBe(true);
   const title = app.spanStyle("text:写作的框架");
-  expect(title.fontSize).toBe(13);
+  expect(title.fontSize).toBe(14);
   expect(title.fontWeight).toBe(500);
   expect(app.shows("id:toolbar-sidebar")).toBe(true);
   expect(app.shows("id:mode-switch")).toBe(true);

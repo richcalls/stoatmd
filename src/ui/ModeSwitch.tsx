@@ -1,3 +1,4 @@
+import { uiTextSize } from "./typography";
 import { Text, View } from "nsh";
 import { Button } from "nsh/base";
 import { Icon } from "./Icon";
@@ -25,7 +26,7 @@ function ModeButton(props: {
     <Button
       testID={props.id}
       accessibilityLabel={props.label}
-      tooltip={<Text style={{ fontSize: 12 }}>{props.label}</Text>}
+      tooltip={<Text style={{ fontSize: uiTextSize(12) }}>{props.label}</Text>}
       selected={props.active}
       onPress={props.onPress}
       style={{

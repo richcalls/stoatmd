@@ -1,3 +1,4 @@
+import { uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
 import { Scroll, Text, View, signal } from "nsh";
 import { AlertDialog, Dialog } from "nsh/base";
 import { syncRuntime } from "../sync/runtime";
@@ -99,7 +100,7 @@ export function ConflictDialog(props: Props) {
       testID={props2.testID}
       onPress={props2.disabled ? undefined : props2.onPress}
       style={{
-        height: 26,
+        height: uiControlHeight(26),
         paddingHorizontal: 10,
         borderRadius: 6,
         borderWidth: 1,
@@ -111,7 +112,7 @@ export function ConflictDialog(props: Props) {
     >
       <Text
         style={{
-          fontSize: 12,
+          fontSize: uiTextSize(12),
           color: props2.danger ? statusColor("danger") : colors().ink,
         }}
       >
@@ -158,21 +159,21 @@ export function ConflictDialog(props: Props) {
         }}
       >
         <Icon name="cloud" color={statusColor("danger")} size={16} />
-        <Text style={{ flex: 1, fontSize: 15, fontWeight: "650", color: colors().ink }}>
+        <Text style={{ flex: 1, fontSize: uiTextSize(15), fontWeight: "650", color: colors().ink }}>
           {t("sync.conflict.title")}
         </Text>
-        <Text style={{ fontSize: 12, color: colors().ink3 }}>{conflicts().length}</Text>
+        <Text style={{ fontSize: uiTextSize(12), color: colors().ink3 }}>{conflicts().length}</Text>
         <View role="button" testID="conflict-close" onPress={props.onClose}>
           <Icon name="x" color={colors().ink2} size={15} />
         </View>
       </View>
 
       <View style={{ paddingHorizontal: 18, paddingTop: 12, paddingBottom: 8, gap: 6 }}>
-        <Text style={{ fontSize: 12.5, color: colors().ink2, lineHeight: 18 }}>
+        <Text style={{ fontSize: uiTextSize(12.5), color: colors().ink2, lineHeight: uiLineHeight(18) }}>
           {t("sync.conflict.desc")}
         </Text>
         <If when={errorText() !== ""}>
-          <Text testID="conflict-error" style={{ fontSize: 12, color: statusColor("danger") }}>
+          <Text testID="conflict-error" style={{ fontSize: uiTextSize(12), color: statusColor("danger") }}>
             {errorText()}
           </Text>
         </If>
@@ -181,7 +182,7 @@ export function ConflictDialog(props: Props) {
       <Scroll style={{ flex: 1 }}>
         <View style={{ paddingHorizontal: 18, paddingBottom: 12, gap: 8 }}>
           <If when={conflicts().length === 0}>
-            <Text style={{ fontSize: 13, color: colors().ink3 }}>
+            <Text style={{ fontSize: uiTextSize(13), color: colors().ink3 }}>
               {t("sync.conflict.empty")}
             </Text>
           </If>
@@ -202,21 +203,21 @@ export function ConflictDialog(props: Props) {
                 >
                   <Text
                     testID={`conflict-path-${item.path}`}
-                    style={{ fontSize: 13, fontWeight: "560", color: colors().ink }}
+                    style={{ fontSize: uiTextSize(13), fontWeight: "560", color: colors().ink }}
                     numberOfLines={1}
                   >
                     {item.path}
                   </Text>
                   <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
-                    <Text style={{ fontSize: 11.5, color: statusColor("danger") }}>
+                    <Text style={{ fontSize: uiTextSize(11.5), color: statusColor("danger") }}>
                       {kindLabel(item.kind)}
                     </Text>
-                    <Text style={{ fontSize: 11.5, color: colors().ink3 }}>
+                    <Text style={{ fontSize: uiTextSize(11.5), color: colors().ink3 }}>
                       {item.local
                         ? `${t("sync.conflict.localInfo")} · ${formatWhen(item.local.mtimeMs, locale())}`
                         : t("sync.conflict.noLocal")}
                     </Text>
-                    <Text style={{ fontSize: 11.5, color: colors().ink3 }}>
+                    <Text style={{ fontSize: uiTextSize(11.5), color: colors().ink3 }}>
                       {item.remote
                         ? `${t("sync.conflict.remoteInfo")} · ${formatWhen(item.remote.mtimeMs, locale())}`
                         : t("sync.conflict.noRemote")}
@@ -240,13 +241,13 @@ export function ConflictDialog(props: Props) {
                       }}
                     </Each>
                     <If when={busyPath() === item.path}>
-                      <Text style={{ fontSize: 11.5, color: colors().ink3, alignSelf: "center" }}>
+                      <Text style={{ fontSize: uiTextSize(11.5), color: colors().ink3, alignSelf: "center" }}>
                         {t("sync.conflict.processing")}
                       </Text>
                     </If>
                   </View>
                   <If when={item.kind === "bothModified"}>
-                    <Text style={{ fontSize: 11, color: colors().ink3 }}>
+                    <Text style={{ fontSize: uiTextSize(11), color: colors().ink3 }}>
                       {t("sync.conflict.keepBothHint")}
                     </Text>
                   </If>
@@ -270,7 +271,7 @@ export function ConflictDialog(props: Props) {
             gap: 8,
           }}
         >
-          <Text style={{ fontSize: 12, color: colors().ink3, flex: 1 }}>
+          <Text style={{ fontSize: uiTextSize(12), color: colors().ink3, flex: 1 }}>
             {t("sync.conflict.applyAll")}
           </Text>
           {chip({

@@ -1,3 +1,4 @@
+import { uiTextSize, uiLineHeight } from "./typography";
 import { Clipboard, Text, View, cleanup, effect, keymap, platform, signal } from "nsh";
 import { AlertDialog, Button, Dialog, Input } from "nsh/base";
 import { Menu, Window } from "nsh/desktop";
@@ -886,16 +887,16 @@ export function MacShell() {
               padding: 24,
             }}
           >
-          <Text style={{ fontSize: 22, fontWeight: "600", color: colors().ink }}>
+          <Text style={{ fontSize: uiTextSize(22), fontWeight: "600", color: colors().ink }}>
             {t("app.name")}
           </Text>
           <Text
             style={{
-              fontSize: 14,
+              fontSize: uiTextSize(14),
               color: colors().ink2,
               textAlign: "center",
               maxWidth: 360,
-              lineHeight: 22,
+              lineHeight: uiLineHeight(22),
             }}
           >
             {t("vault.empty.hint")}
@@ -919,13 +920,13 @@ export function MacShell() {
             }}
           >
             <Text
-              style={{ fontSize: 14, fontWeight: "560", color: colors().accentInk }}
+              style={{ fontSize: uiTextSize(14), fontWeight: "560", color: colors().accentInk }}
             >
               {t("vault.open")}
             </Text>
           </Button>
           <If when={!!status()}>
-            <Text style={{ fontSize: 12, color: colors().ink3, marginTop: 8 }}>{status()}</Text>
+            <Text style={{ fontSize: uiTextSize(12), color: colors().ink3, marginTop: 8 }}>{status()}</Text>
           </If>
           </View>
         </View>
@@ -1004,13 +1005,13 @@ export function MacShell() {
                 </If>
                 <If when={!opened()}>
                   <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ fontSize: 13, color: colors().ink3 }}>{t("note.empty")}</Text>
+                    <Text style={{ fontSize: uiTextSize(13), color: colors().ink3 }}>{t("note.empty")}</Text>
                   </View>
                 </If>
                 <If when={!!status()}>
                   <Text
                     style={{
-                      fontSize: 11,
+                      fontSize: uiTextSize(11),
                       color: colors().ink3,
                       paddingHorizontal: 12,
                       paddingVertical: 4,
@@ -1049,7 +1050,7 @@ export function MacShell() {
                 <Button
                   testID="inspector-peek"
                   accessibilityLabel={t("inspector.open")}
-                  tooltip={<Text style={{ fontSize: 12 }}>{t("inspector.openHint")}</Text>}
+                  tooltip={<Text style={{ fontSize: uiTextSize(12) }}>{t("inspector.openHint")}</Text>}
                   onPress={() => inspectorOpen.set(true)}
                   style={{
                     position: "absolute",
@@ -1068,7 +1069,7 @@ export function MacShell() {
                   activeStyle={controlPressStyle()}
                 >
                   <Icon name="list-tree" color={colors().ink3} size={13} />
-                  <Text style={{ fontSize: 11, color: colors().ink3 }}>
+                  <Text style={{ fontSize: uiTextSize(11), color: colors().ink3 }}>
                     {t("inspector.open")}
                   </Text>
                 </Button>
@@ -1104,14 +1105,14 @@ export function MacShell() {
             flexDirection: "column",
           }}
         >
-          <Text style={{ fontSize: 16, fontWeight: "650", color: colors().ink }}>
+          <Text style={{ fontSize: uiTextSize(16), fontWeight: "650", color: colors().ink }}>
             {t("rename.title")}
           </Text>
-          <Text style={{ fontSize: 12.5, color: colors().ink2, lineHeight: 18 }}>
+          <Text style={{ fontSize: uiTextSize(12.5), color: colors().ink2, lineHeight: uiLineHeight(18) }}>
             {t("rename.desc")}
           </Text>
           <View style={{ gap: 6 }}>
-            <Text style={{ fontSize: 12, fontWeight: "500", color: colors().ink2 }}>
+            <Text style={{ fontSize: uiTextSize(12), fontWeight: "500", color: colors().ink2 }}>
               {t("rename.label")}
             </Text>
             <Input
@@ -1135,14 +1136,14 @@ export function MacShell() {
                   ? statusColor("danger")
                   : colors().thread,
                 backgroundColor: colors().list,
-                fontSize: 13,
+                fontSize: uiTextSize(13),
                 color: colors().ink,
               }}
             />
             <If when={renameError() !== ""}>
               <Text
                 testID="rename-error"
-                style={{ fontSize: 12, color: statusColor("danger") }}
+                style={{ fontSize: uiTextSize(12), color: statusColor("danger") }}
               >
                 {t(renameError())}
               </Text>
@@ -1169,7 +1170,7 @@ export function MacShell() {
               }}
               activeStyle={{ opacity: 0.7 }}
             >
-              <Text style={{ fontSize: 13, color: colors().ink2 }}>
+              <Text style={{ fontSize: uiTextSize(13), color: colors().ink2 }}>
                 {t("common.cancel")}
               </Text>
             </Button>
@@ -1188,7 +1189,7 @@ export function MacShell() {
               activeStyle={{ opacity: 0.8 }}
             >
               <Text
-                style={{ fontSize: 13, fontWeight: "560", color: colors().accentInk }}
+                style={{ fontSize: uiTextSize(13), fontWeight: "560", color: colors().accentInk }}
               >
                 {t("rename.confirm")}
               </Text>

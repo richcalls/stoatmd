@@ -1,3 +1,4 @@
+import { editorLineHeight, uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
 import { Scroll, Text, View, cleanup, effect, signal } from "nsh";
 import { Button } from "nsh/base";
 import {
@@ -47,7 +48,7 @@ function TabButton(props: {
       accessibilityLabel={props.label}
       onPress={props.onPress}
       style={{
-        height: 30,
+        height: uiControlHeight(30),
         paddingHorizontal: 8,
         borderRadius: 6,
         flexDirection: "row",
@@ -66,7 +67,7 @@ function TabButton(props: {
       />
       <Text
         style={{
-          fontSize: 12,
+          fontSize: uiTextSize(12),
           fontWeight: props.active ? "500" : "400",
           color: props.active ? colors().ink : colors().ink2,
         }}
@@ -88,10 +89,10 @@ function DetailRow(props: { label: string; value: string }) {
         marginBottom: 11,
       }}
     >
-      <Text style={{ fontSize: 11, color: colors().ink3 }}>{props.label}</Text>
+      <Text style={{ fontSize: uiTextSize(11), color: colors().ink3 }}>{props.label}</Text>
       <Text
         numberOfLines={1}
-        style={{ fontSize: 11, color: colors().ink, textAlign: "right" }}
+        style={{ fontSize: uiTextSize(11), color: colors().ink, textAlign: "right" }}
       >
         {props.value}
       </Text>
@@ -103,7 +104,7 @@ function SectionTitle(props: { children: any }) {
   return (
     <Text
       style={{
-        fontSize: 11,
+        fontSize: uiTextSize(11),
         fontWeight: "500",
         color: colors().ink3,
         marginBottom: 11,
@@ -125,8 +126,9 @@ export function ArticleInspector(props: Props) {
       activeId.set(activeHeadingFromBlock(props.model.headings, props.visibleBlock));
       return;
     }
+    const lineHeight = editorLineHeight();
     const stop = watchEditorScroll((y) => {
-      activeId.set(activeHeadingFromLine(props.model.headings, y));
+      activeId.set(activeHeadingFromLine(props.model.headings, y, lineHeight));
     });
     cleanup(stop);
   });
@@ -189,7 +191,7 @@ export function ArticleInspector(props: Props) {
         <Button
           testID="inspector-close"
           accessibilityLabel={t("inspector.close")}
-          tooltip={<Text style={{ fontSize: 12 }}>{t("inspector.close")}</Text>}
+          tooltip={<Text style={{ fontSize: uiTextSize(12) }}>{t("inspector.close")}</Text>}
           onPress={props.onClose}
           style={iconButtonStyle}
           hoverStyle={controlHoverStyle()}
@@ -205,7 +207,7 @@ export function ArticleInspector(props: Props) {
           <View>
             <Text
               style={{
-                fontSize: 11,
+                fontSize: uiTextSize(11),
                 color: colors().ink3,
                 marginHorizontal: 8,
                 marginBottom: 10,
@@ -218,10 +220,10 @@ export function ArticleInspector(props: Props) {
                 testID="inspector-outline-empty"
                 style={{ paddingHorizontal: 8, paddingTop: 4, gap: 5 }}
               >
-                <Text style={{ fontSize: 12, color: colors().ink2 }}>
+                <Text style={{ fontSize: uiTextSize(12), color: colors().ink2 }}>
                   {t("inspector.outline.empty")}
                 </Text>
-                <Text style={{ fontSize: 11, color: colors().ink3, lineHeight: 17 }}>
+                <Text style={{ fontSize: uiTextSize(11), color: colors().ink3, lineHeight: uiLineHeight(17) }}>
                   {t("inspector.outline.emptyHint")}
                 </Text>
               </View>
@@ -236,10 +238,10 @@ export function ArticleInspector(props: Props) {
                       testID={`outline-${heading().id}`}
                       selected={active()}
                       accessibilityLabel={heading().text}
-                      tooltip={<Text style={{ fontSize: 12 }}>{heading().text}</Text>}
+                      tooltip={<Text style={{ fontSize: uiTextSize(12) }}>{heading().text}</Text>}
                       onPress={() => jump(heading())}
                       style={{
-                        minHeight: 31,
+                        minHeight: uiControlHeight(31),
                         paddingVertical: 5,
                         paddingRight: 9,
                         paddingLeft: 9 + (heading().level - 1) * 11,
@@ -254,7 +256,7 @@ export function ArticleInspector(props: Props) {
                       <Text
                         numberOfLines={1}
                         style={{
-                          fontSize: 12,
+                          fontSize: uiTextSize(12),
                           fontWeight: active() ? "500" : "400",
                           color: active() ? colors().accent : colors().ink2,
                         }}
@@ -303,13 +305,13 @@ export function ArticleInspector(props: Props) {
               <DetailRow label={t("info.format")} value={noteFormat(props.path)} />
               <View style={{ marginBottom: 11 }}>
                 <Text
-                  style={{ fontSize: 11, color: colors().ink3, marginBottom: 6 }}
+                  style={{ fontSize: uiTextSize(11), color: colors().ink3, marginBottom: 6 }}
                 >
                   {t("info.path")}
                 </Text>
                 <Text
                   selectable
-                  style={{ fontSize: 11, color: colors().ink2, lineHeight: 16 }}
+                  style={{ fontSize: uiTextSize(11), color: colors().ink2, lineHeight: uiLineHeight(16) }}
                 >
                   {props.path}
                 </Text>
@@ -328,7 +330,7 @@ export function ArticleInspector(props: Props) {
             <If when={props.model.tags.length === 0}>
               <Text
                 testID="inspector-no-tags"
-                style={{ fontSize: 11, color: colors().ink3 }}
+                style={{ fontSize: uiTextSize(11), color: colors().ink3 }}
               >
                 {t("info.noTags")}
               </Text>
@@ -344,7 +346,7 @@ export function ArticleInspector(props: Props) {
                       paddingVertical: 3,
                     }}
                   >
-                    <Text style={{ fontSize: 10.5, color: colors().ink2 }}>
+                    <Text style={{ fontSize: uiTextSize(10.5), color: colors().ink2 }}>
                       {row()}
                     </Text>
                   </View>

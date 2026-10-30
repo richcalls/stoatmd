@@ -1,3 +1,4 @@
+import { uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
 import { Image, List, PanResponder, Scroll, Text, View, cleanup, effect, keymap, signal } from "nsh";
 import { Button, Input, Popover } from "nsh/base";
 import { APP_LOGOS, applyAppLogo, appLogo, logoAsset } from "./appLogo";
@@ -14,12 +15,20 @@ import { THEMES, applyTheme, colors, themeId, type ThemePreset } from "./theme";
 import {
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
+  UI_FONT_SIZE_MIN,
+  UI_FONT_SIZE_MAX,
+  EDITOR_FONT_SIZE_MIN,
+  EDITOR_FONT_SIZE_MAX,
   LINE_HEIGHT_MAX,
   LINE_HEIGHT_MIN,
   LINE_HEIGHT_STEP,
   applyFontFamily,
   applyFontLineHeight,
   applyFontSize,
+  applyUiFontSize,
+  applyEditorFontSize,
+  uiFontSize,
+  editorFontSize,
   fontFamily,
   fontLineHeight,
   fontSize,
@@ -101,7 +110,7 @@ function ThemeCard(props: { item: ThemePreset }) {
       }}
       style={{
         width: THEME_CARD_WIDTH,
-        height: 44,
+        height: uiControlHeight(44),
         flexDirection: "row",
         alignItems: "center",
         gap: 9,
@@ -124,7 +133,7 @@ function ThemeCard(props: { item: ThemePreset }) {
       />
       <Text
         style={{
-          fontSize: 12.5,
+          fontSize: uiTextSize(12.5),
           fontWeight: "560",
           letterSpacing: -0.12,
           color: colors().ink,
@@ -148,7 +157,7 @@ function LogoCard(props: { item: (typeof APP_LOGOS)[number] }) {
       onPress={() => applyAppLogo(props.item.id)}
       style={{
         width: LOGO_CARD_WIDTH,
-        height: 64,
+        height: uiControlHeight(64),
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
@@ -167,7 +176,7 @@ function LogoCard(props: { item: (typeof APP_LOGOS)[number] }) {
       <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
         <Text
           style={{
-            fontSize: 12.5,
+            fontSize: uiTextSize(12.5),
             fontWeight: "560",
             letterSpacing: -0.12,
             color: colors().ink,
@@ -177,7 +186,7 @@ function LogoCard(props: { item: (typeof APP_LOGOS)[number] }) {
           {t(props.item.nameKey)}
         </Text>
         <If when={props.item.id === "thread"}>
-          <Text style={{ fontSize: 11.5, color: colors().ink3 }} numberOfLines={1}>
+          <Text style={{ fontSize: uiTextSize(11.5), color: colors().ink3 }} numberOfLines={1}>
             {t("settings.logo.default")}
           </Text>
         </If>
@@ -199,16 +208,17 @@ function Stepper(props: {
 }) {
   const arrow = () => ({
     width: 30,
-    height: 30,
+    height: uiControlHeight(30),
     alignItems: "center" as const,
     justifyContent: "center" as const,
   });
   return (
     <View
+      testID={props.testID}
       style={{
         flexDirection: "row",
         alignItems: "center",
-        height: 32,
+        height: uiControlHeight(32),
         borderRadius: 7,
         borderWidth: 1,
         borderColor: colors().thread,
@@ -225,12 +235,12 @@ function Stepper(props: {
         style={arrow()}
         activeStyle={{ opacity: 0.7 }}
       >
-        <Text style={{ fontSize: 15, color: colors().ink2 }}>−</Text>
+        <Text style={{ fontSize: uiTextSize(15), color: colors().ink2 }}>−</Text>
       </Button>
       <View
         style={{
           width: 52,
-          height: 30,
+          height: uiControlHeight(30),
           alignItems: "center",
           justifyContent: "center",
           borderLeftWidth: 1,
@@ -240,7 +250,7 @@ function Stepper(props: {
       >
         <Text
           testID={`${props.testID}-value`}
-          style={{ fontSize: 13, fontWeight: "560", color: colors().ink }}
+          style={{ fontSize: uiTextSize(13), fontWeight: "560", color: colors().ink }}
         >
           {props.value}
         </Text>
@@ -254,7 +264,7 @@ function Stepper(props: {
         style={arrow()}
         activeStyle={{ opacity: 0.7 }}
       >
-        <Text style={{ fontSize: 15, color: colors().ink2 }}>+</Text>
+        <Text style={{ fontSize: uiTextSize(15), color: colors().ink2 }}>+</Text>
       </Button>
     </View>
   );
@@ -274,7 +284,7 @@ function FontPicker() {
 
   const defaultSelected = () => fontFamily() === "";
   // 行高 32 + 行距 2，最多露出 7 行多一点，超出后列表内部滚动。
-  const listHeight = () => Math.min(238, Math.max(34, visibleFonts().length * 34));
+  const listHeight = () => Math.min(238, Math.max(34, visibleFonts().length * (uiControlHeight(32) + 2)));
 
   return (
     <Popover
@@ -302,7 +312,7 @@ function FontPicker() {
           testID="font-select"
           accessibilityLabel={t("settings.font.family")}
           style={{
-            height: 32,
+            height: uiControlHeight(32),
             paddingHorizontal: 10,
             borderRadius: 7,
             borderWidth: 1,
@@ -316,7 +326,7 @@ function FontPicker() {
           <Text
             style={{
               flex: 1,
-              fontSize: 13,
+              fontSize: uiTextSize(13),
               fontWeight: "500",
               color: colors().ink,
               fontFamily: previewFontFamily(),
@@ -337,13 +347,13 @@ function FontPicker() {
           placeholder={t("settings.font.search")}
           autoFocus
           style={{
-            height: 30,
+            height: uiControlHeight(30),
             paddingHorizontal: 8,
             borderRadius: 6,
             borderWidth: 1,
             borderColor: colors().thread,
             backgroundColor: colors().list,
-            fontSize: 13,
+            fontSize: uiTextSize(13),
             color: colors().ink,
           }}
         />
@@ -355,7 +365,7 @@ function FontPicker() {
             menuOpen.set(false);
           }}
           style={{
-            height: 32,
+            height: uiControlHeight(32),
             paddingHorizontal: 8,
             borderRadius: 6,
             flexDirection: "row",
@@ -367,7 +377,7 @@ function FontPicker() {
           <Text
             style={{
               flex: 1,
-              fontSize: 13,
+              fontSize: uiTextSize(13),
               color: defaultSelected() ? colors().accent : colors().ink,
             }}
             numberOfLines={1}
@@ -381,11 +391,12 @@ function FontPicker() {
         <List
           testID="font-options"
           style={{ height: listHeight() }}
+          estimatedItemSize={uiControlHeight(32) + 2}
           contentStyle={{ paddingVertical: 0 }}
           each={visibleFonts()}
           keyExtractor={(name) => name}
           empty={
-            <Text style={{ fontSize: 12, color: colors().ink3, padding: 8 }}>
+            <Text style={{ fontSize: uiTextSize(12), color: colors().ink3, padding: 8 }}>
               {t("settings.font.empty")}
             </Text>
           }
@@ -402,7 +413,7 @@ function FontPicker() {
                   menuOpen.set(false);
                 }}
                 style={{
-                  height: 32,
+                  height: uiControlHeight(32),
                   paddingHorizontal: 8,
                   borderRadius: 6,
                   marginBottom: 2,
@@ -415,7 +426,7 @@ function FontPicker() {
                 <Text
                   style={{
                     flex: 1,
-                    fontSize: 13,
+                    fontSize: uiTextSize(13),
                     color: selected() ? colors().accent : colors().ink,
                     fontFamily: name(),
                   }}
@@ -460,7 +471,7 @@ function LocalePicker() {
           testID="locale-select"
           accessibilityLabel={t("settings.locale")}
           style={{
-            height: 32,
+            height: uiControlHeight(32),
             paddingHorizontal: 10,
             borderRadius: 7,
             borderWidth: 1,
@@ -472,7 +483,7 @@ function LocalePicker() {
           }}
         >
           <Text
-            style={{ flex: 1, fontSize: 13, fontWeight: "500", color: colors().ink }}
+            style={{ flex: 1, fontSize: uiTextSize(13), fontWeight: "500", color: colors().ink }}
             numberOfLines={1}
           >
             {localeName(localePref())}
@@ -496,7 +507,7 @@ function LocalePicker() {
                   menuOpen.set(false);
                 }}
                 style={{
-                  height: 30,
+                  height: uiControlHeight(30),
                   paddingHorizontal: 8,
                   borderRadius: 6,
                   flexDirection: "row",
@@ -508,7 +519,7 @@ function LocalePicker() {
                 <Text
                   style={{
                     flex: 1,
-                    fontSize: 13,
+                    fontSize: uiTextSize(13),
                     color: selected() ? colors().accent : colors().ink,
                   }}
                   numberOfLines={1}
@@ -650,7 +661,7 @@ export function SettingsSheet(props: Props) {
             <Button
               testID="settings-close"
               accessibilityLabel={t("settings.close")}
-              tooltip={<Text style={{ fontSize: 12 }}>{t("settings.close")}</Text>}
+              tooltip={<Text style={{ fontSize: uiTextSize(12) }}>{t("settings.close")}</Text>}
               onPress={close}
               style={{
                 width: 20,
@@ -690,7 +701,7 @@ export function SettingsSheet(props: Props) {
             style={{
               flex: 1,
               textAlign: "center",
-              fontSize: 13,
+              fontSize: uiTextSize(13),
               fontWeight: "600",
               letterSpacing: 0.1,
               color: colors().ink,
@@ -724,7 +735,7 @@ export function SettingsSheet(props: Props) {
                   testID={`settings-tab-${item.id}`}
                   onPress={() => props.onTab(item.id)}
                   style={{
-                    height: 32,
+                    height: uiControlHeight(32),
                     borderRadius: 7,
                     paddingHorizontal: 10,
                     flexDirection: "row",
@@ -742,7 +753,7 @@ export function SettingsSheet(props: Props) {
                   />
                   <Text
                     style={{
-                      fontSize: 13,
+                      fontSize: uiTextSize(13),
                       fontWeight: "500",
                       color: colors().ink,
                     }}
@@ -765,7 +776,7 @@ export function SettingsSheet(props: Props) {
                 <View style={{ gap: 4 }}>
                   <Text
                     style={{
-                      fontSize: 14,
+                      fontSize: uiTextSize(14),
                       fontWeight: "600",
                       letterSpacing: -0.14,
                       color: colors().ink,
@@ -773,7 +784,7 @@ export function SettingsSheet(props: Props) {
                   >
                     {t("settings.theme")}
                   </Text>
-                  <Text style={{ fontSize: 12.5, color: colors().ink2, lineHeight: 18 }}>
+                  <Text style={{ fontSize: uiTextSize(12.5), color: colors().ink2, lineHeight: uiLineHeight(18) }}>
                     {t("settings.theme.desc")}
                   </Text>
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
@@ -786,7 +797,7 @@ export function SettingsSheet(props: Props) {
                 <View style={{ gap: 4 }}>
                   <Text
                     style={{
-                      fontSize: 14,
+                      fontSize: uiTextSize(14),
                       fontWeight: "600",
                       letterSpacing: -0.14,
                       color: colors().ink,
@@ -794,7 +805,7 @@ export function SettingsSheet(props: Props) {
                   >
                     {t("settings.logo")}
                   </Text>
-                  <Text style={{ fontSize: 12.5, color: colors().ink2, lineHeight: 18 }}>
+                  <Text style={{ fontSize: uiTextSize(12.5), color: colors().ink2, lineHeight: uiLineHeight(18) }}>
                     {t("settings.logo.desc")}
                   </Text>
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
@@ -807,7 +818,7 @@ export function SettingsSheet(props: Props) {
                 <View style={{ gap: 8 }}>
                   <Text
                     style={{
-                      fontSize: 14,
+                      fontSize: uiTextSize(14),
                       fontWeight: "600",
                       letterSpacing: -0.14,
                       color: colors().ink,
@@ -828,7 +839,7 @@ export function SettingsSheet(props: Props) {
                   <Text
                     style={{
                       flex: 1,
-                      fontSize: 14,
+                      fontSize: uiTextSize(14),
                       fontWeight: "600",
                       letterSpacing: -0.14,
                       color: colors().ink,
@@ -843,7 +854,7 @@ export function SettingsSheet(props: Props) {
                     disabledStyle={{ opacity: 0.4 }}
                     onPress={resetTypography}
                     style={{
-                      height: 26,
+                      height: uiControlHeight(26),
                       paddingHorizontal: 9,
                       borderRadius: 6,
                       borderWidth: 1,
@@ -854,20 +865,49 @@ export function SettingsSheet(props: Props) {
                     }}
                     activeStyle={{ opacity: 0.7 }}
                   >
-                    <Text style={{ fontSize: 12.5, color: colors().ink2 }}>
+                    <Text style={{ fontSize: uiTextSize(12.5), color: colors().ink2 }}>
                       {t("settings.font.reset")}
                     </Text>
                   </Button>
                 </View>
-                <Text style={{ fontSize: 12.5, color: colors().ink2, lineHeight: 18 }}>
+                <Text style={{ fontSize: uiTextSize(12.5), color: colors().ink2, lineHeight: uiLineHeight(18) }}>
                   {t("settings.font.desc")}
                 </Text>
                 <View style={{ gap: 10, marginTop: 8 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                    <Text style={{ flex: 1, color: colors().ink2, fontSize: uiTextSize(13) }}>
+                      {t("settings.font.interfaceSize")}
+                    </Text>
+                    <Stepper
+                      testID="ui-font-size"
+                      value={String(uiFontSize())}
+                      disabledDec={uiFontSize() <= UI_FONT_SIZE_MIN}
+                      disabledInc={uiFontSize() >= UI_FONT_SIZE_MAX}
+                      onDec={() => applyUiFontSize(uiFontSize() - 1)}
+                      onInc={() => applyUiFontSize(uiFontSize() + 1)}
+                    />
+                  </View>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                    <Text style={{ flex: 1, color: colors().ink2, fontSize: uiTextSize(13) }}>
+                      {t("settings.font.editorSize")}
+                    </Text>
+                    <Stepper
+                      testID="editor-font-size"
+                      value={String(editorFontSize())}
+                      disabledDec={editorFontSize() <= EDITOR_FONT_SIZE_MIN}
+                      disabledInc={editorFontSize() >= EDITOR_FONT_SIZE_MAX}
+                      onDec={() => applyEditorFontSize(editorFontSize() - 1)}
+                      onInc={() => applyEditorFontSize(editorFontSize() + 1)}
+                    />
+                  </View>
+                  <Text style={{ fontSize: uiTextSize(13), fontWeight: "600", color: colors().ink, marginTop: 12 }}>
+                    {t("settings.font.reading")}
+                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                     <Text
                       style={{
                         width: 72,
-                        fontSize: 13,
+                        fontSize: uiTextSize(13),
                         fontWeight: "500",
                         color: colors().ink2,
                       }}
@@ -883,7 +923,7 @@ export function SettingsSheet(props: Props) {
                     <Text
                       style={{
                         width: 72,
-                        fontSize: 13,
+                        fontSize: uiTextSize(13),
                         fontWeight: "500",
                         color: colors().ink2,
                       }}
@@ -904,7 +944,7 @@ export function SettingsSheet(props: Props) {
                     <Text
                       style={{
                         width: 72,
-                        fontSize: 13,
+                        fontSize: uiTextSize(13),
                         fontWeight: "500",
                         color: colors().ink2,
                       }}
@@ -934,7 +974,7 @@ export function SettingsSheet(props: Props) {
                 >
                   <Text
                     style={{
-                      fontSize: 11,
+                      fontSize: uiTextSize(11),
                       fontWeight: "510",
                       color: colors().ink3,
                       marginBottom: 8,
