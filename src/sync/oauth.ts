@@ -53,6 +53,7 @@ const DROPBOX: ProviderOAuth = {
   authorizeUrl: "https://www.dropbox.com/oauth2/authorize",
   tokenUrl: "https://api.dropboxapi.com/oauth2/token",
   scopes: [
+    "account_info.read",
     "files.content.read",
     "files.content.write",
     "files.metadata.read",

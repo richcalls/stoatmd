@@ -193,6 +193,36 @@ test("Dropbox：上传新文件用 add；已有文件用 update+rev；409 转冲
   expect(conflict instanceof RemoteConflictError).toBe(true);
 });
 
+test("Dropbox：中文文件名在 Dropbox-API-Arg 头中转为 ASCII", async () => {
+  const { fetchImpl, calls } = makeFetch((call) => {
+    if (call.url.endsWith("/files/create_folder_v2")) {
+      return json({ metadata: { ".tag": "folder", path_display: "/StoatMD/Archive" } });
+    }
+    if (call.url.endsWith("/files/upload")) {
+      const arg = JSON.parse(call.headers["Dropbox-API-Arg"]);
+      return json({
+        ".tag": "file",
+        name: "笔记.md",
+        id: "id:cn",
+        rev: "00d",
+        size: call.body.length,
+        path_display: arg.path,
+        server_modified: "2026-10-30T00:00:00Z",
+      });
+    }
+    throw new Error(`unexpected url: ${call.url}`);
+  });
+  const provider = new DropboxProvider(tokens, fetchImpl, null);
+  const path = "Archive/笔记 (云端冲突 2026-10-30).md";
+  const uploaded = await provider.upload(root, path, "hi", { existing: null });
+  expect(uploaded.path).toBe(path);
+
+  const upload = calls.find((c) => c.url.endsWith("/files/upload"))!;
+  const header = upload.headers["Dropbox-API-Arg"];
+  expect(/^[\x20-\x7e]*$/.test(header)).toBe(true);
+  expect(JSON.parse(header).path).toBe(`/StoatMD/${path}`);
+});
+
 test("Dropbox：删除把 not_found 视为成功", async () => {
   const { fetchImpl, calls } = makeFetch((call) => {
     if (call.url.endsWith("/files/delete_v2")) {

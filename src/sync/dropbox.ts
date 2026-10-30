@@ -118,7 +118,7 @@ export class DropboxProvider implements SyncProvider {
         method: "POST",
         headers: {
           "Content-Type": "application/octet-stream",
-          "Dropbox-API-Arg": JSON.stringify({ path: file.id }),
+          "Dropbox-API-Arg": apiArgHeader({ path: file.id }),
         },
       },
     );
@@ -145,7 +145,7 @@ export class DropboxProvider implements SyncProvider {
         method: "POST",
         headers: {
           "Content-Type": "application/octet-stream",
-          "Dropbox-API-Arg": JSON.stringify({
+          "Dropbox-API-Arg": apiArgHeader({
             path: absolute,
             mode,
             autorename: false,
@@ -273,6 +273,14 @@ export class DropboxProvider implements SyncProvider {
       networkError(err);
     }
   }
+}
+
+/** HTTP 头只允许 ByteString：非 ASCII 文件名需在 JSON 里转成 \uXXXX。 */
+function apiArgHeader(value: unknown): string {
+  return JSON.stringify(value).replace(
+    /[\u007f-\uffff]/g,
+    (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`,
+  );
 }
 
 function joinDropboxPath(root: string, rel: string): string {
