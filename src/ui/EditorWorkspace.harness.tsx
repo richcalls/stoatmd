@@ -8,15 +8,13 @@ function Harness() {
   return (
     <View style={{ flex: 1, flexDirection: "column" }}>
       <WorkspaceToolbar
+        title="写作的框架"
         mode={mode()}
         onMode={(m) => mode.set(m)}
-        sidebarMode="expanded"
-        onCycleSidebar={() => {}}
         onFont={() => {}}
         onSettings={() => {}}
       />
       <EditorWorkspace
-        fileName="a.md"
         source="# hi"
         preview="# hi"
         onChange={() => {}}

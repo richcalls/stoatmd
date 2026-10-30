@@ -799,7 +799,7 @@ export function MacShell() {
         flexDirection: "column",
       }}
     >
-      <TitleBar />
+      <TitleBar showSidebarToggle={!!vault()} onToggleSidebar={cycleSidebar} />
 
       <If when={!vault()}>
         <View style={{ flex: 1, flexDirection: "column" }}>
@@ -807,8 +807,6 @@ export function MacShell() {
             minimal
             mode={mode()}
             onMode={changeMode}
-            sidebarMode={sidebarMode()}
-            onCycleSidebar={cycleSidebar}
             onFont={() => openSettings("font")}
             onSettings={() => openSettings("appearance")}
           />
@@ -899,16 +897,14 @@ export function MacShell() {
 
           <View style={{ flex: 1, minWidth: 320, flexDirection: "column" }}>
             <WorkspaceToolbar
+              title={opened() ? titleFromName(fileName()) : ""}
               mode={mode()}
               onMode={changeMode}
-              sidebarMode={sidebarMode()}
-              onCycleSidebar={cycleSidebar}
               onFont={() => openSettings("font")}
               onSettings={() => openSettings("appearance")}
             />
             <If when={!!opened()}>
               <EditorWorkspace
-                fileName={fileName()}
                 source={draft()}
                 preview={previewDraft()}
                 onChange={onDraftChange}

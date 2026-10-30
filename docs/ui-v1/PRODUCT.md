@@ -26,7 +26,7 @@ StoatMD（白鼬 / stoat）是本地 Markdown 笔记本。用户自选本机文�
 
 右栏模式：仅编辑 · **分栏（Mac 默认）** · 仅预览。非 WYSIWYG。
 
-Mac 编辑工具条：左侧 `SidebarSimple`（文件树展开 / 收起）；右侧 `Code` · `Split` · `Eye` | `TextT` · `Gear`。**无**独立 Palette 入口。控件以图标为主（出海多语言，tooltip 中英均可）。
+Mac 编辑工具条：左侧当前笔记标题（16 / 600，单行省略）；右侧 `Code` · `Split` · `Eye` | `TextT` · `Gear`。文件树开关移到 macOS 顶栏右侧，默认隐藏，鼠标进入右侧区域才露出（对齐 Otty）；⌘B 亦可。**无**独立 Palette 入口。控件以图标为主（出海多语言，tooltip 中英均可）。
 
 ## 设置 · 主题 · 字体（v1）
 

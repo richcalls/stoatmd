@@ -1,4 +1,4 @@
-import { List, Text, View, batch, effect, signal } from "nsh";
+import { List, View, batch, effect, signal } from "nsh";
 import { Editor, ResizablePanel, ResizablePanelGroup, TextView, type EditorDecoration } from "nsh/base";
 import { markdownDecorations } from "./markdownDecorations";
 import { kamiMonoFamily, kamiTypeScale } from "./kami";
@@ -22,7 +22,6 @@ import {
 } from "./scrollSync";
 
 type Props = {
-  fileName: string;
   source: string;
   /** 延迟同步的正文：预览只在输入停顿后重排，不跟随每个按键。 */
   preview: string;
@@ -147,23 +146,7 @@ export function EditorWorkspace(props: Props) {
       onHoverIn={() => markEditorHover(true)}
       onHoverOut={() => markEditorHover(false)}
     >
-      {/* 对齐 ui-v1 pane-src：文件名走等宽小字，正文从标题下方开始 */}
-      <View style={{ paddingTop: 16, paddingBottom: 4, paddingHorizontal: 20 }}>
-        <Text
-          testID="doc-title"
-          numberOfLines={1}
-          style={{
-            fontSize: 12,
-            fontWeight: "510",
-            color: colors().ink3,
-            fontFamily: "Menlo",
-            letterSpacing: 0.12,
-          }}
-        >
-          {props.fileName}
-        </Text>
-      </View>
-      <View style={{ flex: 1 }} onLayout={(b) => setEditorViewHeight(b.size.height)}>
+      <View style={{ flex: 1, paddingTop: 12 }} onLayout={(b) => setEditorViewHeight(b.size.height)}>
         <Editor
           ref={attachEditor}
           value={props.source}
