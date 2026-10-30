@@ -1,7 +1,7 @@
 import { Text, View, mount, signal } from "nsh";
 import { WindowBar, type SidebarMode, type ViewMode } from "./Toolbar";
 
-/** 统一窗口栏的最小挂载入口：左段品牌、面包屑、文件树开关与模式按钮。 */
+/** 窗口栏挂载入口：居中标题、文件树开关与模式按钮。 */
 function Harness() {
   const mode = signal<ViewMode>("split");
   const withVault = signal(true);

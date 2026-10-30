@@ -541,8 +541,12 @@ export function SettingsSheet(props: Props) {
 
   effect(() => {
     if (!props.open) return;
-    const off = keymap.bind("escape", close);
-    cleanup(off);
+    const offEscape = keymap.bind("escape", close);
+    const offClose = keymap.bind("mod+w", close);
+    cleanup(() => {
+      offEscape();
+      offClose();
+    });
   });
 
   const panelWidth = () =>
@@ -627,7 +631,7 @@ export function SettingsSheet(props: Props) {
           boxShadow: "0 20px 60px rgba(0, 0, 0, 0.30), 0 4px 14px rgba(0, 0, 0, 0.18)",
         }}
       >
-        {/* 小窗标题栏：左上角关闭圆点，标题居中，右上角「完成」；整条可拖动 */}
+        {/* 设置即时保存；标题居中，左上角关闭，标题栏可拖动。 */}
         <View
           testID="settings-window-bar"
           {...pan.panHandlers}
@@ -694,33 +698,7 @@ export function SettingsSheet(props: Props) {
           >
             {t("settings.title")}
           </Text>
-          <View
-            style={{
-              width: 64,
-              flexShrink: 0,
-              paddingRight: 12,
-              alignItems: "flex-end",
-            }}
-          >
-            <Button
-              testID="settings-done"
-              accessibilityLabel={t("common.done")}
-              onPress={close}
-              style={{
-                height: 26,
-                paddingHorizontal: 8,
-                borderRadius: 6,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "transparent",
-              }}
-              activeStyle={{ opacity: 0.7 }}
-            >
-              <Text style={{ fontSize: 13, fontWeight: "600", color: colors().accent }}>
-                {t("common.done")}
-              </Text>
-            </Button>
-          </View>
+          <View style={{ width: 64, flexShrink: 0 }} />
         </View>
 
         <View style={{ flex: 1, flexDirection: "row", minHeight: 0 }}>

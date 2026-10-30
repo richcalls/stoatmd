@@ -8,6 +8,7 @@ test("设置：浮窗呈现，点左上角关闭圆点后 open 变为 false", as
   expect(app.shows("id:settings-window")).toBe(true);
   expect(app.shows("id:settings-window-bar")).toBe(true);
   expect(app.texts()).toContain("设置");
+  expect(app.shows("id:settings-done")).toBe(false);
 
   await app.press("id:settings-close");
   expect(app.texts()).toContain("closed");
@@ -18,6 +19,17 @@ test("设置：Esc 只收起浮窗", async () => {
   await app.keyboard.press("escape");
   await app.waitUntil(() => app.texts().includes("closed"));
   expect(app.texts()).toContain("closed");
+});
+
+test("设置：关闭快捷键收起面板，重开后保留即时保存的主题", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", { ...desktop, platform: "macos" });
+  await app.press("id:theme-nord");
+  await app.waitUntil(() => app.storage()["prefs.theme"] === "nord");
+  await app.keyboard.press("mod+w");
+  await app.waitUntil(() => app.texts().includes("closed"));
+  await app.press("id:reopen");
+  expect(app.shows("id:settings-window")).toBe(true);
+  expect(app.storage()["prefs.theme"]).toBe("nord");
 });
 
 test("设置：字体下拉打开时 Esc 只收起下拉，浮窗保留", async () => {
