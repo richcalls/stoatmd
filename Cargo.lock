@@ -1148,9 +1148,12 @@ dependencies = [
 name = "nsh-app-stoatmd"
 version = "0.1.0"
 dependencies = [
+ "dispatch2",
  "notify",
  "nsh-base",
  "nsh-core",
+ "objc2",
+ "objc2-app-kit",
  "objc2-core-foundation",
  "objc2-core-text",
  "objc2-foundation",

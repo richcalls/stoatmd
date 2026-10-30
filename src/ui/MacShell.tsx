@@ -55,6 +55,7 @@ export function MacShell() {
   /** 阅读模式视口顶部块，供目录滚动高亮。 */
   const visibleBlock = signal(0);
   const windowWidth = signal(0);
+  const windowHeight = signal(0);
   const vault = signal<Vault | null>(null);
   const vaultRoot = signal<string | null>(null);
   const folders = signal<FolderNode[]>([]);
@@ -851,7 +852,10 @@ export function MacShell() {
 
   return (
     <View
-      onLayout={(b) => windowWidth.set(b.size.width)}
+      onLayout={(b) => {
+        windowWidth.set(b.size.width);
+        windowHeight.set(b.size.height);
+      }}
       style={{
         flex: 1,
         backgroundColor: vault() ? colors().sidebar : colors().paper,
@@ -909,7 +913,9 @@ export function MacShell() {
               justifyContent: "center",
             }}
           >
-            <Text style={{ fontSize: 14, fontWeight: "560", color: "#FFFFFF" }}>
+            <Text
+              style={{ fontSize: 14, fontWeight: "560", color: colors().accentInk }}
+            >
               {t("vault.open")}
             </Text>
           </View>
@@ -1172,7 +1178,9 @@ export function MacShell() {
               }}
               activeStyle={{ opacity: 0.8 }}
             >
-              <Text style={{ fontSize: 13, fontWeight: "560", color: "#FFFFFF" }}>
+              <Text
+                style={{ fontSize: 13, fontWeight: "560", color: colors().accentInk }}
+              >
                 {t("rename.confirm")}
               </Text>
             </Button>
@@ -1185,6 +1193,8 @@ export function MacShell() {
         tab={settingsTab()}
         onTab={(tab) => settingsTab.set(tab)}
         onClose={() => settingsOpen.set(false)}
+        windowWidth={windowWidth()}
+        windowHeight={windowHeight()}
         vaultRoot={vaultRoot()}
         onOpenVault={() => {
           void pickAndOpen();

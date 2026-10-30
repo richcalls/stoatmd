@@ -3,6 +3,8 @@ import { EditorWorkspace } from "./EditorWorkspace";
 import { WindowBar, type ViewMode } from "./Toolbar";
 
 /** 供 EditorWorkspace 组件测试挂载的最小入口。 */
+const NOTE = "# hi\n\n```ts\nconst a = 1;\n```";
+
 function Harness() {
   const mode = signal<ViewMode>("split");
   return (
@@ -18,8 +20,8 @@ function Harness() {
         onMode={(m) => mode.set(m)}
       />
       <EditorWorkspace
-        source="# hi"
-        preview="# hi"
+        source={NOTE}
+        preview={NOTE}
         onChange={() => {}}
         mode={mode()}
       />

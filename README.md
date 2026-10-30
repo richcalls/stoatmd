@@ -8,7 +8,7 @@
 - 笔记右键菜单：打开、在 Finder 中显示、复制路径 / 相对路径、重命名、创建副本、移到废纸篓；文案随界面语言
 - 源码编辑 + 仅编辑 / 分栏 / 仅预览；停顿自动保存；外部改文件冲突提示
 - 分栏时**编辑区与预览 60fps 双向滚动同步，丝滑跟手**（硬性验收标准）
-- 预览默认采用 [Kami](https://github.com/tw93/kami) 文章排版：羊皮纸底、墨蓝强调、衬线正文（MIT，见 `THIRD_PARTY_NOTICES.md`）
+- 预览默认采用 [Kami](https://github.com/tw93/kami) 文章排版（衬线正文、克制留白）；配色内置 **25 套 [Otty](https://otty.sh) 主题**（默认 Paper，9 浅色 / 16 深色），设置 → 外观即切即换（归属见 `THIRD_PARTY_NOTICES.md`）
 - Google Drive / Dropbox 云盘同步；本地库始终是真相，冲突逐文件弹选，不静默覆盖
 - 本机永远免费；开启同步走**买断**付费墙（不做订阅制，不绑 iCloud）
 - **不做 MCP**
@@ -51,7 +51,7 @@ StoatMD **不做所见即所得**，而是保留纯 Markdown 源码编辑与独�
 - [技术设计 v1](docs/技术设计-v1.md)
 - [UI v1 设计说明](docs/ui-v1/DESIGN-NOTES.md)（风格 B · 织线）
 - [UI v2 内嵌阅读画布方案](docs/ui-v2/README.md)（交互设计稿与 Qoder 实现说明）
-- [Logo 方向草案](docs/brand/stoatmd-logo/NOTES.md)（A 织线白鼬 · C 敏捷剪影；主图标未定，未接入 App）
+- [Logo 方向草案](docs/brand/stoatmd-logo/NOTES.md)（默认 A 织线白鼬 · C 敏捷剪影可在设置 → 外观切换 · 浅/暗两版随主题）
 - [Mac 一期实现计划](docs/superpowers/plans/2026-10-29-stoatmd-mac-v1.md)
 
 ## 工程结构
@@ -62,7 +62,7 @@ src/ui/                 # TSX：Mac 两栏壳（文件树 + 编辑/预览）+ Va
 src/sync/               # 同步引擎、OAuth PKCE、Google Drive / Dropbox Provider
 src/lib.rs              # stoatmd/native 薄桥（选文件夹 / 监视 / OAuth / 钥匙串）
 crates/stoatmd-core/    # Vault 路径沙箱与 CRUD
-theme.json              # Kami 羊皮纸 / 暖夜炭 token
+theme.json              # Paper / Nord 基础 token（nsh 原生控件兜底）
 locales/                # zh / en
 ```
 
@@ -89,10 +89,10 @@ nsh run --target macos
 
 1. 启动后点「打开文件夹…」（或菜单 文件 → 打开文件夹… / ⌘O）
 2. 选一个含 `.md` 的目录（或空目录后点「新建笔记」）
-3. 编辑正文，源码区按 DESIGN 语法色随主题高亮（标题 accent、粗体标记 ink3、行内代码棕底、引用绿），停顿约 0.7s 应出现「已保存」
+3. 编辑正文，源码区按主题语法色高亮（标题 accent、粗体标记 syntaxBold、行内代码浅底、引用绿），停顿约 0.7s 应出现「已保存」
 4. 用外部编辑器改同一文件 → 应弹出冲突：保留本地 / 从磁盘重载
 5. 分栏模式下分别滚动编辑区和预览 → 两侧应保持 60fps 双向同步，跟手无迟滞
-6. 设置 → 外观：12 套主题（浅色 8 / 深色 4，含纯白）；切换后两栏与预览配色即时更新
+6. 设置 → 外观：25 套 Otty 主题（浅色 9 / 深色 16，默认 Paper，含纯白 Floating Card）；切换后两栏、预览与设置自身配色即时更新
 7. 设置 → 字体：默认显示本机实际衬线字体（如 Songti SC），可下拉搜索系统字体、调字号与行高；右上「恢复默认」复位；预览与设置内示例即时变化
 8. 左栏顶部可搜索全库笔记；文件夹可折叠、点笔记在右侧打开；鼠标移到顶栏右侧（或按 ⌘B）展开/隐藏文件树，工具条左侧显示当前笔记标题；⌘1–3 / ⌘, 均有菜单项
 9. 语言默认跟随系统（识别简体中文、繁體中文、日本語、한국어、Deutsch、Français、Español），也可在设置中强制其中任一种（菜单文案随之切换）
@@ -132,11 +132,13 @@ Linux 可做类型/编译冒烟：`nsh check`；有 GTK 4.14+ 时可 `nsh run`�
 
 ## 第三方
 
-- 默认文章排版与色板移植自 [Kami](https://github.com/tw93/kami)（MIT License，Copyright (c) 2026 Tw93）；完整许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+- 默认文章排版移植自 [Kami](https://github.com/tw93/kami)（MIT License，Copyright (c) 2026 Tw93）。
+- 25 套外观主题取自 [Otty](https://otty.sh) 的内置主题（Apache-2.0，Copyright © 2026 appmakes），其中 Nord / Catppuccin / Dracula / Gruvbox / Solarized / Tokyo Night 等配色来自各自作者。
+- 完整许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 ## 当前进度
 
 - [x] Phase 0/1：混合工程 + Mac 两栏壳 + Editor/TextView 分栏
 - [x] Phase 2：Vault 读写、选文件夹、自动保存、冲突提示
-- [x] Phase 3：12 套主题网格、字体偏好、文件树折叠、菜单快捷键、跟随系统多语言（8 种界面语言）
+- [x] Phase 3：25 套 Otty 主题网格、字体偏好、文件树折叠、菜单快捷键、跟随系统多语言（8 种界面语言）
 - [x] Phase 4：Google Drive / Dropbox 同步（OAuth PKCE、选/建远程库、锚点增量、冲突逐文件弹选、自动推送与定时拉取）

@@ -6,6 +6,8 @@ const THEME_KEY = "prefs.theme";
 const FONT_FAMILY_KEY = "prefs.fontFamily";
 const FONT_SIZE_KEY = "prefs.fontSize";
 const FONT_LINE_KEY = "prefs.fontLineHeight";
+const APP_LOGO_KEY = "prefs.appLogo";
+const SETTINGS_FRAME_KEY = "prefs.settingsFrame";
 
 /** 读取上次打开的库根。 */
 export async function loadSavedRoot(): Promise<string | null> {
@@ -70,4 +72,36 @@ export async function loadSavedFontLineHeight(): Promise<string | null> {
 /** 持久化行高。 */
 export async function saveFontLineHeight(lineHeight: string): Promise<void> {
   await Storage.setItem(FONT_LINE_KEY, lineHeight);
+}
+
+/** 读取应用图标偏好。 */
+export async function loadSavedAppLogo(): Promise<string | null> {
+  return (await Storage.getItem(APP_LOGO_KEY)) ?? null;
+}
+
+/** 持久化应用图标。 */
+export async function saveAppLogo(id: string): Promise<void> {
+  await Storage.setItem(APP_LOGO_KEY, id);
+}
+
+/** 读取设置浮窗上次的位置（相对主窗口内容区）。 */
+export async function loadSavedSettingsFrame(): Promise<{ x: number; y: number } | null> {
+  const raw = await Storage.getItem(SETTINGS_FRAME_KEY);
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as { x?: unknown; y?: unknown };
+    if (typeof value.x !== "number" || typeof value.y !== "number") return null;
+    if (!Number.isFinite(value.x) || !Number.isFinite(value.y)) return null;
+    return { x: value.x, y: value.y };
+  } catch {
+    return null;
+  }
+}
+
+/** 持久化设置浮窗的位置。 */
+export async function saveSettingsFrame(x: number, y: number): Promise<void> {
+  await Storage.setItem(
+    SETTINGS_FRAME_KEY,
+    JSON.stringify({ x: Math.round(x), y: Math.round(y) }),
+  );
 }

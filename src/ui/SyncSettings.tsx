@@ -303,7 +303,7 @@ export function SyncSettings(props: SyncSettingsProps) {
           fontSize: 13,
           fontWeight: props2.primary ? "560" : "500",
           color: props2.primary
-            ? "#FFFFFF"
+            ? colors().accentInk
             : props2.danger
               ? statusColor("danger")
               : colors().ink,

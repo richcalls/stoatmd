@@ -40,7 +40,7 @@
 
 ## 主题（摘要）
 
-设置 → 外观：12 套预设（**8 light + 4 dark**），只换颜色 token。必须含 **纯白**（`#FFFFFF`）。完整 hex 见 [../ui-v1/DESIGN.md](../ui-v1/DESIGN.md)；不必为每套出图。
+设置 → 外观：**25 套 Otty 内置主题**（**9 light + 16 dark**），只换颜色 token，默认 **Paper**。含纯白 **Floating Card**（`#FFFFFF`）。完整 hex 见 [`src/ui/theme.ts`](../../src/ui/theme.ts)；不必为每套出图。旧 12 套偏好会自动映射到最接近的新主题。
 
 ## 提供商矩阵摘要
 

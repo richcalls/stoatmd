@@ -2,24 +2,78 @@ import { expect, open, test } from "nsh/test";
 
 const desktop = { width: 1280, height: 800, locale: "zh-CN" };
 
-test("设置：点右上角关闭后 open 变为 false", async () => {
+test("设置：浮窗呈现，点左上角关闭圆点后 open 变为 false", async () => {
   const app = await open("./SettingsSheet.harness.tsx", desktop);
   expect(app.texts()).toContain("open");
-  expect(app.shows("id:settings-dialog")).toBe(true);
+  expect(app.shows("id:settings-window")).toBe(true);
+  expect(app.shows("id:settings-window-bar")).toBe(true);
+  expect(app.texts()).toContain("设置");
 
   await app.press("id:settings-close");
   expect(app.texts()).toContain("closed");
 });
 
-test("设置：12 套主题可选并持久化", async () => {
+test("设置：Esc 只收起浮窗", async () => {
   const app = await open("./SettingsSheet.harness.tsx", desktop);
-  expect(app.shows("id:theme-weave-paper")).toBe(true);
-  expect(app.shows("id:theme-pure-white")).toBe(true);
-  expect(app.shows("id:theme-pine-smoke")).toBe(true);
+  await app.keyboard.press("escape");
+  await app.waitUntil(() => app.texts().includes("closed"));
+  expect(app.texts()).toContain("closed");
+});
 
-  await app.press("id:theme-pure-white");
-  await app.waitUntil(() => app.storage()["prefs.theme"] === "pure-white");
-  expect(app.storage()["prefs.theme"]).toBe("pure-white");
+test("设置：字体下拉打开时 Esc 只收起下拉，浮窗保留", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", desktop);
+  await app.press("id:settings-tab-font");
+  await app.press("id:font-select");
+  await app.waitUntil(() => app.shows("id:font-search"));
+  await app.keyboard.press("escape");
+  await app.waitFor("id:font-search", { state: "gone", timeout: 3000 });
+  expect(app.shows("id:settings-window")).toBe(true);
+  expect(app.texts()).toContain("open");
+});
+
+test("设置：拖动标题栏记住位置，重开后回到原处", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", desktop);
+  expect(app.texts()).toContain("centered");
+
+  await app.drag("id:settings-window-bar", { x: 64, y: 40 });
+  await app.waitUntil(() => typeof app.storage()["prefs.settingsFrame"] === "string");
+  const saved = JSON.parse(app.storage()["prefs.settingsFrame"]) as { x: number; y: number };
+  expect(saved.x).toBeGreaterThan(0);
+  expect(saved.y).toBeGreaterThan(0);
+  expect(app.texts()).toContain(`${saved.x},${saved.y}`);
+
+  await app.press("id:settings-close");
+  expect(app.texts()).toContain("closed");
+  await app.press("id:reopen");
+  expect(app.texts()).toContain(`${saved.x},${saved.y}`);
+
+  // 重启后从偏好还原：模拟 harness 启动时的 restore。
+  const again = await open("./SettingsSheet.harness.tsx", {
+    ...desktop,
+    storage: { "prefs.settingsFrame": JSON.stringify(saved) },
+  });
+  await again.waitUntil(() => again.texts().includes(`${saved.x},${saved.y}`));
+  expect(again.texts()).toContain(`${saved.x},${saved.y}`);
+});
+
+test("设置：保存的位置来自偏好时直接还原", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", {
+    ...desktop,
+    storage: { "prefs.settingsFrame": JSON.stringify({ x: 120, y: 90 }) },
+  });
+  await app.waitUntil(() => app.texts().includes("120,90"));
+  expect(app.texts()).toContain("120,90");
+});
+
+test("设置：25 套 Otty 主题可选并持久化", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", desktop);
+  expect(app.shows("id:theme-paper")).toBe(true);
+  expect(app.shows("id:theme-nord")).toBe(true);
+  expect(app.shows("id:theme-tokyo-night")).toBe(true);
+
+  await app.press("id:theme-nord");
+  await app.waitUntil(() => app.storage()["prefs.theme"] === "nord");
+  expect(app.storage()["prefs.theme"]).toBe("nord");
 });
 
 test("同步：未连接展示两家网盘；缺客户端凭据时明确提示且不进入授权", async () => {
@@ -116,13 +170,13 @@ test("设置：字体搜索可过滤系统字体、无匹配有空态、选中�
   await app.type("id:font-search", "helvetica");
   await app.waitUntil(() => app.shows("text:Helvetica"));
   expect(app.shows("id:font-search")).toBe(true);
-  expect(app.shows("id:settings-dialog")).toBe(true);
+  expect(app.shows("id:settings-window")).toBe(true);
   expect(app.shows("text:Academy Engraved LET")).toBe(false);
 
   await app.press("text:Helvetica");
   await app.waitUntil(() => app.storage()["prefs.fontFamily"] === "Helvetica");
   await app.waitFor("id:font-search", { state: "gone", timeout: 3000 });
-  expect(app.shows("id:settings-dialog")).toBe(true);
+  expect(app.shows("id:settings-window")).toBe(true);
   expect(app.texts()).toContain("Helvetica");
 
   // 再次打开时查询已重置；无匹配时给出空态。
@@ -131,7 +185,7 @@ test("设置：字体搜索可过滤系统字体、无匹配有空态、选中�
   expect(app.value("id:font-search")).toBe("");
   await app.type("id:font-search", "zzzzqqqq");
   await app.waitFor("text:没有匹配的字体", { timeout: 3000 });
-  expect(app.shows("id:settings-dialog")).toBe(true);
+  expect(app.shows("id:settings-window")).toBe(true);
 });
 
 test("设置：界面语言为下拉框，切到日本語后持久化并即时翻译", async () => {
@@ -159,4 +213,31 @@ test("设置：界面语言为下拉框，切到日本語后持久化并即时�
   expect(app.texts()).toContain("外観");
   expect(app.texts()).toContain("言語");
   expect(app.texts()).toContain("日本語");
+});
+
+test("设置：应用图标默认织线白鼬，可切换到敏捷剪影并持久化", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", desktop);
+  expect(app.shows("id:logo-thread")).toBe(true);
+  expect(app.shows("id:logo-agile")).toBe(true);
+  expect(app.texts()).toContain("织线白鼬");
+  expect(app.texts()).toContain("默认");
+  expect(app.texts()).toContain("thread");
+
+  // 暗色主题下切图标：应用图标走炭底版本（原生调用不抛错）。
+  await app.press("id:theme-nord");
+  await app.waitUntil(() => app.storage()["prefs.theme"] === "nord");
+  await app.press("id:logo-agile");
+  await app.waitUntil(() => app.storage()["prefs.appLogo"] === "agile");
+  expect(app.texts()).toContain("agile");
+});
+
+test("设置：启动时恢复上次选择的应用图标", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", {
+    ...desktop,
+    storage: {
+      "prefs.appLogo": "agile",
+    },
+  });
+  await app.waitUntil(() => app.texts().includes("agile"));
+  expect(app.texts()).toContain("敏捷剪影");
 });

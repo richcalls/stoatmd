@@ -2,9 +2,8 @@
 
 ## Kami
 
-Default article typography and color tokens, ported in `src/ui/kami.ts` and applied by the
-default `weave-paper` theme and the preview styles, are derived from
-[Kami](https://github.com/tw93/kami).
+Default article typography, ported in `src/ui/kami.ts` and applied by the preview
+styles, is derived from [Kami](https://github.com/tw93/kami).
 
 MIT License
 
@@ -27,3 +26,31 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Otty themes
+
+The 25 appearance presets in `src/ui/theme.ts` adapt the built-in theme set shipped
+with [Otty](https://otty.sh). No Otty source code is included; only color values
+were mapped to StoatMD's UI tokens.
+
+Otty is Copyright © 2026 appmakes and is open source under the Apache License,
+Version 2.0: <https://github.com/otty-shell/otty/blob/main/LICENSE>.
+
+Several palettes adapt classic external color schemes. Credits to their authors:
+
+| Palette | Author / source |
+|---------|-----------------|
+| Ayu Light / Ayu Dark | [dempfi/ayu](https://github.com/dempfi/ayu) |
+| Catppuccin Mocha | [Catppuccin community](https://catppuccin.com) |
+| Dracula | [Dracula theme family](https://draculatheme.com) |
+| Gruvbox Dark | [morhetz/gruvbox](https://github.com/morhetz/gruvbox) |
+| Monokai Classic | Wimer Hazenberg |
+| Night | [Typora](https://typora.io) |
+| Owl | [Sarah Drasner · Night Owl](https://github.com/sdras/night-owl-vscode-theme) |
+| Nord | [Arctic Ice Studio · Nord](https://www.nordtheme.com) |
+| One Dark / One Light | [Atom](https://github.com/atom/atom) |
+| Rosé Pine | [Rosé Pine community](https://rosepinetheme.com) |
+| Solarized Light / Dark | Ethan Schoonover |
+| Tokyo Night | [folke/tokyonight.nvim](https://github.com/folke/tokyonight.nvim) |
+| April / April Dark | Abner |
+| Paper, Newsprint, Floating Card, Pink, Glass Light / Dark, Acrylic Dark, Seafoam Pastel | Otty built-in set |

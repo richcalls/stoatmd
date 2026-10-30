@@ -9,9 +9,17 @@ export type ProviderCredentials = {
 };
 
 let cached: SyncConfigDto | null = null;
+let fixed: SyncConfigDto | null = null;
+
+/** 测试 harness 专用：固定配置，避免本机环境变量 / sync.json 左右 UI 测试。 */
+export function fixSyncConfigForTest(config: SyncConfigDto | null): void {
+  fixed = config;
+  cached = config;
+}
 
 /** 开发者配置（环境变量 / sync.json），进程内缓存。 */
 export function loadSyncConfig(refresh = false): SyncConfigDto {
+  if (fixed) return fixed;
   if (!cached || refresh) cached = SyncConfig.load();
   return cached;
 }
