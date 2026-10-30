@@ -2,6 +2,54 @@ import { expect, open, test } from "nsh/test";
 
 const desktop = { width: 1280, height: 800, locale: "zh-CN" };
 
+test("设置：三组字号独立生效、即时保存并在重启后恢复", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", desktop);
+  await app.press("id:settings-tab-font");
+  expect(app.spanStyle("id:ui-font-size >> text:14").fontSize).toBe(15);
+  await app.press("id:ui-font-size-inc");
+  await app.press("id:editor-font-size-inc");
+  await app.press("id:font-size-inc");
+  await app.waitUntil(() =>
+    app.storage()["prefs.uiFontSize"] === "15" &&
+    app.storage()["prefs.editorFontSize"] === "16" &&
+    app.storage()["prefs.fontSize"] === "17",
+  );
+  expect(app.spanStyle("id:ui-font-size >> text:15").fontSize).toBe(16);
+
+  const again = await open("./SettingsSheet.harness.tsx", {
+    ...desktop, storage: app.storage(),
+  });
+  await again.press("id:settings-tab-font");
+  expect(again.shows("id:ui-font-size >> text:15")).toBe(true);
+  expect(again.shows("id:editor-font-size >> text:16")).toBe(true);
+  expect(again.shows("id:font-size >> text:17")).toBe(true);
+  expect(again.spanStyle("id:ui-font-size >> text:15").fontSize).toBe(16);
+});
+
+test("设置：字号边界禁用按钮，损坏的偏好恢复默认", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", {
+    ...desktop,
+    storage: {
+      "prefs.uiFontSize": "18", "prefs.editorFontSize": "12", "prefs.fontSize": "24",
+    },
+  });
+  await app.press("id:settings-tab-font");
+  expect(app.enabled("id:ui-font-size-inc")).toBe(false);
+  expect(app.enabled("id:editor-font-size-dec")).toBe(false);
+  expect(app.enabled("id:font-size-inc")).toBe(false);
+
+  const invalid = await open("./SettingsSheet.harness.tsx", {
+    ...desktop,
+    storage: {
+      "prefs.uiFontSize": "Infinity", "prefs.editorFontSize": "100", "prefs.fontSize": "garbage",
+    },
+  });
+  await invalid.press("id:settings-tab-font");
+  expect(invalid.shows("id:ui-font-size >> text:14")).toBe(true);
+  expect(invalid.shows("id:editor-font-size >> text:15")).toBe(true);
+  expect(invalid.shows("id:font-size >> text:16")).toBe(true);
+});
+
 test("设置：浮窗呈现，点左上角关闭圆点后 open 变为 false", async () => {
   const app = await open("./SettingsSheet.harness.tsx", desktop);
   expect(app.texts()).toContain("open");
@@ -128,11 +176,11 @@ test("设置：字体下拉可选默认衬线并持久化，语言切换即时�
   await app.waitUntil(
     () =>
       app.storage()["prefs.fontFamily"] === "system" &&
-      app.storage()["prefs.fontSize"] === "18" &&
+      app.storage()["prefs.fontSize"] === "19" &&
       app.storage()["prefs.fontLineHeight"] === "1.6",
   );
   expect(app.texts().some((text) => text.startsWith("Kami"))).toBe(false);
-  expect(app.storage()["prefs.fontSize"]).toBe("18");
+  expect(app.storage()["prefs.fontSize"]).toBe("19");
   expect(app.storage()["prefs.fontLineHeight"]).toBe("1.6");
 
   await app.press("id:settings-tab-appearance");
@@ -150,6 +198,8 @@ test("设置：字体一键恢复默认，字体 / 字号 / 行高回默认衬�
     ...desktop,
     storage: {
       "prefs.fontFamily": "Helvetica",
+      "prefs.uiFontSize": "18",
+      "prefs.editorFontSize": "24",
       "prefs.fontSize": "18",
       "prefs.fontLineHeight": "1.6",
     },
@@ -163,12 +213,14 @@ test("设置：字体一键恢复默认，字体 / 字号 / 行高回默认衬�
   await app.waitUntil(
     () =>
       app.storage()["prefs.fontFamily"] === "system" &&
-      app.storage()["prefs.fontSize"] === "15" &&
+      app.storage()["prefs.uiFontSize"] === "14" &&
+      app.storage()["prefs.editorFontSize"] === "15" &&
+      app.storage()["prefs.fontSize"] === "16" &&
       app.storage()["prefs.fontLineHeight"] === "1.55",
   );
   expect(app.texts()).not.toContain("Helvetica");
   expect(app.texts().some((text) => text.includes("Kami"))).toBe(false);
-  expect(app.texts()).toContain("15");
+  expect(app.texts()).toContain("16");
   expect(app.texts()).toContain("1.55");
 });
 

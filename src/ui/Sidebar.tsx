@@ -1,3 +1,4 @@
+import { uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
 import { List, Text, View, signal } from "nsh";
 import { Button, Input } from "nsh/base";
 import type { SyncPhase } from "../sync/runtime";
@@ -88,7 +89,7 @@ export function Sidebar(props: Props) {
           gap: 8,
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 0, height: 30 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 0, height: uiControlHeight(30) }}>
           <Button
             hoverStyle={controlHoverStyle()}
             focusStyle={controlFocusStyle()}
@@ -106,7 +107,7 @@ export function Sidebar(props: Props) {
           >
             <Text
               numberOfLines={1}
-              style={{ fontSize: 12, fontWeight: "600", color: colors().ink2 }}
+              style={{ fontSize: uiTextSize(12), fontWeight: "600", color: colors().ink2 }}
             >
               {rootLabel()}
             </Text>
@@ -114,7 +115,7 @@ export function Sidebar(props: Props) {
           <Button
             testID="sidebar-open"
             accessibilityLabel={t("vault.open")}
-            tooltip={<Text style={{ fontSize: 12 }}>{t("vault.open")}</Text>}
+            tooltip={<Text style={{ fontSize: uiTextSize(12) }}>{t("vault.open")}</Text>}
             onPress={props.onOpenVault}
             style={headerButtonStyle}
             hoverStyle={controlHoverStyle()}
@@ -127,7 +128,7 @@ export function Sidebar(props: Props) {
           <Button
             testID="sidebar-new"
             accessibilityLabel={t("note.new")}
-            tooltip={<Text style={{ fontSize: 12 }}>{t("note.new")}</Text>}
+            tooltip={<Text style={{ fontSize: uiTextSize(12) }}>{t("note.new")}</Text>}
             onPress={props.onNewNote}
             style={headerButtonStyle}
             hoverStyle={controlHoverStyle()}
@@ -143,7 +144,7 @@ export function Sidebar(props: Props) {
             flexDirection: "row",
             alignItems: "center",
             gap: 6,
-            height: 28,
+            height: uiControlHeight(28),
             borderRadius: 6,
             borderWidth: 1,
             borderColor: searchFocused() ? colors().accent : "transparent",
@@ -151,7 +152,7 @@ export function Sidebar(props: Props) {
             paddingHorizontal: 8,
           }}
         >
-          <Icon name="magnifying-glass" color={colors().ink3} size={13} />
+          <Icon name="magnifying-glass" color={colors().ink3} size={14} />
           <Input
             testID="sidebar-search"
             accessibilityLabel={t("search.placeholder")}
@@ -162,12 +163,12 @@ export function Sidebar(props: Props) {
             placeholder={t("search.placeholder")}
             style={{
               flex: 1,
-              fontSize: 12,
+              fontSize: uiTextSize(12),
               color: colors().ink,
               backgroundColor: "transparent",
               borderWidth: 0,
               padding: 0,
-              height: 24,
+              height: uiControlHeight(24),
             }}
           />
         </View>
@@ -177,16 +178,17 @@ export function Sidebar(props: Props) {
       <List
         style={{ flex: 1 }}
         contentStyle={{ paddingTop: 0, paddingBottom: 12 }}
+        estimatedItemSize={uiControlHeight(28) + 1}
         each={rows()}
         keyExtractor={(row) => `${row.kind}:${row.id}`}
         empty={
           <Text
             style={{
-              fontSize: 12,
+              fontSize: uiTextSize(12),
               color: colors().ink3,
               paddingHorizontal: 10,
               paddingTop: 8,
-              lineHeight: 18,
+              lineHeight: uiLineHeight(18),
             }}
           >
             {props.query.trim() ? t("search.empty") : t("note.empty")}
@@ -218,12 +220,12 @@ export function Sidebar(props: Props) {
           return (
             <View
               role="button"
+              testID={`sidebar-row-${row().id}`}
               accessibilityLabel={label()}
               accessibilityState={{
                 selected: selected(),
                 expanded: expanded(),
               }}
-              tooltip={<Text style={{ fontSize: 12 }}>{label()}</Text>}
               hoverStyle={selected() ? { backgroundColor: chromeColors().selection } : controlHoverStyle()}
               focusStyle={controlFocusStyle()}
               activeStyle={controlPressStyle()}
@@ -244,7 +246,7 @@ export function Sidebar(props: Props) {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 6,
-                height: 28,
+                height: uiControlHeight(28),
                 marginBottom: 1,
                 paddingLeft: 5 + row().depth * 12,
                 paddingRight: 7,
@@ -263,13 +265,14 @@ export function Sidebar(props: Props) {
               </If>
               <If when={!isFolder()}>
                 <View style={{ width: 9 }} />
-                <Icon name="file-text" color={selected() ? colors().ink2 : colors().ink3} size={13} />
+                <Icon name="file-text" color={selected() ? colors().ink2 : colors().ink3} size={14} />
               </If>
               <Text
                 numberOfLines={1}
                 style={{
                   flex: 1,
-                  fontSize: 12,
+                  minWidth: 0,
+                  fontSize: uiTextSize(12),
                   fontWeight: selected() || isFolder() ? "500" : "400",
                   color: selected() ? colors().ink : colors().ink2,
                 }}
@@ -279,7 +282,7 @@ export function Sidebar(props: Props) {
               <If when={hint() !== ""}>
                 <Text
                   numberOfLines={1}
-                  style={{ maxWidth: 60, fontSize: 10.5, color: colors().ink3 }}
+                  style={{ maxWidth: 60, fontSize: uiTextSize(10.5), color: colors().ink3 }}
                 >
                   {hint()}
                 </Text>
@@ -302,7 +305,7 @@ export function Sidebar(props: Props) {
           gap: 7,
           marginTop: 6,
           paddingHorizontal: 8,
-          height: 28,
+          height: uiControlHeight(28),
           borderRadius: 6,
         }}
       >
@@ -316,14 +319,14 @@ export function Sidebar(props: Props) {
         />
         <Text
           numberOfLines={1}
-          style={{ fontSize: 11, color: colors().ink2, flex: 1, minWidth: 0 }}
+          style={{ fontSize: uiTextSize(11), color: colors().ink2, flex: 1, minWidth: 0 }}
         >
           {syncLabel()}
         </Text>
         <Text
           testID="sidebar-count"
           numberOfLines={1}
-          style={{ fontSize: 10.5, color: colors().ink3 }}
+          style={{ fontSize: uiTextSize(10.5), color: colors().ink3 }}
         >
           {t("sidebar.noteCount", { n: props.notes.length })}
         </Text>

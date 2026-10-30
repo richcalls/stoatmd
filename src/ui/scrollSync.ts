@@ -1,8 +1,7 @@
 import type { EditorRef } from "nsh/base";
 import type { ScrollEvent, YNode } from "nsh";
 
-/** 编辑区行高：隐藏探针与可见编辑器必须一致。 */
-export const EDITOR_LINE_HEIGHT = 24;
+import { editorLineHeight } from "./typography";
 
 type Mode = "edit" | "split" | "preview";
 
@@ -66,7 +65,7 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 export function editorScrollMax(): number {
   if (S.editorContentH <= 0) return 0;
   // 编辑器关掉了 scrollBeyondLastLine：最大偏移 = 内容高 - 视口高
-  const viewH = S.editorViewH > 0 ? S.editorViewH : EDITOR_LINE_HEIGHT;
+  const viewH = S.editorViewH > 0 ? S.editorViewH : editorLineHeight();
   return Math.max(0, S.editorContentH - viewH);
 }
 
@@ -225,7 +224,7 @@ export function watchEditorScroll(fn: (editorY: number) => void): () => void {
 export function scrollEditorToLine(line: number) {
   const editor = S.editor ?? S.hidden;
   if (!editor) return;
-  const y = Math.max(0, line * EDITOR_LINE_HEIGHT - 20);
+  const y = Math.max(0, line * editorLineHeight() - 20);
   S.driver = "editor";
   S.editorY = y;
   if (S.mode === "split" && editorScrollMax() > 0) {
@@ -443,8 +442,8 @@ async function measureEditorContent() {
     const p = await hidden.scrollOffset();
     // 还没布局出文本时偏移不会被夹紧，原值返回
     if (p.y < 1e6) {
-      const contentH = p.y + Math.max(1, Math.min(S.hiddenViewH, EDITOR_LINE_HEIGHT));
-      if (contentH >= EDITOR_LINE_HEIGHT) {
+      const contentH = p.y + Math.max(1, Math.min(S.hiddenViewH, editorLineHeight()));
+      if (contentH >= editorLineHeight()) {
         const changed = Math.abs(contentH - S.editorContentH) > 1;
         if (changed) {
           S.editorContentH = contentH;

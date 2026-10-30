@@ -10,10 +10,9 @@ import {
   resolveAnchor,
 } from "./previewModel";
 import { colors, themePreset, type ThemePreset } from "./theme";
-import { fontSize, lineHeightPx, previewFontFamily, systemFonts } from "./typography";
+import { editorFontSize, editorLineHeight, fontSize, lineHeightPx, previewFontFamily, systemFonts } from "./typography";
 import type { ViewMode } from "./Toolbar";
 import {
-  EDITOR_LINE_HEIGHT,
   attachEditor,
   attachHiddenEditor,
   attachPreview,
@@ -196,8 +195,8 @@ export function EditorWorkspace(props: Props) {
           language="markdown"
           softWrap
           lineNumbers={false}
-          fontSize={13.5}
-          lineHeight={EDITOR_LINE_HEIGHT}
+          fontSize={editorFontSize()}
+          lineHeight={editorLineHeight()}
           scrollBeyondLastLine={false}
           style={{ flex: 1 }}
           decorations={decorations(props.source)}
@@ -220,8 +219,8 @@ export function EditorWorkspace(props: Props) {
           language="markdown"
           softWrap
           lineNumbers={false}
-          fontSize={13.5}
-          lineHeight={EDITOR_LINE_HEIGHT}
+          fontSize={editorFontSize()}
+          lineHeight={editorLineHeight()}
           scrollBeyondLastLine={false}
           style={{ flex: 1 }}
           classes={{ content: "whitespace-nowrap" }}
@@ -297,6 +296,12 @@ export function EditorWorkspace(props: Props) {
       previewItemSize.set(model.estimatedItemSize);
       previewAnchors.set(model.anchors);
     });
+    refreshPreviewMetrics();
+  });
+
+  // 字号变化会改变折行及内容高度，重新测量两侧的滚动比例。
+  effect(() => {
+    editorFontSize();
     refreshPreviewMetrics();
   });
 

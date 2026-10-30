@@ -5,6 +5,8 @@ const LOCALE_KEY = "prefs.locale";
 const THEME_KEY = "prefs.theme";
 const FONT_FAMILY_KEY = "prefs.fontFamily";
 const FONT_SIZE_KEY = "prefs.fontSize";
+const UI_FONT_SIZE_KEY = "prefs.uiFontSize";
+const EDITOR_FONT_SIZE_KEY = "prefs.editorFontSize";
 const FONT_LINE_KEY = "prefs.fontLineHeight";
 const APP_LOGO_KEY = "prefs.appLogo";
 const SETTINGS_FRAME_KEY = "prefs.settingsFrame";
@@ -62,6 +64,22 @@ export async function loadSavedFontSize(): Promise<string | null> {
 /** 持久化字号。 */
 export async function saveFontSize(size: string): Promise<void> {
   await Storage.setItem(FONT_SIZE_KEY, size);
+}
+
+export async function loadSavedUiFontSize(): Promise<string | null> {
+  return (await Storage.getItem(UI_FONT_SIZE_KEY)) ?? null;
+}
+
+export async function saveUiFontSize(size: string): Promise<void> {
+  await Storage.setItem(UI_FONT_SIZE_KEY, size);
+}
+
+export async function loadSavedEditorFontSize(): Promise<string | null> {
+  return (await Storage.getItem(EDITOR_FONT_SIZE_KEY)) ?? null;
+}
+
+export async function saveEditorFontSize(size: string): Promise<void> {
+  await Storage.setItem(EDITOR_FONT_SIZE_KEY, size);
 }
 
 /** 读取行高偏好。 */
