@@ -1,5 +1,5 @@
 import { expect, test } from "nsh/test";
-import { previewBlockOffset, previewModel } from "./previewModel";
+import { previewModel } from "./previewModel";
 
 const MD = `# 标题
 
@@ -25,14 +25,8 @@ test("previewModel：相同正文与排版命中缓存", () => {
   expect(other === first).toBe(false);
 });
 
-test("previewModel：块偏移随块序递增，越界夹到首尾", () => {
-  const first = previewBlockOffset(MD, 0);
-  const middle = previewBlockOffset(MD, 1);
-  const last = previewBlockOffset(MD, 2);
-  expect(first).toBe(0);
-  expect(middle).toBeGreaterThan(first);
-  expect(last).toBeGreaterThan(middle);
-  expect(previewBlockOffset(MD, -5)).toBe(first);
-  expect(previewBlockOffset(MD, 99)).toBe(last);
-  expect(previewBlockOffset("", 3)).toBe(0);
+test("previewModel：frontmatter 不进正文，预览从第一个正文块开始", () => {
+  const model = previewModel("---\ntags: [知识]\n---\n# 标题\n\n正文");
+  expect(model.blocks.length).toBe(2);
+  expect(model.blocks[0].type).toBe("heading");
 });

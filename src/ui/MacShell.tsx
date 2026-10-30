@@ -9,14 +9,12 @@ import { ConflictDialog } from "./ConflictDialog";
 import { EditorWorkspace } from "./EditorWorkspace";
 import { Icon } from "./Icon";
 import { t } from "./i18n";
-import { PREVIEW_TOP_PADDING, previewBlockOffset } from "./previewModel";
 import { loadSavedRoot, saveRoot } from "./prefs";
-import { scrollEditorToLine, scrollPreviewTo } from "./scrollSync";
+import { scrollEditorToLine, scrollPreviewToIndex } from "./scrollSync";
 import { SettingsSheet, type SettingsTab } from "./SettingsSheet";
 import { Sidebar } from "./Sidebar";
 import { colors, statusColor } from "./theme";
 import { SIDEBAR_WIDTH, WindowBar, type SidebarMode, type ViewMode } from "./Toolbar";
-import { fontSize, lineHeightPx } from "./typography";
 import {
   duplicateNotePath,
   foldersFromEntries,
@@ -820,11 +818,7 @@ export function MacShell() {
   const jumpToHeading = (heading: OutlineEntry) => {
     if (!opened()) return;
     if (mode() === "preview") {
-      const offset = previewBlockOffset(previewDraft(), heading.blockIndex, {
-        fontSize: fontSize(),
-        lineHeight: lineHeightPx(),
-      });
-      scrollPreviewTo(PREVIEW_TOP_PADDING + offset - 12);
+      scrollPreviewToIndex(heading.blockIndex);
       return;
     }
     scrollEditorToLine(heading.line);

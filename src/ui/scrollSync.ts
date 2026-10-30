@@ -171,6 +171,11 @@ export function refreshPreviewMetrics() {
   step();
 }
 
+/** 把预览滚动到某个块（目录跳转）：交给 List 按实际/估算行高解析位置。 */
+export function scrollPreviewToIndex(index: number) {
+  S.preview?.scrollToIndex({ index, animated: false });
+}
+
 /** 把预览跳到某个偏移（大纲跳转等）；随后的 onScroll 会像用户滚动一样带动编辑区。 */
 export function scrollPreviewTo(y: number) {
   const preview = S.preview;

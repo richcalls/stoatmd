@@ -5,8 +5,6 @@ export type PreviewModel = {
   blocks: TextViewBlock[];
   /** List 的行高初值：越接近真实块高，滚动同步与滚动条越稳定。 */
   estimatedItemSize: number;
-  /** 每个块顶部相对内容起点的估算偏移（含它与上一块之间的空隙）。 */
-  offsets: number[];
 };
 
 /** 阅读画布顶部留白（与 List 的 contentStyle 保持一致）。 */
@@ -65,7 +63,7 @@ function estimateBlockHeight(block: TextViewBlock, metrics: PreviewMetrics): num
 }
 
 let cachedKey: string | null = null;
-let cached: PreviewModel = { blocks: [], estimatedItemSize: 64, offsets: [] };
+let cached: PreviewModel = { blocks: [], estimatedItemSize: 64 };
 
 let parsedKey: string | null = null;
 let parsedDocumentCache: TextViewDocument | null = null;
@@ -104,10 +102,8 @@ export function previewModel(
   }
   let total = 0;
   let previous: TextViewBlock | undefined;
-  const offsets: number[] = [];
   for (const block of blocks) {
     total += previewGap(previous, block, metrics.fontSize / BASE_SIZE);
-    offsets.push(total);
     total += estimateBlockHeight(block, metrics);
     previous = block;
   }
@@ -116,19 +112,6 @@ export function previewModel(
   cached = {
     blocks,
     estimatedItemSize: Math.round(Math.min(320, Math.max(28, average))),
-    offsets,
   };
   return cached;
-}
-
-/** 第 index 个预览块顶部相对内容起点的估算偏移；越界时夹到首尾。 */
-export function previewBlockOffset(
-  markdown: string,
-  index: number,
-  metrics: PreviewMetrics = DEFAULT_METRICS,
-): number {
-  const model = previewModel(markdown, metrics);
-  if (model.offsets.length === 0) return 0;
-  const at = Math.min(model.offsets.length - 1, Math.max(0, index));
-  return model.offsets[at];
 }
