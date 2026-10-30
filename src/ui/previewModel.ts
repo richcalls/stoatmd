@@ -13,7 +13,7 @@ export type PreviewMetrics = {
   lineHeight: number;
 };
 
-export const DEFAULT_METRICS: PreviewMetrics = { fontSize: 15, lineHeight: 26 };
+export const DEFAULT_METRICS: PreviewMetrics = { fontSize: 15, lineHeight: 23 };
 
 const BASE_SIZE = 15;
 const BASE_CHARS_PER_LINE = 34;
@@ -21,29 +21,34 @@ const CJK = /[\u1100-\u11ff\u2e80-\u9fff\uac00-\ud7af\uf900-\ufaff\uff00-\uffef]
 
 /**
  * 相邻块之间的空隙。预览按块拆成独立 TextView，CSS 的 margin 折叠不会发生，
- * 所以由这里统一给出「折叠后」的间距（DESIGN.md：标题上 26 / 下 8）。
+ * 所以由这里统一给出「折叠后」的间距（数值取自 Kami 的 pt 节奏，按字号缩放）。
  */
-export function previewGap(previous: TextViewBlock | undefined, block: TextViewBlock): number {
+export function previewGap(
+  previous: TextViewBlock | undefined,
+  block: TextViewBlock,
+  scale = 1,
+): number {
   if (!previous) return 0;
-  if (block.type === "heading") return block.level <= 2 ? 26 : 20;
-  if (previous.type === "heading") return 8;
-  if (block.type === "blockquote" || previous.type === "blockquote") return 14;
-  if (block.type === "codeBlock" || previous.type === "codeBlock") return 14;
-  if (block.type === "table" || previous.type === "table") return 14;
-  if (block.type === "math" || previous.type === "math") return 14;
-  if (block.type === "rule") return 18;
-  return 12;
+  const gap = (n: number) => Math.round(n * scale);
+  if (block.type === "heading") return gap(block.level <= 2 ? 32 : 24);
+  if (previous.type === "heading") return gap(10);
+  if (block.type === "blockquote" || previous.type === "blockquote") return gap(16);
+  if (block.type === "codeBlock" || previous.type === "codeBlock") return gap(14);
+  if (block.type === "table" || previous.type === "table") return gap(16);
+  if (block.type === "math" || previous.type === "math") return gap(16);
+  if (block.type === "rule") return gap(24);
+  return gap(13);
 }
 
 function estimateBlockHeight(block: TextViewBlock, metrics: PreviewMetrics): number {
   const { fontSize, lineHeight } = metrics;
   const scale = fontSize / BASE_SIZE;
   if (block.type === "rule") return Math.round(25 * scale);
-  if (block.type === "heading") return Math.round(30 * scale);
+  if (block.type === "heading") return Math.round(36 * scale);
   if (block.type === "math") return Math.round(64 * scale);
   const text = TextView.plainText({ blocks: [block] });
   if (block.type === "codeBlock") {
-    return Math.max(1, text.split("\n").length) * Math.round(21 * scale) + Math.round(24 * scale);
+    return Math.max(1, text.split("\n").length) * Math.round(20 * scale) + Math.round(30 * scale);
   }
   if (block.type === "table") {
     return Math.max(1, text.split("\n").length) * Math.round(30 * scale) + 12;
@@ -51,7 +56,7 @@ function estimateBlockHeight(block: TextViewBlock, metrics: PreviewMetrics): num
   let units = 0;
   for (const ch of text) units += CJK.test(ch) ? 1 : 0.55;
   const charsPerLine = BASE_CHARS_PER_LINE / scale;
-  return Math.max(1, Math.ceil(units / charsPerLine)) * lineHeight + 8;
+  return Math.max(1, Math.ceil(units / charsPerLine)) * lineHeight + 10;
 }
 
 let cachedKey: string | null = null;
@@ -72,7 +77,7 @@ export function previewModel(
   let total = 0;
   let previous: TextViewBlock | undefined;
   for (const block of blocks) {
-    total += estimateBlockHeight(block, metrics) + previewGap(previous, block);
+    total += estimateBlockHeight(block, metrics) + previewGap(previous, block, metrics.fontSize / BASE_SIZE);
     previous = block;
   }
   const average = blocks.length > 0 ? total / blocks.length : 64;

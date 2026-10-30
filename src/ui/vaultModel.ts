@@ -157,6 +157,61 @@ export function titleFromName(name: string): string {
   return name.replace(/\.(md|markdown)$/i, "") || name;
 }
 
+function noteExtension(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.endsWith(".markdown")) return name.slice(-9);
+  if (lower.endsWith(".md")) return name.slice(-3);
+  return ".md";
+}
+
+export type RenameResult =
+  | { ok: true; path: string }
+  | { ok: false; error: "empty" | "invalid" };
+
+/** 校验重命名输入并返回新的库内路径；省略扩展名时沿用原笔记的扩展名。 */
+export function renamedNotePath(from: string, input: string): RenameResult {
+  const source = normalizeVaultPath(from);
+  const name = source.split("/").pop() ?? source;
+  const raw = input.trim();
+  if (!raw) return { ok: false, error: "empty" };
+  if (
+    raw === "." ||
+    raw === ".." ||
+    raw.startsWith(".") ||
+    raw.includes("/") ||
+    raw.includes("\\") ||
+    raw.includes("\0")
+  ) {
+    return { ok: false, error: "invalid" };
+  }
+  const ext = noteExtension(name);
+  const next = /\.(md|markdown)$/i.test(raw) ? raw : raw + ext;
+  const dir = parentDir(source);
+  return { ok: true, path: normalizeVaultPath(dir ? `${dir}/${next}` : next) };
+}
+
+/** 生成同一目录下不冲突的副本路径（大小写不敏感，冲突时递增序号）。 */
+export function duplicateNotePath(
+  source: string,
+  existing: string[],
+  suffix: string,
+): string {
+  const src = normalizeVaultPath(source);
+  const name = src.split("/").pop() ?? src;
+  const ext = noteExtension(name);
+  const stem = name.slice(0, name.length - ext.length);
+  const base = `${stem} ${suffix.trim() || "copy"}`;
+  const dir = parentDir(src);
+  const taken = new Set(existing.map((path) => normalizeVaultPath(path).toLowerCase()));
+  let candidate = `${base}${ext}`;
+  let i = 2;
+  while (taken.has((dir ? `${dir}/${candidate}` : candidate).toLowerCase())) {
+    candidate = `${base} ${i}${ext}`;
+    i += 1;
+  }
+  return dir ? `${dir}/${candidate}` : candidate;
+}
+
 export function titleFromContent(content: string, fallback: string): string {
   const line = content.split(/\r?\n/).find((l) => l.trim().length > 0) ?? "";
   const heading = line.replace(/^#+\s*/, "").trim();

@@ -23,6 +23,8 @@ type Props = {
   onSelectNote: (id: string) => void;
   onSelectFolder: (id: string) => void;
   onToggleFolder: (id: string) => void;
+  /** 右键笔记：在 pagePosition 处弹出文件菜单。 */
+  onNoteMenu?: (id: string, at: { x: number; y: number }) => void;
   onOpenVault: () => void;
   onNewNote: () => void;
   onSync: () => void;
@@ -224,6 +226,10 @@ export function Sidebar(props: Props) {
                 } else {
                   props.onSelectNote(r.id);
                 }
+              }}
+              onContextMenu={(e) => {
+                const r = row();
+                if (r.kind === "note") props.onNoteMenu?.(r.id, e.pagePosition);
               }}
               style={{
                 flexDirection: "row",

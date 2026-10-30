@@ -1,9 +1,10 @@
 import { List, Text, View, batch, effect, signal } from "nsh";
 import { Editor, ResizablePanel, ResizablePanelGroup, TextView, type EditorDecoration } from "nsh/base";
 import { markdownDecorations } from "./markdownDecorations";
+import { kamiMonoFamily, kamiTypeScale } from "./kami";
 import { previewGap, previewModel } from "./previewModel";
 import { colors, themePreset, type ThemePreset } from "./theme";
-import { fontFamilyName, fontSize, lineHeightPx } from "./typography";
+import { fontSize, lineHeightPx, previewFontFamily, systemFonts } from "./typography";
 import type { ViewMode } from "./Toolbar";
 import {
   EDITOR_LINE_HEIGHT,
@@ -33,63 +34,91 @@ const editorTextStyles = () => ({
   content: { backgroundColor: colors().editor, color: colors().ink, paddingRight: 16 },
 });
 
-/** 预览排版：字号/行高/字体来自设置；代码块与行内代码始终等宽。 */
+/** 预览排版：Kami 文章样式（羊皮纸、墨蓝、衬线、500 字重），字号随设置缩放。 */
 const previewTextStyles = () => {
   const size = fontSize();
   const lh = lineHeightPx(size);
-  const mono = Math.max(12, Math.round(size * 0.87));
-  const quote = Math.max(12, Math.round(size * 0.967));
+  const scale = kamiTypeScale(size);
+  const mono = kamiMonoFamily(systemFonts());
   return {
     root: {
       color: colors().ink,
       fontSize: size,
       lineHeight: lh,
-      fontFamily: fontFamilyName(),
+      fontFamily: previewFontFamily(),
+      letterSpacing: 0.3,
     },
+    heading: { fontWeight: 500, color: colors().ink },
     heading1: {
-      fontSize: Math.round(size * 1.733),
-      lineHeight: Math.round(size * 1.733 * 1.25),
-      fontWeight: 650,
-      letterSpacing: -0.39,
+      fontSize: scale.h1,
+      lineHeight: Math.round(scale.h1 * 1.2),
+      letterSpacing: 0.3,
     },
     heading2: {
-      fontSize: Math.round(size * 1.2),
-      lineHeight: Math.round(size * 1.2 * 1.3),
-      fontWeight: 600,
-      letterSpacing: -0.18,
+      fontSize: scale.h2,
+      lineHeight: Math.round(scale.h2 * 1.25),
     },
     heading3: {
-      fontSize: Math.round(size * 1.067),
-      lineHeight: Math.round(size * 1.067 * 1.3),
-      fontWeight: 600,
+      fontSize: scale.h3,
+      lineHeight: Math.round(scale.h3 * 1.3),
+      color: colors().ink2,
     },
+    heading4: {
+      fontSize: scale.h4,
+      lineHeight: Math.round(scale.h4 * 1.4),
+    },
+    heading5: {
+      fontSize: scale.h5,
+      lineHeight: Math.round(scale.h5 * 1.4),
+    },
+    heading6: {
+      fontSize: scale.h6,
+      lineHeight: Math.round(scale.h6 * 1.4),
+      color: colors().ink2,
+    },
+    // Kami：引用是缩进的橄榄色正文，不加底色、不加侧边线
     blockquote: {
       color: colors().ink2,
-      fontSize: quote,
-      lineHeight: Math.round(quote * 1.65),
-      backgroundColor: colors().quoteBg,
-      borderLeftWidth: 1,
-      borderLeftColor: colors().accent,
-      paddingTop: 8,
-      paddingBottom: 8,
-      paddingLeft: 14,
-      paddingRight: 14,
+      fontSize: size,
+      lineHeight: lh,
+      backgroundColor: "transparent",
+      borderLeftWidth: 0,
+      paddingLeft: 16,
+      paddingRight: 16,
     },
     code: {
       color: colors().syntaxBold,
       backgroundColor: colors().codeBg,
-      fontFamily: "Menlo",
-      fontSize: mono,
-      borderRadius: 4,
+      fontFamily: mono,
+      fontSize: scale.code,
+      borderRadius: 2,
       paddingHorizontal: 4,
     },
-    codeBlockCode: {
-      fontFamily: "Menlo",
-      fontSize: mono,
-      lineHeight: Math.round(mono * 1.6),
+    codeBlock: {
+      backgroundColor: colors().list,
+      borderRadius: 5,
+      paddingTop: 13,
+      paddingBottom: 13,
+      paddingHorizontal: 19,
     },
-    strong: { fontWeight: 650 },
+    codeBlockCode: {
+      fontFamily: mono,
+      fontSize: scale.code,
+      lineHeight: Math.round(scale.code * 1.5),
+      color: colors().ink,
+    },
+    strong: { fontWeight: 500 },
     link: { color: colors().accent },
+    listMarker: { color: colors().accent },
+    tableHead: { backgroundColor: "transparent" },
+    tableHeaderCell: {
+      color: colors().ink2,
+      fontWeight: 500,
+      borderBottomWidth: 1,
+      borderBottomColor: colors().thread,
+    },
+    tableCell: { borderBottomWidth: 1, borderBottomColor: colors().thread },
+    rule: { borderTopColor: colors().thread },
   };
 };
 
@@ -199,12 +228,12 @@ export function EditorWorkspace(props: Props) {
             const gap = () => {
               const all = previewBlocks();
               const at = index();
-              return previewGap(at > 0 ? all[at - 1] : undefined, block());
+              return previewGap(at > 0 ? all[at - 1] : undefined, block(), fontSize() / 15);
             };
             return (
               <View
                 style={{
-                  maxWidth: 672,
+                  maxWidth: 720,
                   width: "100%",
                   alignSelf: "flex-start",
                   paddingTop: gap(),
@@ -214,11 +243,6 @@ export function EditorWorkspace(props: Props) {
                   document={{ blocks: [block()] }}
                   selectable
                   styles={previewTextStyles()}
-                  classes={{
-                    blockquote: "pl-3 py-1",
-                    code: "font-mono",
-                    strong: "font-semibold",
-                  }}
                 />
               </View>
             );

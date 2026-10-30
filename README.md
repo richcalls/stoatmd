@@ -5,8 +5,10 @@
 - 定名 **StoatMD** · 域名 [stoatmd.com](https://stoatmd.com) · 曾用名 LoomMD
 - 自选文件夹，普通 `.md` 文件（Vault：open / list / read / write / create / rename / delete）
 - 两栏：左栏搜索 + 可折叠文件树（笔记嵌在文件夹下），右栏编辑 / 分栏 / 预览
+- 笔记右键菜单：打开、在 Finder 中显示、复制路径 / 相对路径、重命名、创建副本、移到废纸篓；中英文随界面语言
 - 源码编辑 + 仅编辑 / 分栏 / 仅预览；停顿自动保存；外部改文件冲突提示
 - 分栏时**编辑区与预览 60fps 双向滚动同步，丝滑跟手**（硬性验收标准）
+- 预览默认采用 [Kami](https://github.com/tw93/kami) 文章排版：羊皮纸底、墨蓝强调、衬线正文（MIT，见 `THIRD_PARTY_NOTICES.md`）
 - Google Drive / Dropbox 云盘同步；本地库始终是真相，冲突逐文件弹选，不静默覆盖
 - 本机永远免费；开启同步走**买断**付费墙（不做订阅制，不绑 iCloud）
 - **不做 MCP**
@@ -59,7 +61,7 @@ src/ui/                 # TSX：Mac 两栏壳（文件树 + 编辑/预览）+ Va
 src/sync/               # 同步引擎、OAuth PKCE、Google Drive / Dropbox Provider
 src/lib.rs              # stoatmd/native 薄桥（选文件夹 / 监视 / OAuth / 钥匙串）
 crates/stoatmd-core/    # Vault 路径沙箱与 CRUD
-theme.json              # 织线纸白 / 暖夜炭 token
+theme.json              # Kami 羊皮纸 / 暖夜炭 token
 locales/                # zh / en
 ```
 
@@ -90,13 +92,14 @@ nsh run --target macos
 4. 用外部编辑器改同一文件 → 应弹出冲突：保留本地 / 从磁盘重载
 5. 分栏模式下分别滚动编辑区和预览 → 两侧应保持 60fps 双向同步，跟手无迟滞
 6. 设置 → 外观：12 套主题（浅色 8 / 深色 4，含纯白）；切换后两栏与预览配色即时更新
-7. 设置 → 字体：下拉选择系统字体（可搜索）、字号、行高；预览与设置内示例即时变化
+7. 设置 → 字体：默认「Kami 默认（衬线）」，可下拉搜索系统字体、调字号与行高；预览与设置内示例即时变化
 8. 左栏顶部可搜索全库笔记；文件夹可折叠、点笔记在右侧打开；工具条左侧按钮或 ⌘B 展开/隐藏文件树；⌘1–3 / ⌘, 均有菜单项
 9. 语言默认跟随系统，也可在设置中强制中文 / English（菜单文案随之切换）
+10. 右键任意笔记：打开 / 在 Finder 中显示 / 复制路径 / 复制相对路径 / 重命名 / 创建副本 / 移到废纸篓；菜单与弹窗随中英文切换
 
-10. 配置好云盘 OAuth 凭据后，设置 → 同步 →「开启同步」→ 选提供商 → 浏览器授权 → 选/新建远程文件夹 → 首轮同步
-11. 两台设备同时改同一篇 → 冲突表弹出，必须逐文件选择；「全部应用」有二次确认；不静默覆盖
-12. 断开同步只清绑定与令牌，本地 `.md` 原样保留
+11. 配置好云盘 OAuth 凭据后，设置 → 同步 →「开启同步」→ 选提供商 → 浏览器授权 → 选/新建远程文件夹 → 首轮同步
+12. 两台设备同时改同一篇 → 冲突表弹出，必须逐文件选择；「全部应用」有二次确认；不静默覆盖
+13. 断开同步只清绑定与令牌，本地 `.md` 原样保留
 
 > **本 Cloud / Linux 环境限制**：无 macOS AppKit，无法真机弹出系统选文件夹做端到端验证；可用 `nsh check`、`nsh test` 与 `cargo test -p stoatmd-core` 验收编译与 Vault 单元测试。选文件夹在桌面依赖 `rfd`（macOS 为系统面板；Linux 需 GTK 文件对话框）。
 
@@ -125,6 +128,10 @@ Linux 可做类型/编译冒烟：`nsh check`；有 GTK 4.14+ 时可 `nsh run`�
 ```
 
 `purchaseRequired`（或 `STOATMD_PURCHASE_REQUIRED=1`）只挡「开启同步」入口；默认关闭，等商业化接入再开。同步偏好存 `Storage`（`sync.connection` / `sync.base` / `sync.lastAt`），令牌在钥匙串，断开即清。
+
+## 第三方
+
+- 默认文章排版与色板移植自 [Kami](https://github.com/tw93/kami)（MIT License，Copyright (c) 2026 Tw93）；完整许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 ## 当前进度
 

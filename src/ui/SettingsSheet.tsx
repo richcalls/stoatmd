@@ -15,11 +15,11 @@ import {
   applyFontLineHeight,
   applyFontSize,
   fontFamily,
-  fontFamilyName,
   fontLineHeight,
   fontSize,
   lineHeightPx,
   loadSystemFonts,
+  previewFontFamily,
   systemFonts,
 } from "./typography";
 
@@ -210,7 +210,7 @@ function FontPicker() {
     return q === "" ? all : all.filter((name) => name.toLowerCase().includes(q));
   };
 
-  const systemSelected = () => fontFamily() === "";
+  const defaultSelected = () => fontFamily() === "";
   // 行高 32 + 行距 2，最多露出 7 行多一点，超出后列表内部滚动。
   const listHeight = () => Math.min(238, Math.max(34, visibleFonts().length * 34));
 
@@ -257,11 +257,11 @@ function FontPicker() {
               fontSize: 13,
               fontWeight: "500",
               color: colors().ink,
-              fontFamily: fontFamilyName(),
+              fontFamily: previewFontFamily(),
             }}
             numberOfLines={1}
           >
-            {fontFamily() || t("settings.font.systemDefault")}
+            {fontFamily() || t("settings.font.kamiDefault")}
           </Text>
           <Icon name="caret-down" color={colors().ink3} size={14} />
         </View>
@@ -287,7 +287,7 @@ function FontPicker() {
         />
         <View
           role="button"
-          testID="font-option-system"
+          testID="font-option-kami"
           onPress={() => {
             applyFontFamily("");
             menuOpen.set(false);
@@ -299,20 +299,20 @@ function FontPicker() {
             flexDirection: "row",
             alignItems: "center",
             gap: 8,
-            backgroundColor: systemSelected() ? colors().accentSoft : "transparent",
+            backgroundColor: defaultSelected() ? colors().accentSoft : "transparent",
           }}
         >
           <Text
             style={{
               flex: 1,
               fontSize: 13,
-              color: systemSelected() ? colors().accent : colors().ink,
+              color: defaultSelected() ? colors().accent : colors().ink,
             }}
             numberOfLines={1}
           >
-            {t("settings.font.systemDefault")}
+            {t("settings.font.kamiDefault")}
           </Text>
-          <If when={systemSelected()}>
+          <If when={defaultSelected()}>
             <Icon name="check" color={colors().accent} size={13} />
           </If>
         </View>
@@ -660,7 +660,7 @@ export function SettingsSheet(props: Props) {
                     style={{
                       fontSize: fontSize(),
                       lineHeight: lineHeightPx(),
-                      fontFamily: fontFamilyName(),
+                      fontFamily: previewFontFamily(),
                       color: colors().ink,
                     }}
                   >

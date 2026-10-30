@@ -25,6 +25,7 @@ function Harness() {
   const folder = signal("");
   const syncOpen = signal(false);
   const newNote = signal(false);
+  const menuNote = signal("");
   const phase = signal<SyncPhase>("off");
   const conflicts = signal(0);
   return (
@@ -45,6 +46,7 @@ function Harness() {
               ids.includes(id) ? ids.filter((v) => v !== id) : [...ids, id],
             )
           }
+          onNoteMenu={(id) => menuNote.set(id)}
           onOpenVault={() => {}}
           onNewNote={() => newNote.set(true)}
           onSync={() => syncOpen.set(true)}
@@ -76,6 +78,7 @@ function Harness() {
       <Text testID="folder-value">{folder()}</Text>
       <Text testID="sync-value">{syncOpen() ? "sync-open" : "sync-closed"}</Text>
       <Text testID="new-value">{newNote() ? "new-open" : "new-closed"}</Text>
+      <Text testID="menu-value">{menuNote()}</Text>
     </View>
   );
 }

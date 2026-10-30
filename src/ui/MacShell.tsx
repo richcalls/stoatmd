@@ -1,5 +1,5 @@
-import { Text, View, cleanup, effect, platform, signal } from "nsh";
-import { AlertDialog } from "nsh/base";
+import { Clipboard, Text, View, cleanup, effect, platform, signal } from "nsh";
+import { AlertDialog, Button, Dialog, Input } from "nsh/base";
 import { Menu, Window } from "nsh/desktop";
 import { Vault, VaultDialog, type VaultEntryDto } from "stoatmd/native";
 import { syncRuntime } from "../sync/runtime";
@@ -9,14 +9,16 @@ import { t } from "./i18n";
 import { loadSavedRoot, saveRoot } from "./prefs";
 import { SettingsSheet, type SettingsTab } from "./SettingsSheet";
 import { Sidebar } from "./Sidebar";
-import { colors } from "./theme";
+import { colors, statusColor } from "./theme";
 import { TitleBar, WorkspaceToolbar, type SidebarMode, type ViewMode } from "./Toolbar";
 import {
+  duplicateNotePath,
   foldersFromEntries,
   nextUntitledPath,
   normalizeVaultPath,
   notesInFolder,
   readNote,
+  renamedNotePath,
   titleFromName,
   type FolderNode,
   type NoteItem,
@@ -60,6 +62,11 @@ export function MacShell() {
   const settingsTab = signal<SettingsTab>("appearance");
   const conflictOpen = signal(false);
   const syncConflictOpen = signal(false);
+  /** 正在重命名的笔记（null 时弹窗关闭）。 */
+  const renamePath = signal<string | null>(null);
+  const renameDraft = signal("");
+  /** 重命名错误文案 key；空串表示无错误。 */
+  const renameError = signal("");
   /** 取消过期的异步 openNote，避免清空列表后旧请求又写回正文。 */
   let openGen = 0;
   /** 编辑器里的最新正文（不等信号）；自动保存与预览都以它为准。 */
@@ -317,6 +324,174 @@ export function MacShell() {
     } catch (err) {
       status.set(String(err));
     }
+  };
+
+  const closeRename = () => {
+    renamePath.set(null);
+    renameDraft.set("");
+    renameError.set("");
+  };
+
+  const beginRename = (id: string) => {
+    const path = normalizeVaultPath(id);
+    renamePath.set(path);
+    renameDraft.set(titleFromName(path.split("/").pop() ?? path));
+    renameError.set("");
+  };
+
+  const renameErrorKey = (err: unknown): string => {
+    const text = String(err);
+    if (text.includes("already exists")) return "rename.error.exists";
+    if (text.includes("invalid path")) return "rename.error.invalid";
+    return "rename.error.failed";
+  };
+
+  const confirmRename = async () => {
+    const v = vault();
+    const from = renamePath();
+    if (!v || !from) return;
+    const result = renamedNotePath(from, renameDraft());
+    if (!result.ok) {
+      renameError.set(
+        result.error === "empty" ? "rename.error.empty" : "rename.error.invalid",
+      );
+      return;
+    }
+    if (result.path === from) {
+      closeRename();
+      return;
+    }
+    await flushSave();
+    const wasOpen = opened()?.path === from;
+    try {
+      v.rename(from, result.path);
+      markSelfWrite(from);
+      markSelfWrite(result.path);
+      if (wasOpen) {
+        const cur = opened();
+        if (cur) opened.set({ ...cur, path: result.path });
+        selectedNoteId.set(result.path);
+        folderId.set(parentOf(result.path));
+      }
+      expandAncestors(result.path);
+      refreshTree(v, wasOpen ? result.path : selectedNoteId());
+      status.set(t("rename.done"));
+      closeRename();
+    } catch (err) {
+      renameError.set(renameErrorKey(err));
+    }
+  };
+
+  const duplicateNote = async (v: Vault, id: string) => {
+    await flushSave();
+    try {
+      const source = v.read(id);
+      const target = duplicateNotePath(
+        id,
+        notes().map((n) => n.id),
+        t("context.duplicateSuffix"),
+      );
+      v.create(target, source.content);
+      markSelfWrite(target);
+      expandAncestors(target);
+      refreshTree(v, selectedNoteId());
+      status.set(t("context.duplicated"));
+    } catch (err) {
+      status.set(String(err));
+    }
+  };
+
+  const trashNote = async (v: Vault, id: string) => {
+    const path = normalizeVaultPath(id);
+    const title =
+      notes().find((n) => n.id === path)?.title ??
+      titleFromName(path.split("/").pop() ?? path);
+    const action = await AlertDialog.show({
+      title: t("trash.title"),
+      description: t("trash.desc").replace("{name}", title),
+      actions: [
+        { id: "cancel", label: t("common.cancel"), role: "cancel" },
+        { id: "trash", label: t("context.trash"), role: "destructive" },
+      ],
+    });
+    if (action !== "trash") return;
+    await flushSave();
+    try {
+      v.trash(path);
+      markSelfWrite(path);
+      if (opened()?.path === path) clearEditor();
+      refreshTree(v, selectedNoteId());
+      status.set(t("trash.done"));
+    } catch (err) {
+      status.set(String(err));
+    }
+  };
+
+  const copyNotePath = async (v: Vault, id: string, relative: boolean) => {
+    try {
+      const text = relative ? normalizeVaultPath(id) : v.absolute(id);
+      await Clipboard.writeText(text);
+      status.set(t(relative ? "context.copiedRelative" : "context.copiedPath"));
+    } catch (err) {
+      status.set(String(err));
+    }
+  };
+
+  const revealNote = (v: Vault, id: string) => {
+    try {
+      v.reveal(id);
+    } catch (err) {
+      status.set(String(err));
+    }
+  };
+
+  const showNoteMenu = (id: string, at: { x: number; y: number }) => {
+    const v = vault();
+    if (!v) return;
+    const mac = platform.os === "macos";
+    void Menu.popup(
+      [
+        {
+          label: t("context.open"),
+          onSelect: () => {
+            void openNote(v, id);
+          },
+        },
+        { type: "separator" },
+        mac && {
+          label: t("context.reveal"),
+          onSelect: () => revealNote(v, id),
+        },
+        {
+          label: t("context.copyPath"),
+          onSelect: () => {
+            void copyNotePath(v, id, false);
+          },
+        },
+        {
+          label: t("context.copyRelativePath"),
+          onSelect: () => {
+            void copyNotePath(v, id, true);
+          },
+        },
+        { type: "separator" },
+        { label: t("context.rename"), onSelect: () => beginRename(id) },
+        {
+          label: t("context.duplicate"),
+          onSelect: () => {
+            void duplicateNote(v, id);
+          },
+        },
+        mac && { type: "separator" as const },
+        mac && {
+          label: t("context.trash"),
+          onSelect: () => {
+            void trashNote(v, id);
+          },
+        },
+      ],
+      at,
+    );
   };
 
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -701,6 +876,7 @@ export function MacShell() {
                 onSelectNote={selectNote}
                 onSelectFolder={selectFolder}
                 onToggleFolder={toggleFolder}
+                onNoteMenu={showNoteMenu}
                 onOpenVault={() => {
                   void pickAndOpen();
                 }}
@@ -767,6 +943,123 @@ export function MacShell() {
             </If>
           </View>
         </View>
+      </If>
+
+      <If when={renamePath() !== null}>
+        <Dialog
+          open
+          testID="rename-dialog"
+          onOpenChange={(open) => {
+            if (!open) closeRename();
+          }}
+          onCancel={closeRename}
+          onClose={closeRename}
+          closeOnBackdropPress
+          closeOnEscape
+          animation="fade"
+          backdropStyle={{ backgroundColor: "rgba(44,42,38,0.28)" }}
+          style={{
+            width: 420,
+            margin: "auto",
+            alignSelf: "center",
+            padding: 20,
+            gap: 12,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors().thread,
+            backgroundColor: colors().paper,
+            flexDirection: "column",
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: "650", color: colors().ink }}>
+            {t("rename.title")}
+          </Text>
+          <Text style={{ fontSize: 12.5, color: colors().ink2, lineHeight: 18 }}>
+            {t("rename.desc")}
+          </Text>
+          <View style={{ gap: 6 }}>
+            <Text style={{ fontSize: 12, fontWeight: "500", color: colors().ink2 }}>
+              {t("rename.label")}
+            </Text>
+            <Input
+              testID="rename-input"
+              value={renameDraft()}
+              onChange={(text) => {
+                renameDraft.set(text);
+                if (renameError()) renameError.set("");
+              }}
+              onSubmit={() => {
+                void confirmRename();
+              }}
+              submitBehavior="submit"
+              autoFocus
+              style={{
+                height: 32,
+                paddingHorizontal: 10,
+                borderRadius: 7,
+                borderWidth: 1,
+                borderColor: renameError()
+                  ? statusColor("danger")
+                  : colors().thread,
+                backgroundColor: colors().list,
+                fontSize: 13,
+                color: colors().ink,
+              }}
+            />
+            <If when={renameError() !== ""}>
+              <Text
+                testID="rename-error"
+                style={{ fontSize: 12, color: statusColor("danger") }}
+              >
+                {t(renameError())}
+              </Text>
+            </If>
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "flex-end",
+              gap: 8,
+              marginTop: 2,
+            }}
+          >
+            <Button
+              testID="rename-cancel"
+              onPress={closeRename}
+              style={{
+                height: 30,
+                paddingHorizontal: 14,
+                borderRadius: 7,
+                borderWidth: 1,
+                borderColor: colors().thread,
+                justifyContent: "center",
+              }}
+              activeStyle={{ opacity: 0.7 }}
+            >
+              <Text style={{ fontSize: 13, color: colors().ink2 }}>
+                {t("common.cancel")}
+              </Text>
+            </Button>
+            <Button
+              testID="rename-confirm"
+              onPress={() => {
+                void confirmRename();
+              }}
+              style={{
+                height: 30,
+                paddingHorizontal: 14,
+                borderRadius: 7,
+                backgroundColor: colors().accent,
+                justifyContent: "center",
+              }}
+              activeStyle={{ opacity: 0.8 }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: "560", color: "#FFFFFF" }}>
+                {t("rename.confirm")}
+              </Text>
+            </Button>
+          </View>
+        </Dialog>
       </If>
 
       <SettingsSheet

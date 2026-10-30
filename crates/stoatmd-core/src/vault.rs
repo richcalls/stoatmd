@@ -89,6 +89,11 @@ impl Vault {
         &self.root
     }
 
+    /// 库内相对路径的绝对路径（Finder 定位、复制路径用）。
+    pub fn absolute(&self, rel: &str) -> Result<PathBuf, VaultError> {
+        self.resolve(rel, false)
+    }
+
     /// 列出 `rel` 目录下的直接子项（目录 + `.md` 文件）；`rel` 空串表示根。
     /// 跳过隐藏名（`.` 开头）与 `node_modules`。
     pub fn list(&self, rel: &str) -> Result<Vec<VaultEntry>, VaultError> {
@@ -527,6 +532,19 @@ mod tests {
         assert!(matches!(
             vault.read("writing/hi.md"),
             Err(VaultError::NotFound(_))
+        ));
+    }
+
+    #[test]
+    fn absolute_resolves_inside_root_and_rejects_escape() {
+        let (_dir, vault) = temp_vault();
+        fs::create_dir(vault.root().join("writing")).unwrap();
+        vault.create("writing/hello.md", "x").unwrap();
+        let abs = vault.absolute("writing/hello.md").unwrap();
+        assert_eq!(abs, vault.root().join("writing/hello.md"));
+        assert!(matches!(
+            vault.absolute("../outside.md"),
+            Err(VaultError::InvalidPath(_))
         ));
     }
 
