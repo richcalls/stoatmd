@@ -112,6 +112,7 @@
   "settings.font.family": "字体",
   "settings.font.systemDefault": "系统默认",
   "settings.font.search": "搜索字体",
+  "settings.font.empty": "没有匹配的字体",
   "settings.font.size": "字号",
   "settings.font.lineHeight": "行高",
   "settings.font.preview": "好的文章不是灵感的堆砌，而是结构的展开。",

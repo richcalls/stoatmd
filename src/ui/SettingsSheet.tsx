@@ -1,4 +1,4 @@
-import { Scroll, Text, View, effect, signal } from "nsh";
+import { List, Scroll, Text, View, effect, signal } from "nsh";
 import { Button, Dialog, Input, Popover } from "nsh/base";
 import { Icon, type IconName } from "./Icon";
 import { localePref, setLocalePref, t, type LocalePref } from "./i18n";
@@ -203,14 +203,16 @@ function FontPicker() {
   const menuOpen = signal(false);
   const query = signal("");
 
-  const matches = (name: string): boolean => {
+  /** 先过滤再交给虚拟化列表，避免每次输入都遍历并渲染全部系统字体。 */
+  const visibleFonts = () => {
     const q = query().trim().toLowerCase();
-    return q === "" || name.toLowerCase().includes(q);
+    const all = systemFonts();
+    return q === "" ? all : all.filter((name) => name.toLowerCase().includes(q));
   };
 
   const systemSelected = () => fontFamily() === "";
-  const visibleCount = () => systemFonts().filter(matches).length;
-  const listHeight = () => Math.min(256, Math.max(32, visibleCount() * 32));
+  // 行高 32 + 行距 2，最多露出 7 行多一点，超出后列表内部滚动。
+  const listHeight = () => Math.min(238, Math.max(34, visibleFonts().length * 34));
 
   return (
     <Popover
@@ -314,52 +316,58 @@ function FontPicker() {
             <Icon name="check" color={colors().accent} size={13} />
           </If>
         </View>
-        <Scroll testID="font-options" style={{ height: listHeight() }}>
-          <View style={{ gap: 2 }}>
-            <Each of={systemFonts()} key="index">
-              {(name, index) => {
-                const family = name();
-                const selected = () => fontFamily() === family;
-                return (
-                  <If when={matches(family)}>
-                    <View
-                      role="button"
-                      testID={`font-option-${index()}`}
-                      onPress={() => {
-                        applyFontFamily(family);
-                        menuOpen.set(false);
-                      }}
-                      style={{
-                        height: 32,
-                        paddingHorizontal: 8,
-                        borderRadius: 6,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 8,
-                        backgroundColor: selected() ? colors().accentSoft : "transparent",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          flex: 1,
-                          fontSize: 13,
-                          color: selected() ? colors().accent : colors().ink,
-                          fontFamily: family,
-                        }}
-                        numberOfLines={1}
-                      >
-                        {family}
-                      </Text>
-                      <If when={selected()}>
-                        <Icon name="check" color={colors().accent} size={13} />
-                      </If>
-                    </View>
-                  </If>
-                );
-              }}
-            </Each>
-          </View>
-        </Scroll>
+        <List
+          testID="font-options"
+          style={{ height: listHeight() }}
+          contentStyle={{ paddingVertical: 0 }}
+          each={visibleFonts()}
+          keyExtractor={(name) => name}
+          empty={
+            <Text style={{ fontSize: 12, color: colors().ink3, padding: 8 }}>
+              {t("settings.font.empty")}
+            </Text>
+          }
+        >
+          {(name) => {
+            // 行会被复用给别的字体，所有取值都必须走 name()，不能捕获成常量。
+            const selected = () => fontFamily() === name();
+            return (
+              <View
+                role="button"
+                testID="font-option"
+                onPress={() => {
+                  applyFontFamily(name());
+                  menuOpen.set(false);
+                }}
+                style={{
+                  height: 32,
+                  paddingHorizontal: 8,
+                  borderRadius: 6,
+                  marginBottom: 2,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  backgroundColor: selected() ? colors().accentSoft : "transparent",
+                }}
+              >
+                <Text
+                  style={{
+                    flex: 1,
+                    fontSize: 13,
+                    color: selected() ? colors().accent : colors().ink,
+                    fontFamily: name(),
+                  }}
+                  numberOfLines={1}
+                >
+                  {name()}
+                </Text>
+                <If when={selected()}>
+                  <Icon name="check" color={colors().accent} size={13} />
+                </If>
+              </View>
+            );
+          }}
+        </List>
       </View>
     </Popover>
   );

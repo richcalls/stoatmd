@@ -27,11 +27,18 @@ export function fontFamilyName(): string | undefined {
   return family === "" ? undefined : family;
 }
 
+/** 字体桥只枚举一次；宿主没有桥时保持为空，下次打开再试。 */
+let fontsLoaded = false;
+
 /** 枚举系统字体；宿主没有字体桥时保持为空，界面只剩系统默认。 */
 export function loadSystemFonts(): void {
+  if (fontsLoaded) return;
   try {
     const list = SystemFonts.list();
-    if (list.length > 0) systemFonts.set(list);
+    if (list.length > 0) {
+      systemFonts.set(list);
+      fontsLoaded = true;
+    }
   } catch {
     systemFonts.set([]);
   }

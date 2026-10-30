@@ -72,3 +72,31 @@ test("设置：字体下拉可选系统默认并持久化，语言切换即时�
   expect(app.texts()).toContain("Settings");
   expect(app.texts()).toContain("Appearance");
 });
+
+test("设置：字体搜索可过滤系统字体、无匹配有空态、选中后持久化", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", desktop);
+  await app.press("id:settings-tab-font");
+  await app.press("id:font-select");
+  await app.waitUntil(() => app.shows("id:font-search"));
+
+  // 输入过程中下拉与设置面板都保持打开。
+  await app.type("id:font-search", "helvetica");
+  await app.waitUntil(() => app.shows("text:Helvetica"));
+  expect(app.shows("id:font-search")).toBe(true);
+  expect(app.shows("id:settings-dialog")).toBe(true);
+  expect(app.shows("text:Academy Engraved LET")).toBe(false);
+
+  await app.press("text:Helvetica");
+  await app.waitUntil(() => app.storage()["prefs.fontFamily"] === "Helvetica");
+  await app.waitFor("id:font-search", { state: "gone", timeout: 3000 });
+  expect(app.shows("id:settings-dialog")).toBe(true);
+  expect(app.texts()).toContain("Helvetica");
+
+  // 再次打开时查询已重置；无匹配时给出空态。
+  await app.press("id:font-select");
+  await app.waitFor("id:font-search", { timeout: 3000 });
+  expect(app.value("id:font-search")).toBe("");
+  await app.type("id:font-search", "zzzzqqqq");
+  await app.waitFor("text:没有匹配的字体", { timeout: 3000 });
+  expect(app.shows("id:settings-dialog")).toBe(true);
+});
