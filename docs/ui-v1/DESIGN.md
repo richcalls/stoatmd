@@ -12,7 +12,7 @@
 
 主题 = **只换颜色 token**（paper / surface / ink / thread / accent）。栏宽、控件结构、织线规则不变。禁止换布局皮肤；v1 不做自定义色板编辑器。
 
-**实现按 token 切换即可。UI 稿不必为每套主题单独出 PNG**；`05-mac-settings` 主题网格仅为示意，**完整色号以本文为准**。
+**实现按 token 切换即可。UI 稿不必为每套主题单独出 PNG**；`05-mac-settings` 主题网格仅为示意，**完整色号以 [`src/ui/theme.ts`](../../src/ui/theme.ts) 为准**。
 
 ### Token 命名（实现别名）
 
@@ -31,7 +31,7 @@
 
 非靛蓝主题中：`--indigo` / `--indigo-soft` **token 名可保留**，值映射为该套的 accent / accent-soft。
 
-语法色（各套可微调，默认跟随）：标题=`--accent`；粗体标记=`--ink-3`；其他主题行内代码浅 `#8B5E3C` / 深 `#C4A484`，引用浅 `#4F6B4F` / 深 `#8FAF8F`；默认套按 Kami：行内代码 `#3D3D3A` / `#F0EEE6`，引用 `#504E49`。
+语法色（各套可微调，默认跟随）：标题=`--accent`；粗体标记=`--ink-3`；其他主题行内代码浅 `#8B5E3C` / 深 `#C4A484`，引用浅 `#4F6B4F` / 深 `#8FAF8F`；默认套按 Kami：行内代码 `#3D3D3A` / `#F0EEE6`，引用 `#504E49`。**2026-10-30 起**语法 token 由 `src/ui/theme.ts` 的 `syntaxBold` / `quote` / `codeBg` 提供。
 
 ### 默认两套（稿面与 `shared.css`）
 
@@ -107,7 +107,24 @@
 
 `05-mac-settings` 主题网格：**示意**；完整色号与模式以本节「主题预设」为准。**不必**为每套主题重出 PNG。
 
-## 主题预设（12 套 · light / dark）
+## 当前主题预设（25 套 Otty · light / dark）
+
+> **2026-10-30 起**：v1 自绘的 12 套色板已由 **[Otty](https://otty.sh) 内置主题**替换，默认 **Paper**。完整 token（含 `accentInk`、语法色与搜索底）以 [`src/ui/theme.ts`](../../src/ui/theme.ts) 为准；下方 v1 色号仅作历史记录。
+
+入口：**设置 → 外观**。交互不变：网格卡片 · 顶部圆形色预览 · 主题原名 · 选中描边；每套标明 mode，整表替换 token。
+
+- **Light（9）**：Paper（默认）、Newsprint、April、One Light、Solarized Light、Ayu Light、Glass Light、Floating Card（纯白）、Pink
+- **Dark（16）**：Nord、Tokyo Night、Catppuccin Mocha、Dracula、Gruvbox Dark、One Dark、Solarized Dark、Rosé Pine、Monokai Classic、Night、Owl、Seafoam Pastel、April Dark、Ayu Dark、Acrylic Dark、Glass Dark
+
+映射与对比度：
+
+- 底色 / 侧栏 / 列表面板取自主题的 terminal background 与 panel / sidebar 段；缺少时按前景混色派生。
+- 正文、次级、弱文字与强调色在纸面 / 侧栏 / 列表面板上均校准到 **≥4.5:1**（WCAG AA，回归测试见 `src/ui/theme.test.tsx`）。
+- `accentInk` 为强调色背景上的文字色：亮强调色用近黑，深强调色用白，保证按钮可读。
+- 语法色：标题 = accent；粗体标记 = ANSI yellow；引用 = ANSI green；行内代码 / 搜索底取面板 surface 或前景淡混色。
+- 旧 id 自动映射（如 `weave-paper`→`paper`、`pure-white`→`floating-card`、`warm-charcoal`→`night`）；未知值回落 Paper。
+
+## 主题预设（v1 历史 · 12 套，已被替换）
 
 入口：**设置 → 外观**。交互参考 Slack：网格卡片 · 左侧圆形色预览 · 右侧中文短名 · 选中描边。  
 每套标明 **mode**；实现时整表替换 token，无需单独视觉稿。
@@ -323,7 +340,7 @@
 - 渐变字；装饰性玻璃模糊
 - 选中 / 引用 / 列表项左侧色条 **>1px**
 - Inter 全家桶；紫蓝渐变；每个标题上的圆角方块图标
-- 纯黑 `#000` 作大面积底；**默认**浅底仍用织线纸白（非纯白）。纯白 `#FFFFFF` 仅作为可选预设「纯白 / Pure White」
+- 纯黑 `#000` 作大面积底；**默认**浅底不用纯白（Paper `#FCFBF9`）。纯白 `#FFFFFF` 仅作为可选预设「Floating Card」
 - Kinpaku 金漆、漆黑品牌语言
 - Unicode / emoji 当图标系统（用 Phosphor）
 - 顶栏独立主题 Palette（主题归设置）

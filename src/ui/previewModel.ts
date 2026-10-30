@@ -5,6 +5,8 @@ export type PreviewModel = {
   blocks: TextViewBlock[];
   /** List 的行高初值：越接近真实块高，滚动同步与滚动条越稳定。 */
   estimatedItemSize: number;
+  /** 标题锚点与脚注标签 → 顶层预览块下标（链接跳转用）。 */
+  anchors: ReadonlyMap<string, number>;
 };
 
 /** 阅读画布顶部留白（与 List 的 contentStyle 保持一致）。 */
@@ -63,7 +65,11 @@ function estimateBlockHeight(block: TextViewBlock, metrics: PreviewMetrics): num
 }
 
 let cachedKey: string | null = null;
-let cached: PreviewModel = { blocks: [], estimatedItemSize: 64 };
+let cached: PreviewModel = {
+  blocks: [],
+  estimatedItemSize: 64,
+  anchors: new Map(),
+};
 
 let parsedKey: string | null = null;
 let parsedDocumentCache: TextViewDocument | null = null;
@@ -77,6 +83,47 @@ export function bodyWithoutFrontmatter(markdown: string): string {
     if (line === "---" || line === "...") return lines.slice(i + 1).join("\n");
   }
   return markdown;
+}
+
+/** 收集块内所有标题锚点：嵌套在引用、列表里的标题也归到所在的顶层块。 */
+function collectAnchors(
+  block: TextViewBlock,
+  index: number,
+  anchors: Map<string, number>,
+) {
+  switch (block.type) {
+    case "heading":
+      if (block.anchor) anchors.set(block.anchor, index);
+      break;
+    case "blockquote":
+    case "details":
+      for (const child of block.children) collectAnchors(child, index, anchors);
+      break;
+    case "list":
+      for (const item of block.items) {
+        for (const child of item.children) collectAnchors(child, index, anchors);
+      }
+      break;
+    case "custom":
+      for (const child of block.children ?? []) collectAnchors(child, index, anchors);
+      break;
+  }
+}
+
+/** 把链接的 `#…` 解析成顶层预览块下标；外链与未知锚点返回 `undefined`。 */
+export function resolveAnchor(
+  anchors: ReadonlyMap<string, number>,
+  url: string,
+): number | undefined {
+  if (!url.startsWith("#")) return undefined;
+  const raw = url.slice(1);
+  let key = raw;
+  try {
+    key = decodeURIComponent(raw);
+  } catch {
+    // 非法百分号编码：按原样查
+  }
+  return anchors.get(key);
 }
 
 /** 同一正文只解析一次：预览、目录与统计共用这份解析树。 */
@@ -97,8 +144,13 @@ export function previewModel(
   if (key === cachedKey) return cached;
   const document = parsedDocument(markdown);
   const blocks = [...document.blocks];
-  if (document.footnotes?.length) {
-    for (const footnote of document.footnotes) blocks.push(...footnote.children);
+  const anchors = new Map<string, number>();
+  blocks.forEach((block, index) => collectAnchors(block, index, anchors));
+  // 脚注按顺序接在正文块之后：`#footnote-<label>` 跳到它自己的第一个块
+  for (const footnote of document.footnotes ?? []) {
+    if (footnote.children.length === 0) continue;
+    anchors.set(`footnote-${footnote.label}`, blocks.length);
+    blocks.push(...footnote.children);
   }
   let total = 0;
   let previous: TextViewBlock | undefined;
@@ -112,6 +164,7 @@ export function previewModel(
   cached = {
     blocks,
     estimatedItemSize: Math.round(Math.min(320, Math.max(28, average))),
+    anchors,
   };
   return cached;
 }

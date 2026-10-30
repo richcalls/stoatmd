@@ -9,6 +9,10 @@
 > **入库范围（正海）：** 方向 **B · S 字交织**（`02-s-weave/`）已砍，不入库。  
 > 当前仅保留 **A · 织线白鼬** 与 **C · 敏捷剪影**（PNG + SVG），暂留再比，择一作主方向。
 
+> **接入状态（v2）：** 两套 Logo 各有浅色 / 暗色版本（`docs/brand/stoatmd-logo/app-icons/*.svg` → `assets/app-logos/{thread,thread-dark,agile,agile-dark}.png`）。  
+> 图标内容缩到 824×824 居中，四周留 100px 透明边距，Dock 视觉尺寸与系统图标一致。  
+> 默认 **A · 织线白鼬**；设置 → 外观 → 应用图标可切到 **C · 敏捷剪影**，立即更新 macOS Dock / 窗口切换器图标并记住选择（`prefs.appLogo`），重启后恢复；图标随当前主题明暗自动选浅色 / 暗色版本。
+
 ---
 
 ## A · 织线白鼬（`01-thread/`）

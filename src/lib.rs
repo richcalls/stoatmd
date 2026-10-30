@@ -19,6 +19,7 @@ fn native(registry: &mut Registry) {
         .module::<StoatMeta>()
         .module::<VaultDialog>()
         .module::<SystemFonts>()
+        .module::<AppIcon>()
         .module::<SyncConfig>()
         .module::<OAuth>()
         .module::<TokenVault>()
@@ -88,6 +89,54 @@ impl VaultDialog {
         .await
         .map_err(|e| e.to_string())
     }
+}
+
+/// 应用图标（Dock / 窗口切换器）。两套 Logo 的浅色 / 暗色 PNG 打进二进制，切换不需要文件。
+#[module]
+pub struct AppIcon;
+
+#[module]
+impl AppIcon {
+    /// 切换应用图标：`thread`（织线白鼬，默认）或 `agile`（敏捷剪影）；`dark` 用炭底版本。
+    pub fn set(id: String, dark: bool) -> Result<(), String> {
+        #[cfg(target_os = "macos")]
+        {
+            let bytes: &'static [u8] = match (id.as_str(), dark) {
+                ("thread", false) => include_bytes!("../assets/app-logos/thread.png"),
+                ("thread", true) => include_bytes!("../assets/app-logos/thread-dark.png"),
+                ("agile", false) => include_bytes!("../assets/app-logos/agile.png"),
+                ("agile", true) => include_bytes!("../assets/app-logos/agile-dark.png"),
+                (other, _) => return Err(format!("unknown app icon: {other}")),
+            };
+            // 引擎在独立线程运行，AppKit 的图标只能在主线程设置。
+            dispatch2::DispatchQueue::main().exec_async(move || {
+                if let Some(mtm) = objc2::MainThreadMarker::new() {
+                    set_macos_app_icon(mtm, bytes);
+                }
+            });
+            Ok(())
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let _ = (id, dark);
+            Ok(())
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn set_macos_app_icon(mtm: objc2::MainThreadMarker, bytes: &'static [u8]) {
+    use objc2::AnyThread;
+    use objc2_app_kit::{NSApplication, NSImage};
+    use objc2_foundation::NSData;
+
+    let data = NSData::with_bytes(bytes);
+    let Some(image) = NSImage::initWithData(NSImage::alloc(), &data) else {
+        return;
+    };
+    let app = NSApplication::sharedApplication(mtm);
+    // SAFETY: AppKit runs on the main thread; `image` decoded from the bundled PNG.
+    unsafe { app.setApplicationIconImage(Some(&image)) };
 }
 
 /// 同步连接配置（客户端凭据只来自开发者环境 / 本地配置，不写进应用包）。

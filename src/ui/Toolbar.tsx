@@ -58,12 +58,13 @@ function ToolButton(props: {
 }
 
 /**
- * 统一窗口栏：左侧红绿灯 + 品牌，正文区放文件树开关、库名/标题与三个模式按钮。
+ * 统一窗口栏：左侧留给红绿灯，正文区放文件树开关、库名/标题与三个模式按钮。
  * 字体与设置移入应用菜单，不再占用顶栏。
  */
 export function WindowBar(props: Props) {
   const barH = Math.max(titleBar().height || BAR_HEIGHT, BAR_HEIGHT);
-  const leftWidth =
+  // 侧栏异步就绪后也要跟随：放进响应式 style，首次渲染的宽度不能固化。
+  const leftWidth = () =>
     props.showSidebarToggle && props.sidebarOpen ? SIDEBAR_WIDTH : NAV_HIDDEN_WIDTH;
   const ink = () => colors().ink3;
   return (
@@ -79,7 +80,7 @@ export function WindowBar(props: Props) {
     >
       <View
         style={{
-          width: leftWidth,
+          width: leftWidth(),
           height: "100%",
           paddingLeft: TRAFFIC_LIGHTS,
           paddingRight: 10,
@@ -87,14 +88,7 @@ export function WindowBar(props: Props) {
           alignItems: "center",
           flexShrink: 0,
         }}
-      >
-        <Text
-          numberOfLines={1}
-          style={{ fontSize: 12, fontWeight: "500", color: colors().ink3 }}
-        >
-          {t("app.name")}
-        </Text>
-      </View>
+      />
 
       <View
         style={{

@@ -34,16 +34,16 @@ Mac 编辑工具条：左侧当前笔记标题（16 / 600，单行省略）；�
 
 | 能力 | 说明 |
 |------|------|
-| 主题 | 只换颜色的预设色板（参考 Slack 外观网格），**不**换布局、不做自定义色板编辑器；完整 hex 见 `DESIGN.md`，**不必**为每套出图 |
+| 主题 | 只换颜色的预设色板（参考 Slack 外观网格），**不**换布局、不做自定义色板编辑器；当前为 25 套 Otty 主题，完整 token 见 `src/ui/theme.ts`，**不必**为每套出图 |
 | 字体 | 正文默认 **Kami 衬线**（宋体类；可下拉换系统字体）、字号步进、行高；一行真文案预览；区块右上「恢复默认」一键回到 Kami 排版。源码区仍用等宽 |
 | 文件操作 | 右键笔记：打开、在 Finder 中显示、复制路径 / 相对路径、重命名、创建副本、移到废纸篓；文案随界面语言 |
 | 同步 | **正式核心能力**：设置 → 同步；一期仅 Google Drive / Dropbox（均主推，Agent 友好）；一点「开启同步」付费墙（未付费不走 OAuth）；冲突必弹 |
 
-预设 **12** 套（light / dark 标明模式；实现按 token 切换）：
-- **Light（8）**：Kami 羊皮纸（默认）、**纯白**（`#FFFFFF` 必选）、鼠尾草、墨灰、砂褐、雾蓝、樱雾、青瓷
-- **Dark（4）**：暖夜炭（默认）、靛蓝浓、暮紫、松烟
+预设 **25** 套（light / dark 标明模式；实现按 token 切换）：
+- **Light（9）**：Paper（默认）、Newsprint、April、One Light、Solarized Light、Ayu Light、Glass Light、**Floating Card**（`#FFFFFF`）、Pink
+- **Dark（16）**：Nord、Tokyo Night、Catppuccin Mocha、Dracula、Gruvbox Dark、One Dark、Solarized Dark、Rosé Pine、Monokai Classic、Night、Owl、Seafoam Pastel、April Dark、Ayu Dark、Acrylic Dark、Glass Dark
 
-色号与全量 token 以 `DESIGN.md`「主题预设」为准；设置页网格仅为示意。默认文章排版移植自 [Kami](https://github.com/tw93/kami)（MIT）。
+色号与全量 token 以 `src/ui/theme.ts` 为准；设置页网格仅为示意。主题取自 [Otty](https://otty.sh) 内置主题，默认文章排版移植自 [Kami](https://github.com/tw93/kami)（MIT；归属见 `THIRD_PARTY_NOTICES.md`）。
 
 ## 付费与版本边界
 

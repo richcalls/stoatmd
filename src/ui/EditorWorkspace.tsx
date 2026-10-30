@@ -1,8 +1,14 @@
 import { List, View, batch, effect, signal } from "nsh";
 import { Editor, ResizablePanel, ResizablePanelGroup, TextView, type EditorDecoration } from "nsh/base";
 import { markdownDecorations } from "./markdownDecorations";
+import { t } from "./i18n";
 import { kamiMonoFamily, kamiTypeScale } from "./kami";
-import { PREVIEW_TOP_PADDING, previewGap, previewModel } from "./previewModel";
+import {
+  PREVIEW_TOP_PADDING,
+  previewGap,
+  previewModel,
+  resolveAnchor,
+} from "./previewModel";
 import { colors, themePreset, type ThemePreset } from "./theme";
 import { fontSize, lineHeightPx, previewFontFamily, systemFonts } from "./typography";
 import type { ViewMode } from "./Toolbar";
@@ -15,6 +21,7 @@ import {
   markEditorFocus,
   markEditorHover,
   refreshPreviewMetrics,
+  scrollPreviewToIndex,
   setEditorViewHeight,
   setHiddenViewHeight,
   setPreviewViewHeight,
@@ -35,7 +42,7 @@ const editorTextStyles = () => ({
   content: { backgroundColor: colors().editor, color: colors().ink, paddingRight: 16 },
 });
 
-/** 预览排版：Kami 文章样式（羊皮纸、墨蓝、衬线、500 字重），字号随设置缩放。 */
+/** 预览排版：Kami 文章样式（衬线、500 字重、引用无底色），字号随设置缩放。 */
 const previewTextStyles = () => {
   const size = fontSize();
   const lh = lineHeightPx(size);
@@ -129,6 +136,7 @@ export function EditorWorkspace(props: Props) {
   const initial = previewModel(props.preview);
   const previewBlocks = signal(initial.blocks);
   const previewItemSize = signal(initial.estimatedItemSize);
+  const previewAnchors = signal(initial.anchors);
   const previewWidth = signal(0);
 
   /** 正文左右留白：宽窗口 48，空间收紧时 28。 */
@@ -152,6 +160,12 @@ export function EditorWorkspace(props: Props) {
       if (item.isViewable && item.index < top) top = item.index;
     }
     if (Number.isFinite(top)) props.onVisibleBlock?.(top);
+  };
+
+  /** 外链由 TextView 的 `links="open"` 交给系统；预览里的锚点自己滚动到对应块。 */
+  const followPreviewLink = (url: string) => {
+    const index = resolveAnchor(previewAnchors(), url);
+    if (index !== undefined) scrollPreviewToIndex(index);
   };
 
   // 语法装饰按（正文, 主题）记忆：输入时只扫一遍，主题不变不重复构造
@@ -259,6 +273,9 @@ export function EditorWorkspace(props: Props) {
                 <TextView
                   document={{ blocks: [block()] }}
                   selectable
+                  links="open"
+                  codeBlockActions={[{ id: "copy", label: t("preview.copyCode") }]}
+                  onLinkPress={(event) => followPreviewLink(event.url)}
                   styles={previewTextStyles()}
                 />
               </View>
@@ -278,6 +295,7 @@ export function EditorWorkspace(props: Props) {
     batch(() => {
       previewBlocks.set(model.blocks);
       previewItemSize.set(model.estimatedItemSize);
+      previewAnchors.set(model.anchors);
     });
     refreshPreviewMetrics();
   });

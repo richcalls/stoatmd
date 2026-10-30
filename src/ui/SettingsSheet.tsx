@@ -1,8 +1,14 @@
-import { List, Scroll, Text, View, effect, signal } from "nsh";
-import { Button, Dialog, Input, Popover } from "nsh/base";
+import { Image, List, PanResponder, Scroll, Text, View, cleanup, effect, keymap, signal } from "nsh";
+import { Button, Input, Popover } from "nsh/base";
+import { APP_LOGOS, applyAppLogo, appLogo, logoAsset } from "./appLogo";
 import { Icon, type IconName } from "./Icon";
 import { localePref, setLocalePref, t, type LocalePref } from "./i18n";
 import { saveLocale } from "./prefs";
+import {
+  moveSettingsWindowFrame,
+  rememberSettingsWindowFrame,
+  settingsWindowFrame,
+} from "./settingsWindow";
 import { SyncSettings } from "./SyncSettings";
 import { THEMES, applyTheme, colors, themeId, type ThemePreset } from "./theme";
 import {
@@ -32,6 +38,9 @@ type Props = {
   tab: SettingsTab;
   onTab: (tab: SettingsTab) => void;
   onClose: () => void;
+  /** 主窗口内容区尺寸：浮窗据此限宽限高，并把记忆的位置夹在可见范围内。 */
+  windowWidth: number;
+  windowHeight: number;
   vaultRoot?: string | null;
   onOpenVault?: () => void;
   onSyncNow?: () => void;
@@ -57,9 +66,20 @@ const LOCALES: { id: LocalePref; label: string; key?: string }[] = [
   { id: "es", label: "Español" },
 ];
 
-const SHEET_WIDTH = 720;
-const SHEET_HEIGHT = 600;
-const THEME_CARD_WIDTH = 126;
+const WINDOW_BAR_HEIGHT = 40;
+const PANEL_WIDTH = 680;
+const PANEL_HEIGHT = 560;
+const PANEL_MARGIN = 16;
+/** 浮窗最上沿停在主窗口红绿灯下方，避免挡住关闭主窗口的出口。 */
+const PANEL_TOP = 44;
+const SETTINGS_SIDEBAR_WIDTH = 188;
+const CONTENT_MAX_WIDTH = 760;
+const THEME_CARD_WIDTH = 168;
+const LOGO_CARD_WIDTH = 168;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
 
 function localeName(id: LocalePref): string {
   const item = LOCALES.find((row) => row.id === id);
@@ -73,8 +93,12 @@ function ThemeCard(props: { item: ThemePreset }) {
     <View
       role="button"
       testID={`theme-${props.item.id}`}
-      accessibilityLabel={t(props.item.nameKey)}
-      onPress={() => applyTheme(props.item.id)}
+      accessibilityLabel={props.item.name}
+      onPress={() => {
+        applyTheme(props.item.id);
+        // 图标有浅色 / 暗色两版，主题明暗变化后同步 Dock 图标。
+        applyAppLogo(appLogo());
+      }}
       style={{
         width: THEME_CARD_WIDTH,
         height: 44,
@@ -108,8 +132,59 @@ function ThemeCard(props: { item: ThemePreset }) {
         }}
         numberOfLines={1}
       >
-        {t(props.item.nameKey)}
+        {props.item.name}
       </Text>
+    </View>
+  );
+}
+
+function LogoCard(props: { item: (typeof APP_LOGOS)[number] }) {
+  const on = () => appLogo() === props.item.id;
+  return (
+    <View
+      role="button"
+      testID={`logo-${props.item.id}`}
+      accessibilityLabel={t(props.item.nameKey)}
+      onPress={() => applyAppLogo(props.item.id)}
+      style={{
+        width: LOGO_CARD_WIDTH,
+        height: 64,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        paddingHorizontal: 10,
+        borderRadius: 9,
+        borderWidth: 1,
+        borderColor: on() ? colors().accent : colors().thread,
+        backgroundColor: on() ? colors().accentSoft : colors().list,
+      }}
+    >
+      <Image
+        src={logoAsset(props.item)}
+        resizeMode="contain"
+        style={{ width: 40, height: 40, borderRadius: 9 }}
+      />
+      <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
+        <Text
+          style={{
+            fontSize: 12.5,
+            fontWeight: "560",
+            letterSpacing: -0.12,
+            color: colors().ink,
+          }}
+          numberOfLines={1}
+        >
+          {t(props.item.nameKey)}
+        </Text>
+        <If when={props.item.id === "thread"}>
+          <Text style={{ fontSize: 11.5, color: colors().ink3 }} numberOfLines={1}>
+            {t("settings.logo.default")}
+          </Text>
+        </If>
+      </View>
+      <If when={on()}>
+        <Icon name="check" color={colors().accent} size={13} />
+      </If>
     </View>
   );
 }
@@ -452,85 +527,206 @@ function LocalePicker() {
   );
 }
 
-/** 设置 sheet：即时写入 prefs；× / Esc / 遮罩均可关闭。 */
+/** 设置浮窗：主窗口内的小窗，可拖标题栏移动，位置写入偏好；关闭只收起。 */
 export function SettingsSheet(props: Props) {
-  const close = () => props.onClose();
+  const close = () => {
+    rememberSettingsWindowFrame();
+    props.onClose();
+  };
   const formatLineHeight = () => String(Number(fontLineHeight().toFixed(2)));
 
   effect(() => {
     if (props.tab === "font") loadSystemFonts();
   });
 
+  effect(() => {
+    if (!props.open) return;
+    const off = keymap.bind("escape", close);
+    cleanup(off);
+  });
+
+  const panelWidth = () =>
+    Math.min(PANEL_WIDTH, Math.max(320, props.windowWidth - PANEL_MARGIN * 2));
+  const panelHeight = () =>
+    Math.min(
+      PANEL_HEIGHT,
+      Math.max(300, props.windowHeight - PANEL_TOP - PANEL_MARGIN),
+    );
+  const maxLeft = () =>
+    Math.max(PANEL_MARGIN, props.windowWidth - panelWidth() - PANEL_MARGIN);
+  const maxTop = () =>
+    Math.max(PANEL_TOP, props.windowHeight - panelHeight() - PANEL_MARGIN);
+  const ready = () => props.windowWidth > 0 && props.windowHeight > 0;
+
+  /** 没拖过就居中；拖过则还原并夹在当前窗口内。 */
+  const position = () => {
+    const saved = settingsWindowFrame();
+    const centeredLeft = (props.windowWidth - panelWidth()) / 2;
+    const centeredTop = PANEL_TOP + (props.windowHeight - PANEL_TOP - panelHeight()) / 2;
+    return {
+      left: Math.round(
+        saved
+          ? clamp(saved.x, PANEL_MARGIN, maxLeft())
+          : clamp(centeredLeft, PANEL_MARGIN, maxLeft()),
+      ),
+      top: Math.round(
+        saved
+          ? clamp(saved.y, PANEL_TOP, maxTop())
+          : clamp(centeredTop, PANEL_TOP, maxTop()),
+      ),
+    };
+  };
+
+  let dragFrom: { left: number; top: number } | null = null;
+  const dragging = signal(false);
+  const pan = PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) + Math.abs(g.dy) > 2,
+    onPanResponderGrant: () => {
+      dragFrom = position();
+      dragging.set(true);
+    },
+    onPanResponderMove: (_e, g) => {
+      if (!dragFrom) return;
+      moveSettingsWindowFrame(
+        clamp(dragFrom.left + g.dx, PANEL_MARGIN, maxLeft()),
+        clamp(dragFrom.top + g.dy, PANEL_TOP, maxTop()),
+      );
+    },
+    onPanResponderRelease: () => {
+      dragFrom = null;
+      dragging.set(false);
+      rememberSettingsWindowFrame();
+    },
+    onPanResponderTerminate: () => {
+      dragFrom = null;
+      dragging.set(false);
+      rememberSettingsWindowFrame();
+    },
+  });
+
   return (
-    <Dialog
-      open={props.open}
-      testID="settings-dialog"
-      onOpenChange={(open) => {
-        if (!open) close();
-      }}
-      onCancel={close}
-      onClose={close}
-      closeOnBackdropPress
-      closeOnEscape
-      animation="fade"
-      backdropStyle={{ backgroundColor: "rgba(44,42,38,0.28)" }}
-      backdropTestID="settings-backdrop"
-      style={{
-        width: SHEET_WIDTH,
-        height: SHEET_HEIGHT,
-        margin: "auto",
-        alignSelf: "center",
-        borderRadius: 12,
-        backgroundColor: colors().paper,
-        borderWidth: 1,
-        borderColor: colors().thread,
-        overflow: "hidden",
-        flexDirection: "column",
-      }}
-    >
+    <If when={props.open}>
       <View
+        testID="settings-window"
+        accessibilityLabel={t("settings.title")}
         style={{
-          height: 56,
-          flexShrink: 0,
-          paddingHorizontal: 20,
-          flexDirection: "row",
-          alignItems: "center",
-          borderBottomWidth: 1,
-          borderBottomColor: colors().thread,
+          position: "absolute",
+          left: position().left,
+          top: position().top,
+          width: panelWidth(),
+          height: panelHeight(),
+          opacity: ready() ? 1 : 0,
+          zIndex: 20,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: colors().thread,
+          backgroundColor: colors().paper,
+          overflow: "hidden",
+          flexDirection: "column",
+          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.30), 0 4px 14px rgba(0, 0, 0, 0.18)",
         }}
       >
-        <Text
+        {/* 小窗标题栏：左上角关闭圆点，标题居中，右上角「完成」；整条可拖动 */}
+        <View
+          testID="settings-window-bar"
+          {...pan.panHandlers}
           style={{
-            flex: 1,
-            fontSize: 17,
-            fontWeight: "650",
-            letterSpacing: -0.26,
-            color: colors().ink,
-          }}
-        >
-          {t("settings.title")}
-        </Text>
-        <Button
-          testID="settings-close"
-          accessibilityLabel={t("settings.close")}
-          onPress={close}
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 6,
+            height: WINDOW_BAR_HEIGHT,
+            flexShrink: 0,
+            flexDirection: "row",
             alignItems: "center",
-            justifyContent: "center",
+            backgroundColor: colors().sidebar,
+            borderBottomWidth: 1,
+            borderBottomColor: colors().thread,
+            cursor: dragging() ? "grabbing" : "default",
           }}
-          activeStyle={{ opacity: 0.7 }}
         >
-          <Icon name="x" color={colors().ink2} size={16} />
-        </Button>
-      </View>
+          <View style={{ width: 64, flexShrink: 0, paddingLeft: 12 }}>
+            <Button
+              testID="settings-close"
+              accessibilityLabel={t("settings.close")}
+              tooltip={<Text style={{ fontSize: 12 }}>{t("settings.close")}</Text>}
+              onPress={close}
+              style={{
+                width: 20,
+                height: 20,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "transparent",
+              }}
+              activeStyle={{ opacity: 0.6 }}
+            >
+              <View
+                style={{
+                  width: 13,
+                  height: 13,
+                  borderRadius: 7,
+                  borderWidth: 1,
+                  borderColor: "rgba(0, 0, 0, 0.16)",
+                  backgroundColor: "#FF5F57",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 9,
+                    lineHeight: 10,
+                    fontWeight: "700",
+                    color: "rgba(80, 0, 0, 0.68)",
+                  }}
+                >
+                  ×
+                </Text>
+              </View>
+            </Button>
+          </View>
+          <Text
+            style={{
+              flex: 1,
+              textAlign: "center",
+              fontSize: 13,
+              fontWeight: "600",
+              letterSpacing: 0.1,
+              color: colors().ink,
+            }}
+          >
+            {t("settings.title")}
+          </Text>
+          <View
+            style={{
+              width: 64,
+              flexShrink: 0,
+              paddingRight: 12,
+              alignItems: "flex-end",
+            }}
+          >
+            <Button
+              testID="settings-done"
+              accessibilityLabel={t("common.done")}
+              onPress={close}
+              style={{
+                height: 26,
+                paddingHorizontal: 8,
+                borderRadius: 6,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "transparent",
+              }}
+              activeStyle={{ opacity: 0.7 }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: "600", color: colors().accent }}>
+                {t("common.done")}
+              </Text>
+            </Button>
+          </View>
+        </View>
 
-      <View style={{ flex: 1, flexDirection: "row", minHeight: 0 }}>
+        <View style={{ flex: 1, flexDirection: "row", minHeight: 0 }}>
         <View
           style={{
-            width: 148,
+            width: SETTINGS_SIDEBAR_WIDTH,
             flexShrink: 0,
             backgroundColor: colors().sidebar,
             borderRightWidth: 1,
@@ -581,8 +777,11 @@ export function SettingsSheet(props: Props) {
           </Each>
         </View>
 
-        <Scroll style={{ flex: 1 }} contentStyle={{ padding: 18, paddingBottom: 22 }}>
-          <View style={{ gap: 22 }}>
+        <Scroll
+          style={{ flex: 1 }}
+          contentStyle={{ paddingHorizontal: 28, paddingTop: 24, paddingBottom: 32 }}
+        >
+          <View style={{ gap: 22, width: "100%", maxWidth: CONTENT_MAX_WIDTH }}>
             <If when={props.tab === "appearance"}>
               <View style={{ gap: 22 }}>
                 <View style={{ gap: 4 }}>
@@ -602,6 +801,27 @@ export function SettingsSheet(props: Props) {
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
                     <Each of={THEMES}>
                       {(row) => <ThemeCard item={row()} />}
+                    </Each>
+                  </View>
+                </View>
+
+                <View style={{ gap: 4 }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "600",
+                      letterSpacing: -0.14,
+                      color: colors().ink,
+                    }}
+                  >
+                    {t("settings.logo")}
+                  </Text>
+                  <Text style={{ fontSize: 12.5, color: colors().ink2, lineHeight: 18 }}>
+                    {t("settings.logo.desc")}
+                  </Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                    <Each of={APP_LOGOS}>
+                      {(row) => <LogoCard item={row()} />}
                     </Each>
                   </View>
                 </View>
@@ -771,6 +991,7 @@ export function SettingsSheet(props: Props) {
           </View>
         </Scroll>
       </View>
-    </Dialog>
+      </View>
+    </If>
   );
 }
