@@ -112,6 +112,7 @@
   "settings.font.family": "Font",
   "settings.font.systemDefault": "System Default",
   "settings.font.search": "Search fonts",
+  "settings.font.empty": "No matching fonts",
   "settings.font.size": "Size",
   "settings.font.lineHeight": "Line height",
   "settings.font.preview": "A good piece of writing expands a structure, not a pile of sparks.",
