@@ -104,7 +104,7 @@
   "settings.theme.duskViolet": "Violet crépuscule",
   "settings.theme.pineSmoke": "Fumée de pin",
   "settings.font.family": "Police",
-  "settings.font.kamiDefault": "Kami par défaut (serif)",
+  "settings.font.defaultOption": "{font} (par défaut)",
   "settings.font.search": "Rechercher des polices",
   "settings.font.empty": "Aucune police correspondante",
   "settings.font.size": "Taille",

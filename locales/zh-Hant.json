@@ -104,7 +104,7 @@
   "settings.theme.duskViolet": "暮紫",
   "settings.theme.pineSmoke": "松煙",
   "settings.font.family": "字體",
-  "settings.font.kamiDefault": "Kami 預設（襯線）",
+  "settings.font.defaultOption": "{font}（預設）",
   "settings.font.search": "搜尋字體",
   "settings.font.empty": "沒有符合的字體",
   "settings.font.size": "字級",

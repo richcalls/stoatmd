@@ -104,7 +104,7 @@
   "settings.theme.duskViolet": "夕暮れ紫",
   "settings.theme.pineSmoke": "松煙",
   "settings.font.family": "フォント",
-  "settings.font.kamiDefault": "Kami デフォルト（セリフ）",
+  "settings.font.defaultOption": "{font}（デフォルト）",
   "settings.font.search": "フォントを検索",
   "settings.font.empty": "一致するフォントがありません",
   "settings.font.size": "サイズ",

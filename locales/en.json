@@ -104,7 +104,7 @@
   "settings.theme.duskViolet": "Dusk Violet",
   "settings.theme.pineSmoke": "Pine Smoke",
   "settings.font.family": "Font",
-  "settings.font.kamiDefault": "Kami default (serif)",
+  "settings.font.defaultOption": "{font} (default)",
   "settings.font.search": "Search fonts",
   "settings.font.empty": "No matching fonts",
   "settings.font.size": "Size",

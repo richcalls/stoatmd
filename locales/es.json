@@ -104,7 +104,7 @@
   "settings.theme.duskViolet": "Violeta crepúsculo",
   "settings.theme.pineSmoke": "Humo de pino",
   "settings.font.family": "Fuente",
-  "settings.font.kamiDefault": "Kami predeterminada (serif)",
+  "settings.font.defaultOption": "{font} (por defecto)",
   "settings.font.search": "Buscar fuentes",
   "settings.font.empty": "No hay fuentes coincidentes",
   "settings.font.size": "Tamaño",

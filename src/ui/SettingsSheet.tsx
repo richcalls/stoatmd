@@ -248,7 +248,7 @@ function FontPicker() {
             }}
             numberOfLines={1}
           >
-            {fontFamily() || t("settings.font.kamiDefault")}
+            {previewFontFamily()}
           </Text>
           <Icon name="caret-down" color={colors().ink3} size={14} />
         </View>
@@ -274,7 +274,7 @@ function FontPicker() {
         />
         <View
           role="button"
-          testID="font-option-kami"
+          testID="font-option-default"
           onPress={() => {
             applyFontFamily("");
             menuOpen.set(false);
@@ -297,7 +297,7 @@ function FontPicker() {
             }}
             numberOfLines={1}
           >
-            {t("settings.font.kamiDefault")}
+            {t("settings.font.defaultOption", { font: previewFontFamily() })}
           </Text>
           <If when={defaultSelected()}>
             <Icon name="check" color={colors().accent} size={13} />

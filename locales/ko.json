@@ -104,7 +104,7 @@
   "settings.theme.duskViolet": "황혼 바이올렛",
   "settings.theme.pineSmoke": "송연",
   "settings.font.family": "글꼴",
-  "settings.font.kamiDefault": "Kami 기본(세리프)",
+  "settings.font.defaultOption": "{font} (기본)",
   "settings.font.search": "글꼴 검색",
   "settings.font.empty": "일치하는 글꼴이 없습니다",
   "settings.font.size": "크기",
