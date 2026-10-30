@@ -38,7 +38,7 @@ test("同步：未连接展示两家网盘；缺客户端凭据时明确提示�
   expect(app.shows("id:sync-auth-cancel")).toBe(false);
 });
 
-test("设置：字体下拉可选 Kami 默认并持久化，语言切换即时生效", async () => {
+test("设置：字体下拉可选默认衬线并持久化，语言切换即时生效", async () => {
   const app = await open("./SettingsSheet.harness.tsx", {
     ...desktop,
     storage: {
@@ -51,7 +51,10 @@ test("设置：字体下拉可选 Kami 默认并持久化，语言切换即时�
   await app.press("id:font-select");
   await app.waitUntil(() => app.shows("id:font-search"));
   expect(app.shows("id:font-options")).toBe(true);
-  await app.press("id:font-option-kami");
+  // 默认项写实际字体名，不再出现产品 / 规范名。
+  expect(app.texts().some((text) => text.endsWith("（默认）"))).toBe(true);
+  expect(app.texts().some((text) => text.includes("Kami"))).toBe(false);
+  await app.press("id:font-option-default");
   await app.press("id:font-size-inc");
   await app.press("id:font-size-inc");
   await app.press("id:font-size-inc");
@@ -62,7 +65,7 @@ test("设置：字体下拉可选 Kami 默认并持久化，语言切换即时�
       app.storage()["prefs.fontSize"] === "18" &&
       app.storage()["prefs.fontLineHeight"] === "1.6",
   );
-  expect(app.texts()).toContain("Kami 默认（衬线）");
+  expect(app.texts().some((text) => text.startsWith("Kami"))).toBe(false);
   expect(app.storage()["prefs.fontSize"]).toBe("18");
   expect(app.storage()["prefs.fontLineHeight"]).toBe("1.6");
 
@@ -76,7 +79,7 @@ test("设置：字体下拉可选 Kami 默认并持久化，语言切换即时�
   expect(app.texts()).toContain("Appearance");
 });
 
-test("设置：字体一键恢复默认，字体 / 字号 / 行高回 Kami 并覆盖偏好", async () => {
+test("设置：字体一键恢复默认，字体 / 字号 / 行高回默认衬线并覆盖偏好", async () => {
   const app = await open("./SettingsSheet.harness.tsx", {
     ...desktop,
     storage: {
@@ -97,7 +100,8 @@ test("设置：字体一键恢复默认，字体 / 字号 / 行高回 Kami 并�
       app.storage()["prefs.fontSize"] === "15" &&
       app.storage()["prefs.fontLineHeight"] === "1.55",
   );
-  expect(app.texts()).toContain("Kami 默认（衬线）");
+  expect(app.texts()).not.toContain("Helvetica");
+  expect(app.texts().some((text) => text.includes("Kami"))).toBe(false);
   expect(app.texts()).toContain("15");
   expect(app.texts()).toContain("1.55");
 });

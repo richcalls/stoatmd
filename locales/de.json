@@ -104,7 +104,7 @@
   "settings.theme.duskViolet": "Abendviolett",
   "settings.theme.pineSmoke": "Kiefernrauch",
   "settings.font.family": "Schrift",
-  "settings.font.kamiDefault": "Kami-Standard (Serif)",
+  "settings.font.defaultOption": "{font} (Standard)",
   "settings.font.search": "Schriften suchen",
   "settings.font.empty": "Keine passenden Schriften",
   "settings.font.size": "Größe",
