@@ -1,24 +1,47 @@
-import { Text, View } from "nsh";
+import { List, Text, View } from "nsh";
+import { Input } from "nsh/base";
 import type { SyncPhase } from "../sync/runtime";
-import { Icon } from "./Icon";
+import { Icon, type IconName } from "./Icon";
 import { t } from "./i18n";
 import { colors, statusColor } from "./theme";
-import { normalizeVaultPath, type FolderNode } from "./vaultModel";
+import {
+  libraryRows,
+  normalizeVaultPath,
+  type FolderNode,
+  type NoteItem,
+} from "./vaultModel";
 
 type Props = {
   folders: FolderNode[];
-  selected: string;
-  onSelect: (id: string) => void;
+  notes: NoteItem[];
+  selectedNoteId: string;
+  /** 新建笔记的目标文件夹；点文件夹或打开笔记时更新。 */
+  folderId: string;
+  collapsed: string[];
+  query: string;
+  onQuery: (q: string) => void;
+  onSelectNote: (id: string) => void;
+  onSelectFolder: (id: string) => void;
+  onToggleFolder: (id: string) => void;
   onOpenVault: () => void;
+  onNewNote: () => void;
   onSync: () => void;
   vaultRoot: string | null;
-  rail?: boolean;
   syncPhase?: SyncPhase;
   syncConflictCount?: number;
 };
 
-/** 左栏：真实库文件夹树；rail 时仅图标轨。 */
+/** 左栏：搜索 + 可折叠文件树（笔记嵌套在文件夹下），底部同步状态。 */
 export function Sidebar(props: Props) {
+  const rootLabel = (): string => {
+    const root = props.vaultRoot ?? "";
+    const base = root.split(/[\\/]/).filter(Boolean).pop();
+    return base || t("vault.rootFolder");
+  };
+
+  const rows = () =>
+    libraryRows(props.folders, props.notes, props.collapsed, props.query, rootLabel());
+
   const syncLabel = (): string => {
     const phase = props.syncPhase ?? "off";
     if (phase === "conflict") {
@@ -47,39 +70,96 @@ export function Sidebar(props: Props) {
         backgroundColor: colors().sidebar,
         borderRightWidth: 1,
         borderRightColor: colors().thread,
-        paddingTop: props.rail ? 12 : 14,
-        paddingBottom: props.rail ? 10 : 12,
-        paddingHorizontal: props.rail ? 6 : 10,
+        paddingTop: 12,
+        paddingBottom: 10,
+        paddingHorizontal: 8,
       }}
     >
-      <If when={!props.rail}>
+      <View
+        style={{
+          paddingHorizontal: 4,
+          paddingBottom: 10,
+          gap: 8,
+          borderBottomWidth: 1,
+          borderBottomColor: colors().thread,
+        }}
+      >
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
+            gap: 7,
+            height: 30,
+            borderRadius: 7,
+            backgroundColor: colors().searchBg,
             paddingHorizontal: 10,
-            paddingBottom: 8,
-            gap: 8,
           }}
         >
-          <Text
+          <Icon name="magnifying-glass" color={colors().ink3} size={13} />
+          <Input
+            testID="sidebar-search"
+            value={props.query}
+            onChange={(text) => props.onQuery(text)}
+            placeholder={t("search.placeholder")}
             style={{
               flex: 1,
-              fontSize: 12,
-              fontWeight: "510",
-              color: colors().ink3,
-              letterSpacing: 0.12,
+              fontSize: 12.5,
+              color: colors().ink,
+              backgroundColor: "transparent",
+              borderWidth: 0,
+              padding: 0,
+              height: 26,
             }}
-          >
-            {t("library.label")}
-          </Text>
+          />
+        </View>
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
           <View
             role="button"
+            accessibilityLabel={rootLabel()}
+            onPress={() => props.onSelectFolder("")}
+            style={{
+              flex: 1,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 7,
+              height: 28,
+              paddingHorizontal: 6,
+              borderRadius: 6,
+            }}
+          >
+            <Icon name="notebook" color={colors().ink2} size={15} />
+            <Text
+              numberOfLines={1}
+              style={{ flex: 1, fontSize: 13, fontWeight: "560", color: colors().ink }}
+            >
+              {rootLabel()}
+            </Text>
+          </View>
+          <View
+            role="button"
+            testID="sidebar-new"
+            accessibilityLabel={t("note.new")}
+            onPress={props.onNewNote}
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 6,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors().accentSoft,
+            }}
+          >
+            <Icon name="plus" color={colors().accent} size={14} />
+          </View>
+          <View
+            role="button"
+            testID="sidebar-open"
             accessibilityLabel={t("vault.open")}
             onPress={props.onOpenVault}
             style={{
-              width: 24,
-              height: 24,
+              width: 26,
+              height: 26,
               borderRadius: 6,
               alignItems: "center",
               justifyContent: "center",
@@ -88,101 +168,138 @@ export function Sidebar(props: Props) {
             <Icon name="folder" color={colors().ink3} size={15} />
           </View>
         </View>
-      </If>
+      </View>
 
-      <If when={!props.vaultRoot}>
-        <View style={{ paddingHorizontal: 14, paddingTop: 8 }}>
-          <Text style={{ fontSize: 12, color: colors().ink3, lineHeight: 18 }}>
-            {t("vault.empty.hint")}
+      {/* 虚拟化文件树：行被复用，所有取值都通过 row() 读取，不能捕获成常量。 */}
+      <List
+        style={{ flex: 1 }}
+        contentStyle={{ paddingTop: 6, paddingBottom: 12 }}
+        each={rows()}
+        keyExtractor={(row) => `${row.kind}:${row.id}`}
+        empty={
+          <Text
+            style={{
+              fontSize: 12,
+              color: colors().ink3,
+              paddingHorizontal: 10,
+              paddingTop: 8,
+              lineHeight: 18,
+            }}
+          >
+            {props.query.trim() ? t("search.empty") : t("note.empty")}
           </Text>
-        </View>
-      </If>
-
-      <View style={{ flex: 1, gap: 2 }}>
-        <Each of={props.folders}>
-          {(folder) => {
-            const f = folder();
-            const on = () => normalizeVaultPath(props.selected) === f.id;
-            const label = f.id === "" ? t("vault.rootFolder") : f.name;
-            return (
-              <View
-                role="button"
-                accessibilityLabel={label}
-                tooltip={props.rail ? <Text style={{ fontSize: 12 }}>{label}</Text> : undefined}
-                onPress={() => props.onSelect(f.id)}
+        }
+      >
+        {(row) => {
+          const isFolder = (): boolean => row().kind === "folder";
+          const selected = (): boolean => {
+            const r = row();
+            return r.kind === "note" && r.id === props.selectedNoteId;
+          };
+          const targeting = (): boolean => {
+            const r = row();
+            return r.kind === "folder" && r.id === normalizeVaultPath(props.folderId);
+          };
+          const label = (): string => {
+            const r = row();
+            return r.kind === "folder" ? r.name : r.title;
+          };
+          const hint = (): string => {
+            const r = row();
+            return r.kind === "note" ? r.hint : "";
+          };
+          const caret = (): IconName => {
+            const r = row();
+            return r.kind === "folder" && r.collapsed ? "caret-right" : "caret-down";
+          };
+          return (
+            <View
+              role="button"
+              accessibilityLabel={label()}
+              onPress={() => {
+                const r = row();
+                if (r.kind === "folder") {
+                  props.onSelectFolder(r.id);
+                  props.onToggleFolder(r.id);
+                } else {
+                  props.onSelectNote(r.id);
+                }
+              }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                height: 30,
+                marginBottom: 1,
+                paddingLeft: 6 + row().depth * 14,
+                paddingRight: 8,
+                borderRadius: 6,
+                backgroundColor: selected() ? colors().accentSoft : "transparent",
+                borderLeftWidth: selected() ? 1 : 0,
+                borderLeftColor: selected() ? colors().accent : "transparent",
+              }}
+            >
+              <If when={isFolder()}>
+                <Icon name={caret()} color={colors().ink3} size={11} />
+                <Icon
+                  name="folder"
+                  color={targeting() ? colors().accent : colors().ink2}
+                  size={14}
+                />
+              </If>
+              <If when={!isFolder()}>
+                <View style={{ width: 11 }} />
+                <Icon name="file-text" color={colors().ink3} size={13} />
+              </If>
+              <Text
+                numberOfLines={1}
                 style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 9,
-                  height: props.rail ? 36 : 32,
-                  width: props.rail ? 36 : undefined,
-                  alignSelf: props.rail ? "center" : "auto",
-                  // 嵌套目录按深度缩进（根 depth=0）
-                  paddingLeft: props.rail ? 0 : 10 + (f.depth || 0) * 12,
-                  paddingRight: props.rail ? 0 : 10,
-                  justifyContent: props.rail ? "center" : "flex-start",
-                  borderRadius: 7,
-                  backgroundColor: on() ? colors().accentSoft : "transparent",
-                  borderLeftWidth: on() ? 1 : 0,
-                  borderLeftColor: on() ? colors().accent : "transparent",
+                  flex: 1,
+                  fontSize: 13,
+                  fontWeight: selected() ? "560" : "450",
+                  color: selected() ? colors().accent : colors().ink,
                 }}
               >
-                <Icon
-                  name={f.id === "" ? "notebook" : "folder"}
-                  color={on() ? colors().accent : colors().ink2}
-                  size={16}
-                />
-                <If when={!props.rail}>
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: "500",
-                      color: colors().ink,
-                      flex: 1,
-                    }}
-                  >
-                    {label}
-                  </Text>
-                </If>
-              </View>
-            );
-          }}
-        </Each>
-      </View>
+                {label()}
+              </Text>
+              <If when={hint() !== ""}>
+                <Text
+                  numberOfLines={1}
+                  style={{ maxWidth: 88, fontSize: 11, color: colors().ink3 }}
+                >
+                  {hint()}
+                </Text>
+              </If>
+            </View>
+          );
+        }}
+      </List>
 
       <View
         role="button"
         testID="sidebar-sync"
         accessibilityLabel={t("settings.sync")}
-        tooltip={props.rail ? <Text style={{ fontSize: 12 }}>{t("settings.sync")}</Text> : undefined}
         onPress={props.onSync}
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: props.rail ? 0 : 8,
-          width: props.rail ? 36 : undefined,
-          height: props.rail ? 36 : undefined,
-          alignSelf: props.rail ? "center" : "auto",
-          paddingHorizontal: props.rail ? 0 : 10,
-          paddingVertical: props.rail ? 0 : 8,
+          gap: 8,
+          marginTop: 6,
+          paddingHorizontal: 8,
+          paddingVertical: 7,
           borderRadius: 7,
-          justifyContent: props.rail ? "center" : "flex-start",
         }}
       >
         <Icon name="cloud" color={colors().ink2} size={14} />
-        <If when={!props.rail}>
-          <Text style={{ fontSize: 12, color: colors().ink2, flex: 1 }}>{syncLabel()}</Text>
-        </If>
-        <If when={!props.rail}>
-          <View
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: 3,
-              backgroundColor: syncDotColor(),
-            }}
-          />
-        </If>
+        <Text style={{ fontSize: 12, color: colors().ink2, flex: 1 }}>{syncLabel()}</Text>
+        <View
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: syncDotColor(),
+          }}
+        />
       </View>
     </View>
   );

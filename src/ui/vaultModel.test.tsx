@@ -1,9 +1,12 @@
 import { expect, test } from "nsh/test";
 import {
   foldersFromEntries,
+  libraryRows,
   normalizeVaultPath,
   noteBelongsToFolder,
   notesInFolder,
+  type FolderNode,
+  type NoteItem,
 } from "./vaultModel";
 
 test("normalizeVaultPath：反斜杠与首尾斜杠归一，并做 NFC", () => {
@@ -57,4 +60,47 @@ test("notesInFolder：NFD 文件夹 id 仍能匹配 NFC 笔记路径（复现 Ma
   const notes = notesInFolder(entries, nfd);
   expect(notes.length).toBe(1);
   expect(notes[0]?.path).toBe(`${nfc}/note.md`);
+});
+
+const TREE_FOLDERS: FolderNode[] = [
+  { id: "", name: "", path: "", depth: 0 },
+  { id: "Diary", name: "日记", path: "Diary", depth: 1 },
+  { id: "Projects", name: "项目", path: "Projects", depth: 1 },
+  { id: "Projects/Stoat", name: "水獭", path: "Projects/Stoat", depth: 2 },
+];
+
+const TREE_NOTES: NoteItem[] = [
+  { id: "Diary/今天.md", path: "Diary/今天.md", title: "今天", mtimeMs: 1 },
+  { id: "Projects/Stoat/计划.md", path: "Projects/Stoat/计划.md", title: "计划", mtimeMs: 2 },
+  { id: "root.md", path: "root.md", title: "根级笔记", mtimeMs: 3 },
+];
+
+test("libraryRows：文件夹在前、笔记嵌套，根目录笔记深度为 0", () => {
+  const rows = libraryRows(TREE_FOLDERS, TREE_NOTES, [], "");
+  expect(rows.map((r) => `${r.kind}:${r.id}:${r.depth}`)).toEqual([
+    "folder:Diary:0",
+    "note:Diary/今天.md:1",
+    "folder:Projects:0",
+    "folder:Projects/Stoat:1",
+    "note:Projects/Stoat/计划.md:2",
+    "note:root.md:0",
+  ]);
+});
+
+test("libraryRows：折叠文件夹会隐藏子孙，其他分支不受影响", () => {
+  const rows = libraryRows(TREE_FOLDERS, TREE_NOTES, ["Projects"], "");
+  expect(rows.some((r) => r.id === "Projects/Stoat")).toBe(false);
+  expect(rows.some((r) => r.id === "Diary/今天.md")).toBe(true);
+  const folder = rows.find((r) => r.kind === "folder" && r.id === "Projects");
+  expect(folder && folder.kind === "folder" && folder.collapsed).toBe(true);
+});
+
+test("libraryRows：搜索忽略折叠，平铺匹配笔记并带父文件夹名", () => {
+  const rows = libraryRows(TREE_FOLDERS, TREE_NOTES, ["Projects"], "计划", "我的库");
+  expect(rows).toEqual([
+    { kind: "note", id: "Projects/Stoat/计划.md", title: "计划", depth: 0, hint: "水獭" },
+  ]);
+
+  const rootHit = libraryRows(TREE_FOLDERS, TREE_NOTES, [], "根级", "我的库");
+  expect(rootHit[0]?.kind === "note" && rootHit[0].hint).toBe("我的库");
 });

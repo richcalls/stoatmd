@@ -11,9 +11,7 @@ function Harness() {
         mode={mode()}
         onMode={(m) => mode.set(m)}
         sidebarMode="expanded"
-        listOpen
         onCycleSidebar={() => {}}
-        onToggleList={() => {}}
         onFont={() => {}}
         onSettings={() => {}}
       />
