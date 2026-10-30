@@ -15,6 +15,15 @@ export type NoteItem = {
   mtimeMs: number;
 };
 
+export type LibraryRow =
+  | { kind: "folder"; id: string; name: string; depth: number; collapsed: boolean }
+  | { kind: "note"; id: string; title: string; depth: number; hint: string };
+
+function parentDir(path: string): string {
+  const i = path.lastIndexOf("/");
+  return i <= 0 ? "" : path.slice(0, i);
+}
+
 /**
  * 统一库内路径：NFC（对齐 macOS NFD 磁盘名）+ `/` 分隔 + 去首尾斜杠。
  * 侧栏选中 id 与 listRecursive 返回的 path 都必须经此再比较。
@@ -50,6 +59,72 @@ export function foldersFromEntries(entries: VaultEntryDto[]): FolderNode[] {
     })
     .sort((a, b) => a.path.localeCompare(b.path, undefined, { sensitivity: "base" }));
   return [{ id: "", name: "", path: "", depth: 0 }, ...dirs];
+}
+
+/**
+ * 文件树行：子文件夹在前、笔记在后；折叠的文件夹跳过其子孙。
+ * 有搜索词时忽略折叠，直接平铺匹配的笔记，并带上所在文件夹名。
+ */
+export function libraryRows(
+  folders: FolderNode[],
+  notes: NoteItem[],
+  collapsed: string[],
+  query: string,
+  rootName = "",
+): LibraryRow[] {
+  const folderMap = new Map<string, FolderNode>();
+  for (const f of folders) folderMap.set(normalizeVaultPath(f.id), f);
+  if (!folderMap.has("")) {
+    folderMap.set("", { id: "", name: "", path: "", depth: 0 });
+  }
+
+  const q = query.trim().toLowerCase();
+  if (q) {
+    return notes
+      .filter(
+        (n) => n.title.toLowerCase().includes(q) || n.path.toLowerCase().includes(q),
+      )
+      .map((n) => ({
+        kind: "note" as const,
+        id: n.id,
+        title: n.title,
+        depth: 0,
+        hint: folderMap.get(parentDir(normalizeVaultPath(n.id)))?.name || rootName,
+      }));
+  }
+
+  const children = new Map<string, FolderNode[]>();
+  const notesByParent = new Map<string, NoteItem[]>();
+  for (const id of folderMap.keys()) {
+    children.set(id, []);
+    notesByParent.set(id, []);
+  }
+  for (const f of folderMap.values()) {
+    if (!f.id) continue;
+    const siblings = children.get(parentDir(f.id)) ?? children.get("")!;
+    siblings.push(f);
+  }
+  for (const siblings of children.values()) {
+    siblings.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+  }
+  for (const n of notes) {
+    const files = notesByParent.get(parentDir(n.id)) ?? notesByParent.get("")!;
+    files.push(n);
+  }
+
+  const closed = new Set(collapsed.map(normalizeVaultPath));
+  const rows: LibraryRow[] = [];
+  const walk = (id: string, depth: number) => {
+    for (const f of children.get(id) ?? []) {
+      rows.push({ kind: "folder", id: f.id, name: f.name, depth, collapsed: closed.has(f.id) });
+      if (!closed.has(f.id)) walk(f.id, depth + 1);
+    }
+    for (const n of notesByParent.get(id) ?? []) {
+      rows.push({ kind: "note", id: n.id, title: n.title, depth, hint: "" });
+    }
+  };
+  walk("", 0);
+  return rows;
 }
 
 /**

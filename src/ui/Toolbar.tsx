@@ -7,8 +7,8 @@ import { t } from "./i18n";
 import { colors } from "./theme";
 
 export type ViewMode = "edit" | "split" | "preview";
-/** 文件夹栏：展开 200 / 图标轨 48 / 隐藏。 */
-export type SidebarMode = "expanded" | "rail" | "hidden";
+/** 左栏：展开 / 隐藏。 */
+export type SidebarMode = "expanded" | "hidden";
 
 /** macOS 原生标题栏：只留居中文案，整条可拖窗。 */
 export function TitleBar() {
@@ -34,9 +34,7 @@ export function TitleBar() {
 
 type Props = {
   sidebarMode: SidebarMode;
-  listOpen: boolean;
   onCycleSidebar: () => void;
-  onToggleList: () => void;
   onFont: () => void;
   onSettings: () => void;
 };
@@ -108,14 +106,6 @@ export function WorkspaceToolbar(props: WorkspaceProps) {
               color={props.sidebarMode !== "hidden" ? active() : ink()}
               size={16}
             />
-          </ToolButton>
-          <ToolButton
-            testID="toolbar-list"
-            active={props.listOpen}
-            label={t("toolbar.list")}
-            onPress={props.onToggleList}
-          >
-            <Icon name="list-pane" color={props.listOpen ? active() : ink()} size={16} />
           </ToolButton>
         </View>
       </If>

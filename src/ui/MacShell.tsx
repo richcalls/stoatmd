@@ -6,7 +6,6 @@ import { syncRuntime } from "../sync/runtime";
 import { ConflictDialog } from "./ConflictDialog";
 import { EditorWorkspace } from "./EditorWorkspace";
 import { t } from "./i18n";
-import { NoteList } from "./NoteList";
 import { loadSavedRoot, saveRoot } from "./prefs";
 import { SettingsSheet, type SettingsTab } from "./SettingsSheet";
 import { Sidebar } from "./Sidebar";
@@ -38,10 +37,9 @@ const SYNC_AFTER_SAVE_MS = 2500;
 const SYNC_PULL_MS = 90_000;
 const SYNC_START_DELAY_MS = 1200;
 
-/** Mac 三栏壳：Vault 真文件 + 自动保存 + 冲突提示。 */
+/** Mac 两栏壳：左栏文件树 + 右栏编辑/预览。 */
 export function MacShell() {
   const sidebarMode = signal<SidebarMode>("expanded");
-  const listOpen = signal(true);
   const mode = signal<ViewMode>("split");
   const vault = signal<Vault | null>(null);
   const vaultRoot = signal<string | null>(null);
@@ -50,6 +48,7 @@ export function MacShell() {
   const folderId = signal("");
   const selectedNoteId = signal("");
   const query = signal("");
+  const collapsed = signal<string[]>([]);
   const opened = signal<OpenedNote | null>(null);
   /** 打开笔记时的正文，作为 Editor 的 value；键入期间不再回灌。 */
   const draft = signal("");
@@ -69,6 +68,33 @@ export function MacShell() {
   const selfWrites = new Map<string, number>();
   let syncTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /** 文件所在目录（根目录为 `""`）。 */
+  const parentOf = (path: string): string => {
+    const p = normalizeVaultPath(path);
+    const i = p.lastIndexOf("/");
+    return i <= 0 ? "" : p.slice(0, i);
+  };
+
+  /** 打开/新建笔记后展开它的所有上级文件夹。 */
+  const expandAncestors = (path: string) => {
+    const chain: string[] = [];
+    let dir = parentOf(path);
+    while (dir) {
+      chain.push(dir);
+      dir = parentOf(dir);
+    }
+    if (chain.length === 0) return;
+    collapsed.update((ids) => ids.filter((id) => !chain.includes(id)));
+  };
+
+  const toggleFolder = (id: string) => {
+    const next = normalizeVaultPath(id);
+    if (!next) return;
+    collapsed.update((ids) =>
+      ids.includes(next) ? ids.filter((v) => v !== next) : [...ids, next],
+    );
+  };
+
   const refreshTree = (v: Vault, keepFolder?: string) => {
     try {
       // 始终全库递归一次，再在 TS 侧过滤（避开子路径 resolve / NFD 不一致）
@@ -79,16 +105,16 @@ export function MacShell() {
       const exists = !preferred || nextFolders.some((f) => f.id === preferred);
       const nextFolder = exists ? preferred : "";
       folderId.set(nextFolder);
-      applyNotes(entries, nextFolder, selectedNoteId(), v);
+      applyNotes(entries, selectedNoteId(), v);
     } catch (err) {
       status.set(String(err));
     }
   };
 
-  const refreshNotes = (v: Vault, dir: string, keepNote?: string) => {
+  const refreshNotes = (v: Vault, keepNote?: string) => {
     try {
       const entries = v.listRecursive("");
-      applyNotes(entries, dir, keepNote ?? selectedNoteId(), v);
+      applyNotes(entries, keepNote ?? selectedNoteId(), v);
     } catch (err) {
       status.set(String(err));
     }
@@ -109,8 +135,9 @@ export function MacShell() {
     }
   };
 
-  const applyNotes = (entries: VaultEntryDto[], dir: string, keepNote: string, v: Vault) => {
-    const nextNotes = notesInFolder(entries, dir);
+  const applyNotes = (entries: VaultEntryDto[], keepNote: string, v: Vault) => {
+    // 文件树始终展示全库笔记；folderId 只决定新建笔记落在哪个文件夹
+    const nextNotes = notesInFolder(entries);
     notes.set(nextNotes);
     const preferred = normalizeVaultPath(keepNote);
     const hit = nextNotes.find((n) => n.id === preferred);
@@ -139,6 +166,8 @@ export function MacShell() {
       draft.set(note.content);
       previewDraft.set(note.content);
       selectedNoteId.set(note.path);
+      folderId.set(parentOf(note.path));
+      expandAncestors(note.path);
       status.set("");
     } catch (err) {
       if (gen !== openGen) return;
@@ -235,6 +264,8 @@ export function MacShell() {
       Window.setTitle(`StoatMD — ${v.root}`);
       folderId.set("");
       selectedNoteId.set("");
+      collapsed.set([]);
+      query.set("");
       opened.set(null);
       liveText = "";
       draft.set("");
@@ -261,14 +292,9 @@ export function MacShell() {
     }
   };
 
-  const selectFolder = async (id: string) => {
-    const v = vault();
-    if (!v) return;
-    const next = normalizeVaultPath(id);
-    // 切到空文件夹时 applyNotes 会直接 clearEditor：先落盘，避免吞掉未保存输入
-    await flushSave();
-    folderId.set(next);
-    refreshNotes(v, next);
+  const selectFolder = (id: string) => {
+    // 文件树始终展示全库：选中文件夹只决定新建笔记的目标位置
+    folderId.set(normalizeVaultPath(id));
   };
 
   const selectNote = (id: string) => {
@@ -285,7 +311,8 @@ export function MacShell() {
     const body = `# ${titleFromName(path.split("/").pop() || "untitled")}\n\n`;
     try {
       v.create(path, body);
-      refreshNotes(v, folderId(), path);
+      expandAncestors(path);
+      refreshNotes(v, path);
       await openNote(v, path);
     } catch (err) {
       status.set(String(err));
@@ -406,9 +433,7 @@ export function MacShell() {
   };
 
   const cycleSidebar = () => {
-    sidebarMode.update((current) =>
-      current === "expanded" ? "rail" : current === "rail" ? "hidden" : "expanded",
-    );
+    sidebarMode.update((current) => (current === "expanded" ? "hidden" : "expanded"));
   };
 
   const openSettings = (tab: SettingsTab) => {
@@ -483,11 +508,6 @@ export function MacShell() {
         label: t("menu.view"),
         submenu: [
           { label: t("menu.view.sidebar"), shortcut: "mod+b", onSelect: cycleSidebar },
-          {
-            label: t("menu.view.list"),
-            shortcut: "mod+shift+b",
-            onSelect: () => listOpen.update((open) => !open),
-          },
           { type: "separator" },
           {
             label: t("mode.edit"),
@@ -590,12 +610,6 @@ export function MacShell() {
     cleanup(() => clearInterval(id));
   });
 
-  const folderLabel = () => {
-    const id = normalizeVaultPath(folderId());
-    if (!id) return t("vault.rootFolder");
-    return folders().find((f) => f.id === id)?.name ?? id;
-  };
-
   const fileName = () => {
     const cur = opened();
     if (!cur) return "—";
@@ -619,9 +633,7 @@ export function MacShell() {
             mode={mode()}
             onMode={changeMode}
             sidebarMode={sidebarMode()}
-            listOpen={listOpen()}
             onCycleSidebar={cycleSidebar}
-            onToggleList={() => listOpen.update((v) => !v)}
             onFont={() => openSettings("font")}
             onSettings={() => openSettings("appearance")}
           />
@@ -677,18 +689,23 @@ export function MacShell() {
       <If when={!!vault()}>
         <View style={{ flex: 1, flexDirection: "row" }}>
           <If when={sidebarMode() !== "hidden"}>
-            <View
-              style={{
-                width: sidebarMode() === "rail" ? 48 : 200,
-                minWidth: sidebarMode() === "rail" ? 48 : 200,
-              }}
-            >
+            <View style={{ width: 260, minWidth: 240 }}>
               <Sidebar
                 folders={folders()}
-                selected={folderId()}
-                onSelect={selectFolder}
+                notes={notes()}
+                selectedNoteId={selectedNoteId()}
+                folderId={folderId()}
+                collapsed={collapsed()}
+                query={query()}
+                onQuery={(q) => query.set(q)}
+                onSelectNote={selectNote}
+                onSelectFolder={selectFolder}
+                onToggleFolder={toggleFolder}
                 onOpenVault={() => {
                   void pickAndOpen();
+                }}
+                onNewNote={() => {
+                  void createNote();
                 }}
                 onSync={() => {
                   if (syncRuntime.conflicts().length > 0) {
@@ -698,26 +715,8 @@ export function MacShell() {
                   }
                 }}
                 vaultRoot={vaultRoot()}
-                rail={sidebarMode() === "rail"}
                 syncPhase={syncRuntime.phase()}
                 syncConflictCount={syncRuntime.conflicts().length}
-              />
-            </View>
-          </If>
-
-          <If when={listOpen()}>
-            <View style={{ width: 280, minWidth: 240 }}>
-              <NoteList
-                folderLabel={folderLabel()}
-                notes={notes()}
-                selectedNoteId={selectedNoteId()}
-                onSelectNote={selectNote}
-                onNewNote={() => {
-                  void createNote();
-                }}
-                query={query()}
-                onQuery={(q) => query.set(q)}
-                disabled={!vault()}
               />
             </View>
           </If>
@@ -727,9 +726,7 @@ export function MacShell() {
               mode={mode()}
               onMode={changeMode}
               sidebarMode={sidebarMode()}
-              listOpen={listOpen()}
               onCycleSidebar={cycleSidebar}
-              onToggleList={() => listOpen.update((v) => !v)}
               onFont={() => openSettings("font")}
               onSettings={() => openSettings("appearance")}
             />

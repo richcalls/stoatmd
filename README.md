@@ -4,6 +4,7 @@
 
 - 定名 **StoatMD** · 域名 [stoatmd.com](https://stoatmd.com) · 曾用名 LoomMD
 - 自选文件夹，普通 `.md` 文件（Vault：open / list / read / write / create / rename / delete）
+- 两栏：左栏搜索 + 可折叠文件树（笔记嵌在文件夹下），右栏编辑 / 分栏 / 预览
 - 源码编辑 + 仅编辑 / 分栏 / 仅预览；停顿自动保存；外部改文件冲突提示
 - 分栏时**编辑区与预览 60fps 双向滚动同步，丝滑跟手**（硬性验收标准）
 - Google Drive / Dropbox 云盘同步；本地库始终是真相，冲突逐文件弹选，不静默覆盖
@@ -54,7 +55,7 @@ StoatMD **不做所见即所得**，而是保留纯 Markdown 源码编辑与独�
 
 ```
 App.tsx                 # nsh 入口
-src/ui/                 # TSX：Mac 三栏壳 + Vault 接线
+src/ui/                 # TSX：Mac 两栏壳（文件树 + 编辑/预览）+ Vault 接线
 src/sync/               # 同步引擎、OAuth PKCE、Google Drive / Dropbox Provider
 src/lib.rs              # stoatmd/native 薄桥（选文件夹 / 监视 / OAuth / 钥匙串）
 crates/stoatmd-core/    # Vault 路径沙箱与 CRUD
@@ -88,9 +89,9 @@ nsh run --target macos
 3. 编辑正文，源码区按 DESIGN 语法色随主题高亮（标题 accent、粗体标记 ink3、行内代码棕底、引用绿），停顿约 0.7s 应出现「已保存」
 4. 用外部编辑器改同一文件 → 应弹出冲突：保留本地 / 从磁盘重载
 5. 分栏模式下分别滚动编辑区和预览 → 两侧应保持 60fps 双向同步，跟手无迟滞
-6. 设置 → 外观：12 套主题（浅色 8 / 深色 4，含纯白）；切换后三栏与预览配色即时更新
+6. 设置 → 外观：12 套主题（浅色 8 / 深色 4，含纯白）；切换后两栏与预览配色即时更新
 7. 设置 → 字体：下拉选择系统字体（可搜索）、字号、行高；预览与设置内示例即时变化
-8. 编辑工具条左侧按钮循环「展开 200px → 图标轨 48px → 隐藏」；列表可独立收起；⌘B / ⌘⇧B / ⌘1–3 / ⌘, 均有菜单项
+8. 左栏顶部可搜索全库笔记；文件夹可折叠、点笔记在右侧打开；工具条左侧按钮或 ⌘B 展开/隐藏文件树；⌘1–3 / ⌘, 均有菜单项
 9. 语言默认跟随系统，也可在设置中强制中文 / English（菜单文案随之切换）
 
 10. 配置好云盘 OAuth 凭据后，设置 → 同步 →「开启同步」→ 选提供商 → 浏览器授权 → 选/新建远程文件夹 → 首轮同步
@@ -127,7 +128,7 @@ Linux 可做类型/编译冒烟：`nsh check`；有 GTK 4.14+ 时可 `nsh run`�
 
 ## 当前进度
 
-- [x] Phase 0/1：混合工程 + Mac 三栏壳 + Editor/TextView 分栏
+- [x] Phase 0/1：混合工程 + Mac 两栏壳 + Editor/TextView 分栏
 - [x] Phase 2：Vault 读写、选文件夹、自动保存、冲突提示
-- [x] Phase 3：12 套主题网格、字体偏好、三栏折叠 / 图标轨、菜单快捷键、跟随系统多语言
+- [x] Phase 3：12 套主题网格、字体偏好、文件树折叠、菜单快捷键、跟随系统多语言
 - [x] Phase 4：Google Drive / Dropbox 同步（OAuth PKCE、选/建远程库、锚点增量、冲突逐文件弹选、自动推送与定时拉取）

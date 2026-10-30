@@ -10,7 +10,7 @@
 
 StoatMD（白鼬 / stoat）是本地 Markdown 笔记本。用户自选本机文件夹，读写普通 `.md` 文件；源码编辑，可切换或分栏预览——**不是**所见即所得。
 
-首发平台：macOS + iOS（iPad 接近 Mac 三栏）。公开署名 forecho。
+首发平台：macOS + iOS（iPad 接近 Mac 两栏）。公开署名 forecho。
 
 ## 谁在用、在干什么
 
@@ -20,13 +20,13 @@ StoatMD（白鼬 / stoat）是本地 Markdown 笔记本。用户自选本机文�
 
 | 平台 | 布局 |
 |------|------|
-| Mac | 三栏：文件夹树 / 笔记列表 / 编辑+预览；**三栏可折叠**（VS Code 式：左栏→图标轨或藏起、中栏可收，折叠后编辑区占满） |
+| Mac | 两栏：搜索 + 文件树（文件夹内嵌笔记） / 编辑+预览；**左栏可藏起**，藏起后编辑区占满 |
 | iPhone | 导航栈：文件夹 → 列表 → 编辑页 |
 | iPad | 近 Mac；窄屏可折双栏（v1 稿不单独出屏） |
 
 右栏模式：仅编辑 · **分栏（Mac 默认）** · 仅预览。非 WYSIWYG。
 
-Mac 编辑工具条：左侧 `SidebarSimple`（文件夹侧栏）· 笔记列表开关；右侧 `Code` · `Split` · `Eye` | `TextT` · `Gear`。**无**独立 Palette 入口。控件以图标为主（出海多语言，tooltip 中英均可）。
+Mac 编辑工具条：左侧 `SidebarSimple`（文件树展开 / 收起）；右侧 `Code` · `Split` · `Eye` | `TextT` · `Gear`。**无**独立 Palette 入口。控件以图标为主（出海多语言，tooltip 中英均可）。
 
 ## 设置 · 主题 · 字体（v1）
 

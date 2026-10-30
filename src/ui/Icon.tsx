@@ -2,14 +2,15 @@ import { Image } from "nsh";
 
 import book from "../../assets/icons/book.svg";
 import caretDown from "../../assets/icons/caret-down.svg";
+import caretRight from "../../assets/icons/caret-right.svg";
 import check from "../../assets/icons/check.svg";
 import cloud from "../../assets/icons/cloud.svg";
 import code from "../../assets/icons/code.svg";
 import eye from "../../assets/icons/eye.svg";
+import fileText from "../../assets/icons/file-text.svg";
 import folder from "../../assets/icons/folder.svg";
 import gear from "../../assets/icons/gear.svg";
 import lightbulb from "../../assets/icons/lightbulb.svg";
-import listPane from "../../assets/icons/list-pane.svg";
 import magnifyingGlass from "../../assets/icons/magnifying-glass.svg";
 import notebook from "../../assets/icons/notebook.svg";
 import palette from "../../assets/icons/palette.svg";
@@ -28,6 +29,7 @@ import x from "../../assets/icons/x.svg";
 export type IconName =
   | "notebook"
   | "folder"
+  | "file-text"
   | "book"
   | "pencil"
   | "lightbulb"
@@ -40,16 +42,17 @@ export type IconName =
   | "split"
   | "eye"
   | "sidebar"
-  | "list-pane"
   | "palette"
   | "sync"
   | "check"
   | "caret-down"
+  | "caret-right"
   | "x";
 
 const MAP = {
   notebook,
   folder,
+  "file-text": fileText,
   book,
   pencil,
   lightbulb,
@@ -62,11 +65,11 @@ const MAP = {
   split,
   eye,
   sidebar,
-  "list-pane": listPane,
   palette,
   sync,
   check,
   "caret-down": caretDown,
+  "caret-right": caretRight,
   x,
 } as const;
 
