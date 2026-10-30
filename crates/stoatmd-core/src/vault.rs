@@ -26,6 +26,8 @@ pub struct VaultEntry {
 pub struct VaultFile {
     pub content: String,
     pub mtime_ms: u64,
+    /// 创建时间（毫秒，Unix epoch）；文件系统不提供时回退为 mtime。
+    pub created_ms: u64,
 }
 
 /// Vault 错误。
@@ -180,6 +182,7 @@ impl Vault {
         Ok(VaultFile {
             content,
             mtime_ms: mtime_ms(&meta),
+            created_ms: created_ms(&meta),
         })
     }
 
@@ -383,6 +386,15 @@ fn mtime_ms(meta: &fs::Metadata) -> u64 {
         .unwrap_or(0)
 }
 
+fn created_ms(meta: &fs::Metadata) -> u64 {
+    meta.created()
+        .ok()
+        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+        .map(|d| d.as_millis() as u64)
+        .filter(|ms| *ms > 0)
+        .unwrap_or_else(|| mtime_ms(meta))
+}
+
 fn nfc(s: &str) -> String {
     s.nfc().collect()
 }
@@ -506,6 +518,7 @@ mod tests {
         let file = vault.read("writing/hello.md").unwrap();
         assert_eq!(file.content, "# Hello\n");
         assert_eq!(file.mtime_ms, mtime);
+        assert!(file.created_ms > 0);
 
         let entries = vault.list("writing").unwrap();
         assert_eq!(entries.len(), 1);

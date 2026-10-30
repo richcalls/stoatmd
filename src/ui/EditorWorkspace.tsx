@@ -2,7 +2,7 @@ import { List, View, batch, effect, signal } from "nsh";
 import { Editor, ResizablePanel, ResizablePanelGroup, TextView, type EditorDecoration } from "nsh/base";
 import { markdownDecorations } from "./markdownDecorations";
 import { kamiMonoFamily, kamiTypeScale } from "./kami";
-import { previewGap, previewModel } from "./previewModel";
+import { PREVIEW_TOP_PADDING, previewGap, previewModel } from "./previewModel";
 import { colors, themePreset, type ThemePreset } from "./theme";
 import { fontSize, lineHeightPx, previewFontFamily, systemFonts } from "./typography";
 import type { ViewMode } from "./Toolbar";
@@ -27,6 +27,8 @@ type Props = {
   preview: string;
   onChange: (value: string) => void;
   mode: ViewMode;
+  /** 阅读模式视口顶部块（目录滚动高亮用）。 */
+  onVisibleBlock?: (index: number) => void;
 };
 
 const editorTextStyles = () => ({
@@ -127,6 +129,30 @@ export function EditorWorkspace(props: Props) {
   const initial = previewModel(props.preview);
   const previewBlocks = signal(initial.blocks);
   const previewItemSize = signal(initial.estimatedItemSize);
+  const previewWidth = signal(0);
+
+  /** 正文左右留白：宽窗口 48，空间收紧时 28。 */
+  const gutter = () => {
+    const width = previewWidth();
+    if (width <= 0) return 44;
+    if (width >= 760) return 48;
+    if (width >= 520) return 28;
+    return 24;
+  };
+
+  /** 正文最大宽度随字号设置伸缩，仍落在 Kami 的可读区间。 */
+  const documentWidth = () =>
+    Math.min(720, Math.max(560, Math.round(650 + (fontSize() - 15) * 20)));
+
+  const handleVisible = (info: {
+    viewableItems: { index: number; isViewable: boolean }[];
+  }) => {
+    let top = Number.POSITIVE_INFINITY;
+    for (const item of info.viewableItems) {
+      if (item.isViewable && item.index < top) top = item.index;
+    }
+    if (Number.isFinite(top)) props.onVisibleBlock?.(top);
+  };
 
   // 语法装饰按（正文, 主题）记忆：输入时只扫一遍，主题不变不重复构造
   let decorationCache: { text: string; preset: ThemePreset; value: EditorDecoration[] } | null = null;
@@ -195,16 +221,24 @@ export function EditorWorkspace(props: Props) {
     return (
       <View
         style={{ flex: 1, backgroundColor: colors().preview }}
-        onLayout={(b) => setPreviewViewHeight(b.size.height)}
+        onLayout={(b) => {
+          setPreviewViewHeight(b.size.height);
+          previewWidth.set(b.size.width);
+        }}
       >
         {/* 整篇 TextView 不虚拟化，长文档会拖垮整窗帧率：按块交给 List 回收渲染 */}
         <List
           each={previewBlocks()}
           estimatedItemSize={previewItemSize()}
-          contentClass="px-9 py-7"
+          contentStyle={{
+            paddingTop: PREVIEW_TOP_PADDING,
+            paddingBottom: 26,
+            paddingHorizontal: gutter(),
+          }}
           testID="pane-preview"
           ref={attachPreview}
           onScroll={handlePreviewScroll}
+          onViewableItemsChange={handleVisible}
           style={{ flex: 1, backgroundColor: colors().preview }}
         >
           {(block, index) => {
@@ -216,9 +250,9 @@ export function EditorWorkspace(props: Props) {
             return (
               <View
                 style={{
-                  maxWidth: 720,
+                  maxWidth: documentWidth(),
                   width: "100%",
-                  alignSelf: "flex-start",
+                  alignSelf: "center",
                   paddingTop: gap(),
                 }}
               >
@@ -264,8 +298,8 @@ export function EditorWorkspace(props: Props) {
         handleAccessibilityLabel="Resize editor and preview"
         style={{ flex: 1 }}
       >
-        <ResizablePanel minSize={220}>{editorPane()}</ResizablePanel>
-        <ResizablePanel minSize={220}>{previewPane()}</ResizablePanel>
+        <ResizablePanel minSize={180}>{editorPane()}</ResizablePanel>
+        <ResizablePanel minSize={180}>{previewPane()}</ResizablePanel>
       </ResizablePanelGroup>
     );
   };

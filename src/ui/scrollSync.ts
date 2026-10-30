@@ -48,6 +48,8 @@ const S = {
   moveGaps: [] as number[],
   drives: 0,
   moves: 0,
+  /** 目录滚动高亮：编辑区偏移的观察者。 */
+  spy: null as ((editorY: number) => void) | null,
 };
 
 const ECHO_MS = 200;
@@ -203,6 +205,36 @@ export function scrollPreviewTo(y: number) {
   retry();
 }
 
+/** 观察编辑区滚动（目录高亮）；返回取消函数。 */
+export function watchEditorScroll(fn: (editorY: number) => void): () => void {
+  S.spy = fn;
+  ensureLoop();
+  fn(S.editorY);
+  void readEditorOffset();
+  return () => {
+    if (S.spy === fn) S.spy = null;
+  };
+}
+
+/** 把编辑区跳到某个源码行（目录跳转）；分栏时同步带动预览。 */
+export function scrollEditorToLine(line: number) {
+  const editor = S.editor ?? S.hidden;
+  if (!editor) return;
+  const y = Math.max(0, line * EDITOR_LINE_HEIGHT - 20);
+  S.driver = "editor";
+  S.editorY = y;
+  if (S.mode === "split" && editorScrollMax() > 0) {
+    S.editorTarget = y;
+    S.editorTargetAt = now();
+    editor.setScrollOffset({ x: 0, y });
+    drivePreviewFromEditor(y);
+    return;
+  }
+  // 内容高度还没测出来时，交给滚动回环按实际偏移带动预览
+  S.editorTarget = -1;
+  editor.setScrollOffset({ x: 0, y });
+}
+
 export function setSyncMode(mode: Mode) {
   if (S.mode === mode) return;
   S.mode = mode;
@@ -345,6 +377,7 @@ function handleEditorOffset(rawY: number) {
     Math.abs(y - S.editorTarget) <= ECHO_PX &&
     t - S.editorTargetAt <= ECHO_MS;
   S.editorY = y;
+  S.spy?.(y);
   if (echo) {
     S.editorTargetAt = t;
     return;
@@ -367,8 +400,14 @@ function ensureLoop() {
     S.frames += 1;
     const t = now();
     const hot = S.hovered || S.focused || t < S.hotUntil;
-    if (S.mode === "split" && S.editor && (hot || S.frames % 15 === 0)) {
-      void readEditorOffset();
+    if (S.editor) {
+      if (S.mode === "split") {
+        const every = S.spy ? 3 : 15;
+        if (hot || S.frames % every === 0) void readEditorOffset();
+      } else if (S.spy && (hot || S.frames % 2 === 0)) {
+        // 源码/阅读模式的目录高亮也要跟随编辑器滚动
+        void readEditorOffset();
+      }
     }
     requestAnimationFrame(tick);
   };

@@ -24,8 +24,8 @@ function ModeButton(props: {
       selected={props.active}
       onPress={props.onPress}
       style={{
-        width: 28,
-        height: 28,
+        width: 29,
+        height: 29,
         borderRadius: 6,
         alignItems: "center",
         justifyContent: "center",
@@ -38,7 +38,7 @@ function ModeButton(props: {
   );
 }
 
-/** 编辑 / 分栏 / 预览：放在编辑区顶栏，避开窗口拖拽区。 */
+/** 源码 / 分栏 / 阅读：放在统一窗口栏右侧。 */
 export function ModeSwitch(props: Props) {
   const ink = () => colors().ink2;
   const active = () => colors().accent;

@@ -24,9 +24,9 @@ test("语言默认跟随系统：日语 / 繁体中文 / 德语 / 西班牙语",
   }
 });
 
-test("工具条可打开设置，并可关闭", async () => {
+test("⌘, 打开设置，并可关闭", async () => {
   const app = await open("./App.tsx", { width: 1280, height: 800, locale: "zh-CN" });
-  await app.press("id:toolbar-settings");
+  await app.keyboard.press("mod+,");
   expect(app.shows("id:theme-weave-paper")).toBe(true);
   expect(app.shows("id:theme-pine-smoke")).toBe(true);
   expect(app.shows("id:settings-close")).toBe(true);
