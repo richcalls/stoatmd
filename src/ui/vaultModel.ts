@@ -1,5 +1,7 @@
 import type { Vault, VaultEntryDto, VaultFileDto } from "stoatmd/native";
 
+import { intlTag, translate, type Locale } from "./i18n";
+
 export type FolderNode = {
   id: string;
   name: string;
@@ -244,7 +246,7 @@ export function nextUntitledPath(dir: string, existing: NoteItem[]): string {
 const whenCache = new Map<string, string>();
 let whenCacheDay = "";
 
-export function formatWhen(mtimeMs: number, locale: string): string {
+export function formatWhen(mtimeMs: number, locale: Locale): string {
   if (!mtimeMs) return "";
   const now = new Date();
   // 列表滚动时每行都会调用：按「日期 + 语言 + mtime」缓存，跨天后整体失效
@@ -262,7 +264,7 @@ export function formatWhen(mtimeMs: number, locale: string): string {
   return formatted;
 }
 
-function formatWhenUncached(mtimeMs: number, locale: string, now: Date): string {
+function formatWhenUncached(mtimeMs: number, locale: Locale, now: Date): string {
   const d = new Date(mtimeMs);
   const sameDay =
     d.getFullYear() === now.getFullYear() &&
@@ -275,17 +277,18 @@ function formatWhenUncached(mtimeMs: number, locale: string, now: Date): string 
     d.getMonth() === yesterday.getMonth() &&
     d.getDate() === yesterday.getDate();
 
-  const time = d.toLocaleTimeString(locale === "en" ? "en-US" : "zh-CN", {
+  const tag = intlTag(locale);
+  const time = d.toLocaleTimeString(tag, {
     hour: "2-digit",
     minute: "2-digit",
   });
   if (sameDay) {
-    return locale === "en" ? `Today ${time}` : `今天 ${time}`;
+    return translate(locale, "time.today", { time });
   }
   if (isYesterday) {
-    return locale === "en" ? `Yesterday ${time}` : `昨天 ${time}`;
+    return translate(locale, "time.yesterday", { time });
   }
-  return d.toLocaleDateString(locale === "en" ? "en-US" : "zh-CN", {
+  return d.toLocaleDateString(tag, {
     month: "short",
     day: "numeric",
   });

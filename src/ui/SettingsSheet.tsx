@@ -42,42 +42,27 @@ const TABS: { id: SettingsTab; labelKey: string; icon: IconName }[] = [
   { id: "sync", labelKey: "settings.sync", icon: "sync" },
 ];
 
-const LOCALES: { id: LocalePref; key: string }[] = [
-  { id: "system", key: "settings.locale.system" },
-  { id: "zh", key: "settings.locale.zh" },
-  { id: "en", key: "settings.locale.en" },
+/** 语言名用各自的写法，只有「跟随系统」随界面翻译。 */
+const LOCALES: { id: LocalePref; label: string; key?: string }[] = [
+  { id: "system", label: "", key: "settings.locale.system" },
+  { id: "en", label: "English" },
+  { id: "zh", label: "简体中文" },
+  { id: "zh-Hant", label: "繁體中文" },
+  { id: "ja", label: "日本語" },
+  { id: "ko", label: "한국어" },
+  { id: "de", label: "Deutsch" },
+  { id: "fr", label: "Français" },
+  { id: "es", label: "Español" },
 ];
 
 const SHEET_WIDTH = 720;
 const SHEET_HEIGHT = 600;
 const THEME_CARD_WIDTH = 126;
 
-function OptionChip(props: {
-  testID?: string;
-  active: boolean;
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <View
-      role="button"
-      testID={props.testID}
-      onPress={props.onPress}
-      style={{
-        paddingHorizontal: 12,
-        height: 30,
-        borderRadius: 6,
-        borderWidth: 1,
-        borderColor: props.active ? colors().accent : colors().thread,
-        backgroundColor: props.active ? colors().accentSoft : "transparent",
-        justifyContent: "center",
-      }}
-    >
-      <Text style={{ fontSize: 13, color: props.active ? colors().accent : colors().ink }}>
-        {props.label}
-      </Text>
-    </View>
-  );
+function localeName(id: LocalePref): string {
+  const item = LOCALES.find((row) => row.id === id);
+  if (!item) return String(id);
+  return item.key ? t(item.key) : item.label;
 }
 
 function ThemeCard(props: { item: ThemePreset }) {
@@ -373,6 +358,98 @@ function FontPicker() {
   );
 }
 
+function LocalePicker() {
+  const menuOpen = signal(false);
+
+  return (
+    <Popover
+      open={menuOpen()}
+      onOpenChange={(next) => menuOpen.set(next)}
+      placement="bottom"
+      align="start"
+      offset={6}
+      popupStyle={{
+        width: 240,
+        padding: 6,
+        gap: 2,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: colors().thread,
+        backgroundColor: colors().editor,
+      }}
+      trigger={
+        <View
+          role="button"
+          testID="locale-select"
+          accessibilityLabel={t("settings.locale")}
+          style={{
+            height: 32,
+            paddingHorizontal: 10,
+            borderRadius: 7,
+            borderWidth: 1,
+            borderColor: colors().thread,
+            backgroundColor: colors().list,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <Text
+            style={{ flex: 1, fontSize: 13, fontWeight: "500", color: colors().ink }}
+            numberOfLines={1}
+          >
+            {localeName(localePref())}
+          </Text>
+          <Icon name="caret-down" color={colors().ink3} size={14} />
+        </View>
+      }
+    >
+      <View testID="locale-options" style={{ gap: 2 }}>
+        <Each of={LOCALES}>
+          {(row) => {
+            const item = row();
+            const selected = () => localePref() === item.id;
+            return (
+              <View
+                role="button"
+                testID={`locale-${item.id}`}
+                onPress={() => {
+                  setLocalePref(item.id);
+                  void saveLocale(item.id);
+                  menuOpen.set(false);
+                }}
+                style={{
+                  height: 30,
+                  paddingHorizontal: 8,
+                  borderRadius: 6,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  backgroundColor: selected() ? colors().accentSoft : "transparent",
+                }}
+              >
+                <Text
+                  style={{
+                    flex: 1,
+                    fontSize: 13,
+                    color: selected() ? colors().accent : colors().ink,
+                  }}
+                  numberOfLines={1}
+                >
+                  {item.key ? t(item.key) : item.label}
+                </Text>
+                <If when={selected()}>
+                  <Icon name="check" color={colors().accent} size={13} />
+                </If>
+              </View>
+            );
+          }}
+        </Each>
+      </View>
+    </Popover>
+  );
+}
+
 /** 设置 sheet：即时写入 prefs；× / Esc / 遮罩均可关闭。 */
 export function SettingsSheet(props: Props) {
   const close = () => props.onClose();
@@ -538,23 +615,8 @@ export function SettingsSheet(props: Props) {
                   >
                     {t("settings.locale")}
                   </Text>
-                  <View style={{ flexDirection: "row", gap: 8 }}>
-                    <Each of={LOCALES}>
-                      {(row) => {
-                        const item = row();
-                        return (
-                          <OptionChip
-                            testID={`locale-${item.id}`}
-                            active={localePref() === item.id}
-                            label={t(item.key)}
-                            onPress={() => {
-                              setLocalePref(item.id);
-                              void saveLocale(item.id);
-                            }}
-                          />
-                        );
-                      }}
-                    </Each>
+                  <View style={{ width: 240 }}>
+                    <LocalePicker />
                   </View>
                 </View>
               </View>

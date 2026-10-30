@@ -2,6 +2,7 @@ import { expect, test } from "nsh/test";
 import {
   duplicateNotePath,
   foldersFromEntries,
+  formatWhen,
   libraryRows,
   normalizeVaultPath,
   noteBelongsToFolder,
@@ -126,4 +127,22 @@ test("libraryRows：搜索忽略折叠，平铺匹配笔记并带父文件夹名
 
   const rootHit = libraryRows(TREE_FOLDERS, TREE_NOTES, [], "根级", "我的库");
   expect(rootHit[0]?.kind === "note" && rootHit[0].hint).toBe("我的库");
+});
+
+test("formatWhen：八种语言都用各自的「今天」与时间写法", () => {
+  const now = Date.now();
+  const prefixes: [string, string][] = [
+    ["en", "Today "],
+    ["zh", "今天 "],
+    ["zh-Hant", "今天 "],
+    ["ja", "今日 "],
+    ["ko", "오늘 "],
+    ["de", "Heute "],
+    ["fr", "Aujourd’hui "],
+    ["es", "Hoy "],
+  ];
+  for (const [loc, prefix] of prefixes) {
+    const out = formatWhen(now, loc as Parameters<typeof formatWhen>[1]);
+    expect({ loc, ok: out.startsWith(prefix) }).toEqual({ loc, ok: true });
+  }
 });
