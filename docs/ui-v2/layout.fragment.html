@@ -1,0 +1,337 @@
+<div id="stoatmd-layout" class="viz-carousel" aria-label="StoatMD 布局方案" data-previous-label="上一版" data-next-label="下一版">
+  <section data-variant="内嵌阅读画布" aria-label="内嵌阅读画布"></section>
+</div>
+<style>
+  #stoatmd-layout { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif; }
+  #stoatmd-layout * { box-sizing: border-box; }
+  #stoatmd-layout [hidden] { display: none !important; }
+  #stoatmd-layout .sm-app {
+    --sm-bg: light-dark(#ffffff,#202125);
+    --sm-chrome: light-dark(#f3f3f2,#292a2e);
+    --sm-nav: light-dark(#f0f0ef,#292a2e);
+    --sm-text: light-dark(#292a2e,#e5e5e7);
+    --sm-muted: light-dark(#777a80,#a0a2aa);
+    --sm-line: light-dark(#e1e2e3,#3a3b40);
+    --sm-active: light-dark(#dfe7ef,#384451);
+    --sm-blue: light-dark(#426688,#a1bedb);
+    --sm-hover: light-dark(#e6e6e5,#34353b);
+    --sm-soft: light-dark(#f7f7f6,#26272b);
+    --sm-pill: light-dark(#fff,#44454c);
+    --sm-doc-width: 650px;
+    --sm-nav-width: 208px;
+    --sm-inspector-width: 222px;
+    background: var(--sm-bg); color: var(--sm-text); border: 1px solid var(--sm-line);
+    border-radius: 13px; min-height: 724px; overflow: clip; font-size: 13px; line-height: 1.5;
+  }
+  #stoatmd-layout button, #stoatmd-layout input { font: inherit; color: inherit; }
+  #stoatmd-layout button { border: 0; background: transparent; padding: 0; }
+  #stoatmd-layout button:hover { background: var(--sm-hover); }
+  #stoatmd-layout button:focus-visible, #stoatmd-layout input:focus-visible { outline: 2px solid var(--sm-blue); outline-offset: 2px; }
+  #stoatmd-layout svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.6; }
+  #stoatmd-layout .sm-top { height: 50px; display: grid; grid-template-columns: var(--sm-nav-width) minmax(0,1fr); background: var(--sm-chrome); border-bottom: 1px solid var(--sm-line); }
+  #stoatmd-layout .sm-top-left { padding: 0 16px; display: flex; gap: 19px; align-items: center; border-right: 1px solid var(--sm-line); }
+  #stoatmd-layout .sm-lights { display: flex; gap: 7px; align-items: center; }
+  #stoatmd-layout .sm-lights span { width: 11px; height: 11px; border-radius: 50%; background: light-dark(#cacbc9,#64656c); }
+  #stoatmd-layout .sm-brand { font-size: 12px; font-weight: 500; letter-spacing: .1px; color: var(--sm-muted); }
+  #stoatmd-layout .sm-top-main { display: flex; align-items: center; gap: 10px; padding: 0 16px; min-width: 0; }
+  #stoatmd-layout .sm-icon { width: 29px; height: 29px; display: inline-flex; justify-content: center; align-items: center; border-radius: 5px; color: var(--sm-muted); flex-shrink: 0; }
+  #stoatmd-layout .sm-breadcrumb { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; font-size: 12px; }
+  #stoatmd-layout .sm-breadcrumb > span { color: var(--sm-muted); }
+  #stoatmd-layout .sm-breadcrumb strong { font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  #stoatmd-layout .sm-breadcrumb svg { width: 12px; height: 12px; color: var(--sm-muted); }
+  #stoatmd-layout .sm-modes { display: flex; align-items: center; gap: 3px; margin-left: auto; }
+  #stoatmd-layout .sm-modes [aria-pressed=true] { color: var(--sm-blue); background: var(--sm-active); }
+  #stoatmd-layout .sm-body { display: grid; grid-template-columns: var(--sm-nav-width) minmax(0,1fr); min-height: 672px; }
+  #stoatmd-layout .sm-nav { background: var(--sm-nav); border-right: 1px solid var(--sm-line); display: flex; flex-direction: column; padding: 16px 10px 12px; gap: 16px; }
+  #stoatmd-layout .sm-search { background: var(--sm-hover); border-radius: 6px; display: flex; align-items: center; padding: 7px 9px; gap: 7px; color: var(--sm-muted); }
+  #stoatmd-layout .sm-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 12px; }
+  #stoatmd-layout .sm-search input::placeholder { color: var(--sm-muted); }
+  #stoatmd-layout .sm-search span { font-size: 11px; white-space: nowrap; opacity: .8; }
+  #stoatmd-layout .sm-vault { display: flex; align-items: center; gap: 8px; padding: 0 7px; font-weight: 500; }
+  #stoatmd-layout .sm-vault > span { flex: 1; }
+  #stoatmd-layout .sm-vault svg { color: var(--sm-muted); }
+  #stoatmd-layout .sm-tree { flex: 1; }
+  #stoatmd-layout .sm-group { display: flex; gap: 7px; width: 100%; align-items: center; height: 32px; padding: 0 6px; border-radius: 5px; font-weight: 500; text-align: left; }
+  #stoatmd-layout .sm-group svg:first-child { width: 12px; }
+  #stoatmd-layout .sm-group svg { color: var(--sm-muted); }
+  #stoatmd-layout .sm-items { margin-bottom: 13px; }
+  #stoatmd-layout .sm-note { width: 100%; display: flex; align-items: center; gap: 7px; height: 33px; padding: 0 9px 0 29px; border-radius: 5px; text-align: left; font-size: 12px; }
+  #stoatmd-layout .sm-note svg { width: 13px; height: 13px; color: var(--sm-muted); }
+  #stoatmd-layout .sm-note span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #stoatmd-layout .sm-note[aria-current=page] { background: var(--sm-active); color: var(--sm-blue); font-weight: 500; }
+  #stoatmd-layout .sm-nav-bottom { display: flex; align-items: center; gap: 6px; color: var(--sm-muted); padding: 9px 7px 0; font-size: 11px; }
+  #stoatmd-layout .sm-nav-bottom .sm-count { margin-left: auto; }
+  #stoatmd-layout .sm-nav-bottom svg { width: 14px; }
+  #stoatmd-layout .sm-work { min-width: 0; position: relative; display: grid; grid-template-columns: minmax(0,1fr); background: var(--sm-bg); }
+  #stoatmd-layout .sm-work.sm-open { grid-template-columns: minmax(0,1fr) var(--sm-inspector-width); }
+  #stoatmd-layout .sm-reader { min-width: 0; padding: 44px 48px 26px; }
+  #stoatmd-layout .sm-document { max-width: var(--sm-doc-width); margin: 0 auto; }
+  #stoatmd-layout .sm-eyebrow { color: var(--sm-muted); font-size: 11px; letter-spacing: .7px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  #stoatmd-layout .sm-eyebrow svg { width: 12px; height: 12px; }
+  #stoatmd-layout .sm-document h1 { margin: 0 0 10px; font-size: 28px; font-weight: 600; line-height: 1.5; letter-spacing: -.7px; }
+  #stoatmd-layout .sm-document .sm-meta { font-size: 11px; color: var(--sm-muted); margin-bottom: 32px; }
+  #stoatmd-layout .sm-document p { font-size: 14px; line-height: 1.95; margin: 0 0 17px; }
+  #stoatmd-layout .sm-document h2 { font-size: 18px; font-weight: 600; line-height: 1.6; margin: 29px 0 12px; letter-spacing: -.3px; }
+  #stoatmd-layout .sm-document h3 { font-size: 14px; font-weight: 500; margin: 22px 0 9px; }
+  #stoatmd-layout .sm-document .sm-lead { color: var(--sm-muted); }
+  #stoatmd-layout .sm-document blockquote { margin: 23px 0; padding: 2px 0 2px 16px; border-left: 2px solid var(--sm-line); color: var(--sm-muted); font-size: 13px; line-height: 1.9; }
+  #stoatmd-layout .sm-document .sm-list { display: grid; gap: 10px; padding-left: 19px; margin: 0; font-size: 13px; line-height: 1.9; }
+  #stoatmd-layout .sm-document .sm-section-current { background: var(--sm-active); border-radius: 4px; }
+  #stoatmd-layout .sm-peek { position: absolute; right: 0; top: 20px; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 10px 7px; color: var(--sm-muted); font-size: 11px; border-radius: 6px 0 0 6px; background: var(--sm-soft); }
+  #stoatmd-layout .sm-peek span { writing-mode: vertical-rl; letter-spacing: 3px; }
+  #stoatmd-layout .sm-inspector { border-left: 1px solid var(--sm-line); background: var(--sm-nav); min-width: 0; padding: 13px 12px 18px; }
+  #stoatmd-layout .sm-inspector-top { display: flex; align-items: center; gap: 3px; padding-bottom: 17px; }
+  #stoatmd-layout .sm-tab { display: flex; align-items: center; gap: 5px; padding: 5px 8px; border-radius: 5px; color: var(--sm-muted); font-size: 12px; }
+  #stoatmd-layout .sm-tab[aria-selected=true] { background: var(--sm-hover); color: var(--sm-text); font-weight: 500; }
+  #stoatmd-layout .sm-tab svg { width: 13px; height: 13px; }
+  #stoatmd-layout .sm-inspector-top > .sm-icon { margin-left: auto; width: 25px; }
+  #stoatmd-layout .sm-caption { font-size: 11px; color: var(--sm-muted); margin: 8px 8px 13px; }
+  #stoatmd-layout .sm-toc { display: grid; gap: 3px; }
+  #stoatmd-layout .sm-toc button { width: 100%; min-height: 31px; text-align: left; padding: 5px 9px; border-radius: 4px; color: var(--sm-muted); font-size: 12px; }
+  #stoatmd-layout .sm-toc button[aria-current=true] { color: var(--sm-blue); background: var(--sm-active); }
+  #stoatmd-layout .sm-toc button.sm-sub { padding-left: 22px; font-size: 11px; }
+  #stoatmd-layout .sm-sep { border: 0; border-top: 1px solid var(--sm-line); margin: 24px 7px; }
+  #stoatmd-layout .sm-detail-title { color: var(--sm-muted); font-size: 11px; font-weight: 500; margin: 0 8px 13px; }
+  #stoatmd-layout .sm-details { margin: 0 8px; }
+  #stoatmd-layout .sm-details > div { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 13px; align-items: baseline; font-size: 11px; }
+  #stoatmd-layout .sm-details dt { color: var(--sm-muted); }
+  #stoatmd-layout .sm-details dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+  #stoatmd-layout .sm-details .sm-path { display: block; }
+  #stoatmd-layout .sm-path dd { margin-top: 7px; text-align: left; overflow-wrap: anywhere; color: var(--sm-muted); }
+  #stoatmd-layout .sm-tag { display: inline-flex; margin: 0 4px 4px 0; background: var(--sm-hover); border-radius: 4px; padding: 3px 7px; font-size: 11px; color: var(--sm-muted); }
+  #stoatmd-layout .sm-tags { margin: 0 8px; }
+  #stoatmd-layout .sm-code { display: block; margin: 0; white-space: pre-wrap; font: 12px/1.95 ui-monospace, "SF Mono", monospace; color: var(--sm-muted); overflow-wrap: anywhere; }
+  #stoatmd-layout .sm-code .sm-code-title { color: var(--sm-blue); }
+  #stoatmd-layout .sm-split { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  #stoatmd-layout .sm-split > pre { border-right: 1px solid var(--sm-line); padding-right: 15px; }
+  #stoatmd-layout .sm-split .sm-document h1 { font-size: 22px; }
+  #stoatmd-layout .sm-split .sm-document p { font-size: 12px; }
+  #stoatmd-layout .sm-split .sm-document h2 { font-size: 16px; }
+  #stoatmd-layout .sm-split .sm-document .sm-meta { margin-bottom: 20px; }
+  #stoatmd-layout .sm-app.sm-nav-hidden .sm-body { grid-template-columns: minmax(0,1fr); }
+  #stoatmd-layout .sm-app.sm-nav-hidden .sm-nav { display: none; }
+  #stoatmd-layout .sm-app.sm-nav-hidden .sm-top { grid-template-columns: 150px minmax(0,1fr); }
+  #stoatmd-layout .sm-app.sm-inset { background: var(--sm-nav); border-bottom: 0; }
+  #stoatmd-layout .sm-inset .sm-top { border-bottom: 0; }
+  #stoatmd-layout .sm-inset .sm-top-left { border-right: 0; }
+  #stoatmd-layout .sm-inset .sm-nav { border-right: 0; }
+  #stoatmd-layout .sm-inset .sm-work { margin: 0 9px 9px 0; border: 1px solid var(--sm-line); border-radius: 10px; overflow: clip; }
+  #stoatmd-layout .sm-inset .sm-top-main { padding-left: 8px; }
+  #stoatmd-layout .sm-inset .sm-inspector { background: var(--sm-soft); }
+  @media (max-width: 800px) {
+    #stoatmd-layout .sm-app { --sm-nav-width: 180px; --sm-inspector-width: 200px; }
+    #stoatmd-layout .sm-reader { padding: 36px 28px 26px; }
+    #stoatmd-layout .sm-work.sm-open .sm-reader { padding: 30px 24px; }
+    #stoatmd-layout .sm-work.sm-open .sm-document h1 { font-size: 23px; }
+    #stoatmd-layout .sm-brand { display: none; }
+    #stoatmd-layout .sm-breadcrumb > span, #stoatmd-layout .sm-breadcrumb > svg { display: none; }
+    #stoatmd-layout .sm-split { grid-template-columns: minmax(0,1fr); }
+    #stoatmd-layout .sm-split > pre { border-right: 0; border-bottom: 1px solid var(--sm-line); padding-bottom: 15px; }
+  }
+  @media (max-width: 620px) {
+    #stoatmd-layout .sm-app { min-height: 724px; }
+    #stoatmd-layout .sm-top { grid-template-columns: 62px minmax(0,1fr); }
+    #stoatmd-layout .sm-top-left { gap: 0; padding: 0 9px; border-right: 0; }
+    #stoatmd-layout .sm-lights { gap: 4px; }
+    #stoatmd-layout .sm-lights span { width: 9px; height: 9px; }
+    #stoatmd-layout .sm-body { grid-template-columns: minmax(0,1fr); }
+    #stoatmd-layout .sm-nav { display: none; }
+    #stoatmd-layout .sm-app.sm-mobile-nav .sm-nav { display: flex; border-right: 0; border-bottom: 1px solid var(--sm-line); }
+    #stoatmd-layout .sm-app.sm-mobile-nav .sm-tree { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+    #stoatmd-layout .sm-work.sm-open { grid-template-columns: minmax(0,1fr); }
+    #stoatmd-layout .sm-work.sm-open .sm-inspector { grid-row: 1; border-left: 0; border-bottom: 1px solid var(--sm-line); }
+    #stoatmd-layout .sm-toc { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    #stoatmd-layout .sm-top-main { gap: 4px; padding: 0 9px 0 0; }
+    #stoatmd-layout .sm-top-main > .sm-icon { width: 24px; }
+    #stoatmd-layout .sm-breadcrumb { font-size: 11px; }
+    #stoatmd-layout .sm-modes { gap: 0; }
+    #stoatmd-layout .sm-modes .sm-icon { width: 27px; }
+    #stoatmd-layout .sm-inset .sm-work { margin: 0 7px 7px; }
+    #stoatmd-layout .sm-app.sm-nav-hidden .sm-top { grid-template-columns: 62px minmax(0,1fr); }
+    #stoatmd-layout .sm-reader { padding: 34px 25px 28px; }
+    #stoatmd-layout .sm-document h1 { font-size: 24px; }
+  }
+  @media (pointer: coarse) {
+    #stoatmd-layout .sm-icon, #stoatmd-layout .sm-modes .sm-icon, #stoatmd-layout .sm-top-main > .sm-icon { min-height: 44px; }
+    #stoatmd-layout .sm-tab, #stoatmd-layout .sm-note, #stoatmd-layout .sm-group, #stoatmd-layout .sm-toc button { min-height: 44px; }
+    #stoatmd-layout .sm-search input { font-size: 16px; }
+  }
+</style>
+<script>
+(() => {
+  const root = document.getElementById('stoatmd-layout');
+  const icon = (name) => `<i data-lucide="${name}" aria-hidden="true"></i>`;
+  const groups = [
+    ['Clippings', ['万字教程：小红书从 0 到 1', '从这里开始：六步学习与实践', 'AI Agent 开发究竟是什么？', '翻车普拉斯（中）', '翻车普拉斯（上）']],
+    ['Template', ['美股每日复盘', '周报']],
+    ['价格行为学', ['dwrety 逐 K 学习经历', 'PA 百科', '我的 PA 交易规则', '价格行为交易方向']]
+  ];
+  const shortTitle = '从这里开始：六步学习与实践';
+  const contents = [
+    ['开始之前','sm-intro',false], ['收集：留下值得思考的内容','sm-collect',false],
+    ['给信息一个入口','sm-inbox',true], ['整理：建立自己的结构','sm-organize',false],
+    ['实践：让知识产生连接','sm-practice',false]
+  ];
+  const article = `<div class="sm-eyebrow">${icon('file-text')}CLIPPINGS</div>
+    <h1>${shortTitle}</h1>
+    <div class="sm-meta">10 月 30 日更新 · 学习笔记</div>
+    <p class="sm-lead" data-section="sm-intro">一个知识库的价值，来自持续的思考与使用。把收集、整理和实践连接起来，让每一篇笔记都有自己的位置。</p>
+    <h2 data-section="sm-collect">收集：留下值得思考的内容</h2>
+    <p>遇到有启发的文章，先保存下来，再写一句自己的理解。这句话会成为下次回到这篇笔记时，最好的入口。</p>
+    <h3 data-section="sm-inbox">给信息一个入口</h3>
+    <p>把暂时来不及整理的内容放进 Clippings。每周留一点时间，重新阅读，补充标题，再移到合适的文件夹。</p>
+    <blockquote>记下一个观点，也记下它为什么与你有关。</blockquote>
+    <h2 data-section="sm-organize">整理：建立自己的结构</h2>
+    <p>用清晰的标题串起文章，用文件夹组织主题。目录呈现文章的脉络，链接让相关的思考逐渐汇合。</p>
+    <h2 data-section="sm-practice">实践：让知识产生连接</h2>
+    <p>从一条可执行的行动开始。在真实问题里验证它，把结果写回笔记，让经验成为下一次判断的依据。</p>`;
+  const markdown = `# ${shortTitle}\n\n一个知识库的价值，来自持续的思考与使用。把收集、整理和实践连接起来，让每一篇笔记都有自己的位置。\n\n## 收集：留下值得思考的内容\n\n遇到有启发的文章，先保存下来，再写一句自己的理解。这句话会成为下次回到这篇笔记时，最好的入口。\n\n### 给信息一个入口\n\n把暂时来不及整理的内容放进 Clippings。每周留一点时间，重新阅读，补充标题，再移到合适的文件夹。\n\n> 记下一个观点，也记下它为什么与你有关。\n\n## 整理：建立自己的结构\n\n用清晰的标题串起文章，用文件夹组织主题。目录呈现文章的脉络，链接让相关的思考逐渐汇合。\n\n## 实践：让知识产生连接\n\n从一条可执行的行动开始。在真实问题里验证它，把结果写回笔记，让经验成为下一次判断的依据。`;
+  const textOnly = article.replace(/<[^>]+>/g,'').replace(/CLIPPINGS|10 月 30 日更新 · 学习笔记|\s/g,'');
+  const characterCount = Array.from(textOnly).length;
+  const paragraphCount = (article.match(/<(?:p|blockquote)[ >]/g)||[]).length;
+  const headingCount = (article.match(/<h[1-6][ >]/g)||[]).length;
+  const data = [
+    {inspector:false, tab:'outline', mode:'read', nav:true, mobileNav:false, selected:'sm-collect'},
+    {inspector:false, tab:'outline', mode:'read', nav:true, mobileNav:false, selected:'sm-collect'}
+  ];
+  const design = {appearance:'跟随系统', sidebar:208, article:650};
+  function restore(saved) {
+    const incoming = saved?.privateContent?.views;
+    if (Array.isArray(incoming)) incoming.slice(0,2).forEach((v,i) => {
+      if (typeof v?.inspector==='boolean') data[i].inspector=v.inspector;
+      if (['outline','info'].includes(v?.tab)) data[i].tab=v.tab;
+      if (['read','code','split'].includes(v?.mode)) data[i].mode=v.mode;
+      if (contents.some(c=>c[1]===v?.selected)) data[i].selected=v.selected;
+    });
+  }
+  restore(window.openai?.widgetState);
+  root.querySelectorAll('[data-variant]').forEach((stage,i) => {
+    const uid = `sm-v${i}`;
+    stage.innerHTML = `<div class="sm-app sm-inset" aria-label="${stage.dataset.variant}">
+      <header class="sm-top">
+        <div class="sm-top-left"><div class="sm-lights" aria-hidden="true"><span></span><span></span><span></span></div><span class="sm-brand">StoatMD</span></div>
+        <div class="sm-top-main">
+          <button class="sm-icon cursor-interaction" data-action="nav" aria-label="切换笔记侧栏" data-tooltip="切换笔记侧栏">${icon('panel-left')}</button>
+          <div class="sm-breadcrumb"><span>Clippings</span>${icon('chevron-right')}<strong>${shortTitle}</strong></div>
+          <div class="sm-modes" role="group" aria-label="文章模式">
+            <button class="sm-icon cursor-interaction" data-mode="code" aria-label="源码模式" data-tooltip="源码">${icon('code-xml')}</button>
+            <button class="sm-icon cursor-interaction" data-mode="split" aria-label="分栏模式" data-tooltip="分栏">${icon('columns-2')}</button>
+            <button class="sm-icon cursor-interaction" data-mode="read" aria-label="阅读模式" data-tooltip="阅读">${icon('eye')}</button>
+          </div>
+        </div>
+      </header>
+      <div class="sm-body">
+        <aside class="sm-nav" aria-label="笔记侧栏">
+          <label class="sm-search">${icon('search')}<input type="search" placeholder="搜索笔记" aria-label="搜索笔记"><span>⌘ K</span></label>
+          <div class="sm-vault">${icon('notebook')}<span>forecho</span></div>
+          <nav class="sm-tree" aria-label="笔记文件夹">
+            ${groups.map(([name,notes])=>`<div class="sm-folder"><button class="sm-group cursor-interaction" aria-expanded="true">${icon('chevron-down')}${icon('folder')}<span>${name}</span></button><div class="sm-items">${notes.map(note=>`<div class="sm-note" ${note===shortTitle?'aria-current="page"':''}>${icon('file-text')}<span>${note}</span></div>`).join('')}</div></div>`).join('')}
+          </nav>
+          <div class="sm-nav-bottom">${icon('cloud')}<span>未开启同步</span><span class="sm-count">128 篇笔记</span></div>
+        </aside>
+        <div class="sm-work">
+          <main class="sm-reader" aria-label="文章内容"><article class="sm-document">${article}</article><pre class="sm-code" hidden></pre></main>
+          <button class="sm-peek cursor-interaction" data-action="open" aria-label="展开目录与文章信息" aria-expanded="false" aria-controls="${uid}-inspector">${icon('list-tree')}<span>目录</span></button>
+          <aside id="${uid}-inspector" class="sm-inspector" aria-label="文章检查栏" hidden>
+            <div class="sm-inspector-top" role="tablist" aria-label="文章面板">
+              <button id="${uid}-outline-tab" class="sm-tab cursor-interaction" data-tab="outline" role="tab" aria-controls="${uid}-outline" aria-selected="true">${icon('list-tree')}目录</button>
+              <button id="${uid}-info-tab" class="sm-tab cursor-interaction" data-tab="info" role="tab" aria-controls="${uid}-info" aria-selected="false">${icon('info')}信息</button>
+              <button class="sm-icon cursor-interaction" data-action="close" aria-label="收起右栏" data-tooltip="收起右栏">${icon('panel-right-close')}</button>
+            </div>
+            <div id="${uid}-outline" role="tabpanel" aria-labelledby="${uid}-outline-tab" data-panel="outline">
+              <p class="sm-caption">文章结构</p>
+              <nav class="sm-toc" aria-label="文章目录">${contents.map(([title,id,sub])=>`<button class="${sub?'sm-sub ':''}cursor-interaction" data-target="${id}" aria-current="${id==='sm-collect'}">${title}</button>`).join('')}</nav>
+            </div>
+            <div id="${uid}-info" role="tabpanel" aria-labelledby="${uid}-info-tab" data-panel="info" hidden>
+              <h3 class="sm-detail-title">统计</h3>
+              <dl class="sm-details"><div><dt>字符数</dt><dd>${characterCount}</dd></div><div><dt>预计阅读</dt><dd>约 ${Math.max(1,Math.ceil(characterCount/300))} 分钟</dd></div><div><dt>段落</dt><dd>${paragraphCount}</dd></div><div><dt>标题</dt><dd>${headingCount}</dd></div></dl>
+              <hr class="sm-sep">
+              <h3 class="sm-detail-title">文件信息</h3>
+              <dl class="sm-details"><div><dt>创建于</dt><dd>2026/10/28 09:41</dd></div><div><dt>修改于</dt><dd>2026/10/30 10:32</dd></div><div><dt>格式</dt><dd>Markdown</dd></div><div class="sm-path"><dt>位置</dt><dd>forecho / Clippings /<br>${shortTitle}.md</dd></div></dl>
+              <hr class="sm-sep"><h3 class="sm-detail-title">标签</h3><div class="sm-tags"><span class="sm-tag">学习</span><span class="sm-tag">知识管理</span></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>`;
+    const app=stage.querySelector('.sm-app');
+    const reader=app.querySelector('.sm-reader');
+    const pre=reader.querySelector('pre');
+    pre.textContent=markdown;
+    function render() {
+      const s=data[i];
+      app.querySelector('.sm-work').classList.toggle('sm-open',s.inspector);
+      app.querySelector('.sm-inspector').hidden=!s.inspector;
+      app.querySelector('.sm-peek').hidden=s.inspector;
+      app.querySelector('.sm-peek').setAttribute('aria-expanded',String(s.inspector));
+      app.classList.toggle('sm-nav-hidden',!s.nav);
+      app.classList.toggle('sm-mobile-nav',s.mobileNav);
+      app.querySelector('[data-action="nav"]').setAttribute('aria-expanded',String(s.nav));
+      app.querySelectorAll('[data-tab]').forEach(el=>el.setAttribute('aria-selected',String(el.dataset.tab===s.tab)));
+      app.querySelectorAll('[data-panel]').forEach(el=>el.hidden=el.dataset.panel!==s.tab);
+      app.querySelectorAll('[data-mode]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.mode===s.mode)));
+      reader.classList.toggle('sm-split',s.mode==='split');
+      pre.hidden=s.mode==='read';
+      reader.querySelector('.sm-document').hidden=s.mode==='code';
+      app.querySelectorAll('[data-target]').forEach(el=>el.setAttribute('aria-current',String(el.dataset.target===s.selected)));
+    }
+    stage._render=render;
+    app.addEventListener('click',event=>{
+      const button=event.target.closest('button');
+      if(!button) return;
+      const s=data[i];
+      const action=button.dataset.action;
+      if(action==='open') s.inspector=true;
+      if(action==='close') s.inspector=false;
+      if(action==='nav') { s.nav=!s.nav; s.mobileNav=!s.mobileNav; }
+      if(button.dataset.tab) s.tab=button.dataset.tab;
+      if(button.dataset.mode) s.mode=button.dataset.mode;
+      if(button.dataset.target) {
+        s.selected=button.dataset.target;
+        reader.querySelectorAll('[data-section]').forEach(el=>el.classList.toggle('sm-section-current',el.dataset.section===s.selected));
+      }
+      if(button.classList.contains('sm-group')) {
+        const expanded=button.getAttribute('aria-expanded')==='true';
+        button.setAttribute('aria-expanded',String(!expanded));
+        button.nextElementSibling.hidden=expanded;
+      }
+      render();
+      save();
+    });
+    app.querySelector('input').addEventListener('input',event=>{
+      const query=event.target.value.trim().toLocaleLowerCase();
+      app.querySelectorAll('.sm-note').forEach(note=>note.hidden=!note.textContent.toLocaleLowerCase().includes(query));
+    });
+    app.addEventListener('keydown',event=>{
+      if(event.key==='Escape' && data[i].inspector) { data[i].inspector=false;render();app.querySelector('.sm-peek').focus();save(); }
+      if((event.metaKey||event.ctrlKey) && event.key.toLowerCase()==='k') { event.preventDefault();app.querySelector('input').focus(); }
+      const tab=event.target.closest('[data-tab]');
+      if(tab && ['ArrowLeft','ArrowRight'].includes(event.key)) {
+        event.preventDefault();data[i].tab=data[i].tab==='outline'?'info':'outline';render();app.querySelector(`[data-tab="${data[i].tab}"]`).focus();save();
+      }
+    });
+    render();
+  });
+  function renderDesign() {
+    root.querySelectorAll('.sm-app').forEach(app=>{
+      app.style.colorScheme=design.appearance==='浅色'?'light':design.appearance==='深色'?'dark':'inherit';
+      app.style.setProperty('--sm-nav-width',`${design.sidebar}px`);
+      app.style.setProperty('--sm-doc-width',`${design.article}px`);
+    });
+  }
+  function save() {
+    if(window.openai?.setWidgetState) window.openai.setWidgetState({modelContent:{design:'StoatMD 双侧栏设计',views:data.map((s,i)=>({方案:'内嵌阅读画布',右栏:s.inspector?'展开':'收起',面板:s.tab==='outline'?'目录':'信息'}))},privateContent:{views:data}}).catch(()=>{});
+  }
+  window.addEventListener('openai:set_globals',event=>{
+    const saved=event.detail?.globals?.widgetState;
+    if(saved) {restore(saved);root.querySelectorAll('[data-variant]').forEach(stage=>stage._render());}
+  });
+  renderDesign();
+  if(globalThis.Tweak) {
+    const tweak=new Tweak({container:root,onChange:renderDesign});
+    tweak.addSelect(design,'appearance',{label:'外观',options:['跟随系统','浅色','深色']});
+    tweak.addSlider(design,'sidebar',{label:'左栏宽度',min:180,max:240,step:4,unit:'px'});
+    tweak.addSlider(design,'article',{label:'正文最大宽度',min:520,max:720,step:10,unit:'px'});
+  }
+})();
+</script>
