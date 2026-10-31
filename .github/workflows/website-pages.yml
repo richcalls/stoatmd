@@ -28,7 +28,7 @@ env:
 
 jobs:
   website:
-    name: 构建官网${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && '并发布' || '' }}
+    name: 官网构建与发布
     # 组织账单异常期间改用 WSL2 自托管 runner（forecho）；仓库为私有，自托管安全
     runs-on: [self-hosted, linux, wsl2]
     permissions:
