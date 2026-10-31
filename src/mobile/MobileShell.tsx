@@ -18,6 +18,7 @@ import { THEMES, applyTheme, colors, isDarkTheme, themeId } from "../ui/theme";
 import { applyEditorFontSize, applyFontSize, editorFontSize, fontSize, lineHeightPx } from "../ui/typography";
 import { formatWhen, notesInFolder, titleFromName } from "../ui/vaultModel";
 import { mobileLibrary, type MobileLibrary } from "./library";
+import { syncStatus } from "./syncStatus";
 
 type Route = { kind: "library"; folder: string } | { kind: "document" };
 type Panel = "settings" | "outline" | "type" | "actions" | "rename" | "folder" | "move" | "trash" | "erase" | "cloudConflicts" | null;
@@ -28,6 +29,24 @@ function Action(props: { label: string; onPress: () => void; icon?: IconName; id
     {props.icon ? <Icon name={props.icon} color={colors().accent} size={21} /> : null}
     <Text style={{ color: colors().accent, fontSize: 16 }}>{props.label}</Text>
   </Button>;
+}
+
+/** 同步进行中显示进度，失败时给出原因和重试；同步完成后不占空间。 */
+function SyncBanner(props: { onRetry: () => void }) {
+  const current = syncStatus(syncRuntime.phase(), syncRuntime.progress(), syncRuntime.error());
+  if (!current) return null;
+  if (current.kind === "error") {
+    return <View testID="mobile-sync-error" style={{ padding: 14, gap: 8, backgroundColor: colors().accentSoft }}>
+      <Text style={{ color: colors().ink }}>{t(current.key)}</Text>
+      <Action label={t("sync.error.retry")} onPress={props.onRetry} />
+    </View>;
+  }
+  return <View testID="mobile-sync-progress" style={{ paddingHorizontal: 22, paddingBottom: 10, gap: 6 }}>
+    <Text style={{ color: colors().ink3 }}>{t(current.key, current.params)}</Text>
+    <View style={{ height: 4, borderRadius: 2, backgroundColor: colors().thread }}>
+      <View style={{ height: 4, width: `${current.percent}%`, borderRadius: 2, backgroundColor: colors().accent }} />
+    </View>
+  </View>;
 }
 
 export function MobileShell(props: { library?: MobileLibrary } = {}) {
@@ -198,6 +217,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; onStorag
         <LibraryPage library={lib} folder={route.folder} onOpen={openNote} busy={busy()}
           onFolder={(folder) => nav.push({ kind: "library", folder })} />
         {errorBanner()}
+        {props.connected ? <SyncBanner onRetry={() => { void run(sync); }} /> : null}
         {props.connected ? <Text testID="mobile-sync-status" style={{ color: colors().ink3, paddingHorizontal: 22, paddingBottom: 8 }}>{t(`sync.${syncRuntime.phase() === "offline" ? "offline" : syncRuntime.phase() === "syncing" ? "syncing" : syncRuntime.phase() === "conflict" ? "manageConflicts" : syncRuntime.phase() === "error" ? "error.generic" : "synced"}`)}</Text> : null}
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: colors().thread, paddingHorizontal: 10, paddingBottom: bottom().bottom }}>
           <Action id="mobile-new-folder" icon="folder" label={t("mobile.newFolder")} disabled={busy()} onPress={() => { input.set(""); show("folder"); }} />

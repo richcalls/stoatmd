@@ -37,6 +37,29 @@ export class RemoteConflictError extends SyncError {
 
 export type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
+/** 单次网络请求的上限：挂起的请求要变成可重试的错误，而不是永远停在「同步中」。 */
+export const REQUEST_TIMEOUT_MS = 60_000;
+
+export function fetchWithTimeout(
+  fetchImpl: FetchLike,
+  input: string | URL | Request,
+  init?: RequestInit,
+  timeoutMs: number = REQUEST_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<Response>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error("request timed out"));
+      controller.abort();
+    }, timeoutMs);
+  });
+  return Promise.race([
+    fetchImpl(input, { ...init, signal: controller.signal }),
+    timeout,
+  ]).finally(() => clearTimeout(timer));
+}
+
 export type SyncProvider = {
   readonly id: ProviderId;
   readonly account: string | null;

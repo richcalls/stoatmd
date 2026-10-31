@@ -11,6 +11,7 @@ import { dirName, isMarkdownName, normalizeSyncPath } from "./paths";
 import {
   RemoteConflictError,
   SyncError,
+  fetchWithTimeout,
   isRecoverableNetworkError,
   type FetchLike,
   type RemoteDir,
@@ -27,6 +28,7 @@ import {
   type ConflictItem,
   type LocalFile,
   type ProviderId,
+  type RemoteFile,
 } from "./types";
 
 const CONNECTION_KEY = "sync.connection";
@@ -63,6 +65,8 @@ export type SyncRunResult = {
   /** 本轮被云端内容改写的本地路径（界面据此刷新打开的笔记）。 */
   changedLocal: string[];
   error: { kind: SyncErrorKind; message: string } | null;
+  /** 单文件推送无法安全完成，调用方应改跑一次全量同步。 */
+  needsFullSync?: boolean;
 };
 
 const EMPTY: Omit<SyncRunResult, "conflicts" | "changedLocal" | "error"> = {
@@ -100,11 +104,15 @@ export class SyncRuntime {
   private loaded = false;
   private loading: Promise<void> | null = null;
   private running: Promise<SyncRunResult> | null = null;
+  private pushing: Promise<SyncRunResult | null> | null = null;
+  private readonly fetchImpl: FetchLike;
   private resolving: Promise<void> | null = null;
   private sessions = new Map<ProviderId, TokenSession>();
   private pending: { provider: ProviderId; session: TokenSession } | null = null;
 
-  constructor(private readonly fetchImpl: FetchLike = (input, init) => fetch(input, init)) {}
+  constructor(fetchImpl: FetchLike = (input, init) => fetch(input, init)) {
+    this.fetchImpl = (input, init) => fetchWithTimeout(fetchImpl, input, init);
+  }
 
   attach(vault: Vault | null): void {
     this.vault = vault;
@@ -258,6 +266,98 @@ export class SyncRuntime {
       this.running = null;
     });
     return this.running;
+  }
+
+  /** 保存后只推变化的文件，不列远端目录。 */
+  async pushPaths(paths: string[]): Promise<SyncRunResult | null> {
+    await this.load();
+    if (this.resolving) await this.resolving.catch(() => {});
+    if (storageBusy() || !this.isAttached()) return null;
+    if (loadSyncConfig(true).purchaseRequired) {
+      return this.finishError(new SyncError("config", "purchase required"));
+    }
+    if (this.phase() === "conflict") return null;
+    if (this.running) await this.running.catch(() => {});
+    if (this.pushing) await this.pushing.catch(() => {});
+    if (storageBusy() || !this.isAttached() || this.phase() === "conflict") return null;
+    const operation = this.push(paths);
+    this.pushing = operation;
+    try {
+      return await operation;
+    } finally {
+      if (this.pushing === operation) this.pushing = null;
+    }
+  }
+
+  private async push(paths: string[]): Promise<SyncRunResult | null> {
+    const conn = this.connection();
+    if (!conn) return null;
+    const vault = this.requireVault();
+    const result: SyncRunResult = { ...EMPTY, conflicts: [], changedLocal: [], error: null };
+    const previous = this.phase();
+    this.phase.set("syncing");
+    this.error.set(null);
+    try {
+      const remote = await this.providerFor(conn.provider);
+      const root = this.rootDir(conn);
+      for (const raw of paths) {
+        const path = normalizeSyncPath(raw);
+        if (!path || !localExists(vault, path)) {
+          result.needsFullSync = true;
+          continue;
+        }
+        const anchor = this.base.entries[path] ?? null;
+        const content = new Uint8Array(vault.readBytes(path));
+        const existing: RemoteFile | null = anchor ? {
+          path,
+          id: anchor.remoteId,
+          rev: anchor.remoteRev,
+          mtimeMs: 0,
+          size: anchor.localSize,
+        } : null;
+        try {
+          const uploaded = await remote.uploadBytes(root, path, content, { existing });
+          this.setBase(path, {
+            remoteId: uploaded.id,
+            remoteRev: uploaded.rev,
+            localMtimeMs: vault.mtime(path),
+            localSize: content.length,
+            hash: sha256Bytes(content),
+          });
+          result.uploaded += 1;
+        } catch (err) {
+          // 云端版本已变 / 路径被占用：不在这里做冲突裁决，交回全量同步。
+          if (err instanceof RemoteConflictError) {
+            result.needsFullSync = true;
+            continue;
+          }
+          throw err;
+        }
+      }
+      await this.persistBase();
+      if (result.needsFullSync) {
+        this.phase.set(previous);
+        return result;
+      }
+      this.phase.set("synced");
+      const now = Date.now();
+      this.lastSyncAt.set(now);
+      await Storage.setItem(this.lastKey(), String(now));
+      return result;
+    } catch (err) {
+      const error: { kind: SyncErrorKind; message: string } =
+        err instanceof SyncError
+          ? { kind: err.kind, message: err.message }
+          : { kind: "unknown", message: err instanceof Error ? err.message : String(err) };
+      this.error.set(error);
+      this.phase.set(
+        error.kind === "network" && isRecoverableNetworkError(err) ? "offline" : "error",
+      );
+      result.ok = false;
+      result.error = error;
+      result.conflicts = this.conflicts();
+      return result;
+    }
   }
 
   /** 对单个冲突应用用户选择；调用方在所有冲突处理完后重新同步。 */

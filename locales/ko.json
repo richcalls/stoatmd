@@ -278,5 +278,7 @@
   "mobile.connectHint": "Google Drive 또는 Dropbox를 선택하세요. 첫 동기화 후에는 오프라인에서도 읽고 쓸 수 있습니다.",
   "mobile.paidCloud": "유료 iOS 앱에는 클라우드 동기화가 포함되어 있습니다. 계정을 연결하여 시작하세요.",
   "mobile.cloudIncluded": "클라우드 동기화 포함",
-  "mobile.folderDescription": "노트를 저장할 폴더를 선택하세요. 계속하면 이 기기로 바로 동기화됩니다."
+  "mobile.folderDescription": "노트를 저장할 폴더를 선택하세요. 계속하면 이 기기로 바로 동기화됩니다.",
+  "mobile.syncPreparing": "노트북 준비 중…",
+  "mobile.syncProgress": "동기화 중 {done} / {total}"
 }
