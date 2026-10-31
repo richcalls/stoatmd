@@ -277,5 +277,6 @@
   "mobile.connectTitle": "Connecter votre carnet",
   "mobile.connectHint": "Choisissez Google Drive ou Dropbox. Après la première synchronisation, votre carnet reste accessible hors ligne.",
   "mobile.paidCloud": "L’application iOS payante inclut la synchronisation cloud. Connectez votre compte pour commencer.",
-  "mobile.cloudIncluded": "Synchronisation cloud incluse"
+  "mobile.cloudIncluded": "Synchronisation cloud incluse",
+  "mobile.folderDescription": "Choisissez un dossier pour vos notes. La synchronisation avec cet appareil démarre dès que vous continuez."
 }

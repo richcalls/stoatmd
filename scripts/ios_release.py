@@ -12,6 +12,12 @@ from ios import build_environment
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# Must stay in sync with the Locale union in src/ui/i18n.ts. Without this key iOS
+# falls back to CFBundleDevelopmentRegion (en) for the whole app, so
+# NSLocale.currentLocale never reports the user's language and the UI is always
+# English no matter what the device is set to.
+SUPPORTED_LANGUAGES = ["en", "zh-Hans", "zh-Hant", "ja", "ko", "de", "fr", "es"]
+
 
 def validate_oauth(env):
     required = ("STOATMD_GOOGLE_IOS_CLIENT_ID", "STOATMD_DROPBOX_APP_KEY")
@@ -42,6 +48,7 @@ def prepare(app, env, work):
     if dropbox:
         schemes.append("db-" + dropbox)
     info["CFBundleURLTypes"] = [{"CFBundleTypeRole": "Editor", "CFBundleURLSchemes": schemes}]
+    info["CFBundleLocalizations"] = SUPPORTED_LANGUAGES
     # HTTPS/OAuth use standard encryption; the app has no proprietary cryptography.
     info["ITSAppUsesNonExemptEncryption"] = False
     info["LSRequiresIPhoneOS"] = True

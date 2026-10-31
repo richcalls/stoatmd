@@ -21,6 +21,34 @@ export const storageMigration = {
   warning: signal<string | null>(null),
 };
 
+/**
+ * First run on iOS: the user has no library yet, so bind the chosen cloud folder
+ * directly instead of copying an empty local library into it. The first sync
+ * downloads whatever the folder already holds.
+ */
+export async function activateInitialStorage(target: Location,
+  activated: (root: string) => Promise<void>): Promise<void> {
+  if (target.kind === "local") throw new Error("storage.error.failed");
+  if (storageBusy()) return;
+  storageBusy.set(true);
+  try {
+    await syncRuntime.load();
+    if (loadSyncConfig(true).purchaseRequired) throw new SyncError("config", "purchase required");
+    // Fail before binding when the picked folder is not reachable.
+    await (await endpointFor(target)).list();
+    const cache = Vault.createCache();
+    const conn: SyncConnection = {
+      provider: target.kind, account: target.account, remoteId: target.remote.id,
+      remotePath: target.remote.path, remoteName: target.remote.name,
+      localRoot: cache.root, connectedAt: Date.now(),
+    };
+    await syncRuntime.activate(cache.root, conn, null);
+    await activated(cache.root);
+  } finally {
+    storageBusy.set(false);
+  }
+}
+
 export function connectionLocation(conn: SyncConnection): Location {
   return { kind: conn.provider, account: conn.account,
     remote: { id: conn.remoteId, path: conn.remotePath, name: conn.remoteName } };
