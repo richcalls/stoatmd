@@ -41,3 +41,18 @@ test("markdownDecorations：引用行用 quote 色，围栏代码块不参与着
     { line: 0, from: 0, to: 4, style: { color: palette.quote } },
   ]);
 });
+
+test("单色保留标题字重、强调与代码底色，文稿文字统一为正文色", () => {
+  const spans = markdownDecorations("# 标题\n> 引用\n`code` [链接](https://example.com) **重点**", palette, "monochrome");
+  expect(spans[0].style).toEqual({ color: palette.ink, fontWeight: "600" });
+  expect(spans[1].style).toEqual({ color: palette.ink });
+  expect(spans[2].style).toEqual({ color: palette.ink, backgroundColor: palette.codeBg });
+  expect(spans[3].style).toEqual({ color: palette.ink });
+  expect(spans[5].style).toEqual({ fontWeight: "650" });
+});
+
+test("彩色链接使用主题强调色，行内代码中的链接保留代码色", () => {
+  const spans = stylesFor("[链接](https://example.com) `[code](url)`");
+  expect(spans[0].style).toEqual({ color: palette.accent });
+  expect(spans[1].style).toEqual({ color: palette.syntaxBold, backgroundColor: palette.codeBg });
+});

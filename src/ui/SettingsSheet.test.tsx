@@ -2,6 +2,29 @@ import { expect, open, test } from "nsh/test";
 
 const desktop = { width: 1280, height: 800, locale: "zh-CN" };
 
+test("设置：文稿配色即时保存，重启恢复，切主题后保留模式", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", desktop);
+  expect(app.shows("id:render-mode-color")).toBe(true);
+  expect(app.shows("id:render-mode-monochrome")).toBe(true);
+  expect(app.spanStyle("id:render-mode-color >> text:彩色渲染").fontWeight).toBe(600);
+  await app.press("id:render-mode-monochrome");
+  await app.waitUntil(() => app.storage()["prefs.renderMode"] === "monochrome");
+  expect(app.spanStyle("id:render-mode-monochrome >> text:单色渲染").fontWeight).toBe(600);
+  await app.press("id:theme-nord");
+  expect(app.storage()["prefs.renderMode"]).toBe("monochrome");
+
+  const again = await open("./SettingsSheet.harness.tsx", { ...desktop, storage: app.storage() });
+  expect(again.spanStyle("id:render-mode-monochrome >> text:单色渲染").fontWeight).toBe(600);
+  await again.press("id:render-mode-color");
+  await again.waitUntil(() => again.storage()["prefs.renderMode"] === "color");
+  expect(again.spanStyle("id:render-mode-color >> text:彩色渲染").fontWeight).toBe(600);
+});
+
+test("设置：无效的文稿配色偏好恢复彩色", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", { ...desktop, storage: { "prefs.renderMode": "invalid" } });
+  expect(app.spanStyle("id:render-mode-color >> text:彩色渲染").fontWeight).toBe(600);
+});
+
 test("设置：三组字号独立生效、即时保存并在重启后恢复", async () => {
   const app = await open("./SettingsSheet.harness.tsx", desktop);
   await app.press("id:settings-tab-font");
@@ -50,16 +73,11 @@ test("设置：字号边界禁用按钮，损坏的偏好恢复默认", async ()
   expect(invalid.shows("id:font-size >> text:16")).toBe(true);
 });
 
-test("设置：浮窗呈现，点左上角关闭圆点后 open 变为 false", async () => {
+test("设置：内容填满窗口，系统负责标题栏和关闭按钮", async () => {
   const app = await open("./SettingsSheet.harness.tsx", desktop);
-  expect(app.texts()).toContain("open");
   expect(app.shows("id:settings-window")).toBe(true);
-  expect(app.shows("id:settings-window-bar")).toBe(true);
-  expect(app.texts()).toContain("设置");
-  expect(app.shows("id:settings-done")).toBe(false);
-
-  await app.press("id:settings-close");
-  expect(app.texts()).toContain("closed");
+  expect(app.shows("id:settings-window-bar")).toBe(false);
+  expect(app.shows("id:settings-close")).toBe(false);
 });
 
 test("设置：Esc 只收起浮窗", async () => {
@@ -89,40 +107,6 @@ test("设置：字体下拉打开时 Esc 只收起下拉，浮窗保留", async 
   await app.waitFor("id:font-search", { state: "gone", timeout: 3000 });
   expect(app.shows("id:settings-window")).toBe(true);
   expect(app.texts()).toContain("open");
-});
-
-test("设置：拖动标题栏记住位置，重开后回到原处", async () => {
-  const app = await open("./SettingsSheet.harness.tsx", desktop);
-  expect(app.texts()).toContain("centered");
-
-  await app.drag("id:settings-window-bar", { x: 64, y: 40 });
-  await app.waitUntil(() => typeof app.storage()["prefs.settingsFrame"] === "string");
-  const saved = JSON.parse(app.storage()["prefs.settingsFrame"]) as { x: number; y: number };
-  expect(saved.x).toBeGreaterThan(0);
-  expect(saved.y).toBeGreaterThan(0);
-  expect(app.texts()).toContain(`${saved.x},${saved.y}`);
-
-  await app.press("id:settings-close");
-  expect(app.texts()).toContain("closed");
-  await app.press("id:reopen");
-  expect(app.texts()).toContain(`${saved.x},${saved.y}`);
-
-  // 重启后从偏好还原：模拟 harness 启动时的 restore。
-  const again = await open("./SettingsSheet.harness.tsx", {
-    ...desktop,
-    storage: { "prefs.settingsFrame": JSON.stringify(saved) },
-  });
-  await again.waitUntil(() => again.texts().includes(`${saved.x},${saved.y}`));
-  expect(again.texts()).toContain(`${saved.x},${saved.y}`);
-});
-
-test("设置：保存的位置来自偏好时直接还原", async () => {
-  const app = await open("./SettingsSheet.harness.tsx", {
-    ...desktop,
-    storage: { "prefs.settingsFrame": JSON.stringify({ x: 120, y: 90 }) },
-  });
-  await app.waitUntil(() => app.texts().includes("120,90"));
-  expect(app.texts()).toContain("120,90");
 });
 
 test("设置：25 套 Otty 主题可选并持久化", async () => {
@@ -188,7 +172,6 @@ test("设置：字体下拉可选默认衬线并持久化，语言切换即时�
   await app.press("id:locale-en");
   await app.waitUntil(() => app.storage()["prefs.locale"] === "en");
   await app.waitFor("id:locale-options", { state: "gone", timeout: 3000 });
-  expect(app.texts()).toContain("Settings");
   expect(app.texts()).toContain("Appearance");
 });
 

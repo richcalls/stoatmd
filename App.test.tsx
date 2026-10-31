@@ -24,12 +24,9 @@ test("语言默认跟随系统：日语 / 繁体中文 / 德语 / 西班牙语",
   }
 });
 
-test("⌘, 打开设置，并可关闭", async () => {
+test("⌘, 通过原生桥打开设置，主窗口继续可用", async () => {
   const app = await open("./App.tsx", { width: 1280, height: 800, locale: "zh-CN" });
   await app.keyboard.press("mod+,");
-  expect(app.shows("id:theme-paper")).toBe(true);
-  expect(app.shows("id:theme-nord")).toBe(true);
-  expect(app.shows("id:settings-close")).toBe(true);
-  await app.press("id:settings-close");
+  expect(app.shows("id:settings-window")).toBe(false);
   expect(app.shows("text:打开文件夹…")).toBe(true);
 });
