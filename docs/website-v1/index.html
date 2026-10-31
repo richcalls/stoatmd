@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-Hans" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="dark">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StoatMD — Buy once · unlock sync</title>
+<meta name="description" content="Local-first Markdown notebook. Your Drive or Dropbox. Buy once to unlock sync for you and your agents.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* StoatMD · stoatmd.com · Persuade · Style B weave paper · impeccable craft floor */
+:root, [data-theme="light"]{
+  --paper:#F7F3EB;
+  --surface:#FFFCF7;
+  --surface-2:#F1EBE2;
+  --ink:#2C2A26;
+  --ink-2:#5F5A54;
+  --ink-3:#6E6860;
+  --thread:#DDD5C8;
+  --indigo:#3D5A80;
+  --indigo-soft:#E4EBF3;
+  --indigo-on:#FFFCF7;
+  --win-border:rgba(44,42,38,.08);
+  --shadow:0 24px 64px rgba(44,42,38,.10),0 2px 8px rgba(44,42,38,.05);
+  --nav-bg:rgba(247,243,235,.88);
+  --menu-bg:#FFFCF7;
+  --menu-hover:#F1EBE2;
+  --menu-active:#E4EBF3;
+  --check:#3D5A80;
+  --measure:68ch;
+  --max:1080px;
+  --pad:clamp(20px,4vw,40px);
+}
+/* Dark · warm charcoal paper · indigo lifted · no pure black */
+[data-theme="dark"]{
+  --paper:#1C1A17;
+  --surface:#26231F;
+  --surface-2:#2E2A25;
+  --ink:#F0EBE3;
+  --ink-2:#B8B0A4;
+  --ink-3:#8F877C;
+  --thread:#3A3630;
+  --indigo:#7A9BC2;
+  --indigo-soft:#243040;
+  --indigo-on:#1C1A17;
+  --win-border:rgba(240,235,227,.08);
+  --shadow:0 24px 64px rgba(0,0,0,.35),0 2px 8px rgba(0,0,0,.25);
+  --nav-bg:rgba(28,26,23,.90);
+  --menu-bg:#26231F;
+  --menu-hover:#2E2A25;
+  --menu-active:#243040;
+  --check:#7A9BC2;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]):not([data-theme="dark"]){
+    --paper:#1C1A17;
+    --surface:#26231F;
+    --surface-2:#2E2A25;
+    --ink:#F0EBE3;
+    --ink-2:#B8B0A4;
+    --ink-3:#8F877C;
+    --thread:#3A3630;
+    --indigo:#7A9BC2;
+    --indigo-soft:#243040;
+    --indigo-on:#1C1A17;
+    --win-border:rgba(240,235,227,.08);
+    --shadow:0 24px 64px rgba(0,0,0,.35),0 2px 8px rgba(0,0,0,.25);
+    --nav-bg:rgba(28,26,23,.90);
+    --menu-bg:#26231F;
+    --menu-hover:#2E2A25;
+    --menu-active:#243040;
+    --check:#7A9BC2;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:"Instrument Sans",-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Noto Sans SC","Noto Sans TC","Hiragino Sans","Apple SD Gothic Neo",sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  line-height:1.55;
+  font-size:16px;
+  transition:background .2s ease,color .2s ease;
+}
+img{display:block;max-width:100%}
+a{color:var(--indigo);text-decoration:none}
+a:hover{text-decoration:underline;text-underline-offset:3px}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+::selection{background:#D5E0EC;color:#2C2A26}
+[data-theme="dark"] ::selection{background:#3A5068;color:#F0EBE3}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
+
+.wrap{max-width:var(--max);margin:0 auto;padding:0 var(--pad)}
+.thread{border:0;height:1px;background:var(--thread);margin:0}
+
+.nav{
+  position:sticky;top:0;z-index:20;
+  background:var(--nav-bg);
+  backdrop-filter:saturate(1.2) blur(14px);
+  -webkit-backdrop-filter:saturate(1.2) blur(14px);
+  border-bottom:1px solid var(--thread);
+}
+.nav-inner{
+  display:flex;align-items:center;gap:16px;
+  height:58px;
+}
+.brand{
+  display:flex;align-items:center;gap:10px;
+  font-weight:600;font-size:17px;letter-spacing:-.01em;
+  color:var(--ink);text-decoration:none;margin-right:auto;
+}
+.brand:hover{text-decoration:none}
+.brand img{width:28px;height:28px}
+.brand .md{color:var(--indigo)}
+.nav-links{display:flex;gap:22px;align-items:center}
+.nav-links a{
+  font-size:14px;color:var(--ink-2);font-weight:500;
+  text-decoration:none;
+}
+.nav-links a:hover{color:var(--ink)}
+
+.nav-tools{display:flex;align-items:center;gap:10px}
+
+.theme-btn,.lang-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:32px;min-width:32px;padding:0 10px;
+  border:1px solid var(--thread);
+  border-radius:8px;
+  background:var(--surface-2);
+  color:var(--ink-2);
+  font-size:12px;font-weight:550;
+}
+.theme-btn:hover,.lang-btn:hover{color:var(--ink);background:var(--surface)}
+.theme-btn svg,.lang-btn svg{width:16px;height:16px;flex-shrink:0}
+.theme-btn .icon-moon{display:none}
+[data-theme="dark"] .theme-btn .icon-sun{display:none}
+[data-theme="dark"] .theme-btn .icon-moon{display:block}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .theme-btn .icon-sun{display:none}
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .theme-btn .icon-moon{display:block}
+}
+
+.lang-wrap{position:relative}
+.lang-btn .chev{width:12px;height:12px;opacity:.7}
+.lang-menu{
+  position:absolute;right:0;top:calc(100% + 6px);
+  min-width:168px;
+  background:var(--menu-bg);
+  border:1px solid var(--thread);
+  border-radius:10px;
+  box-shadow:var(--shadow);
+  padding:6px;
+  display:none;
+  z-index:30;
+}
+.lang-wrap.open .lang-menu{display:block}
+.lang-menu button{
+  display:flex;align-items:center;justify-content:space-between;
+  width:100%;text-align:left;
+  padding:8px 10px;border-radius:7px;
+  font-size:13px;font-weight:500;color:var(--ink-2);
+}
+.lang-menu button:hover{background:var(--menu-hover);color:var(--ink)}
+.lang-menu button[aria-selected="true"]{
+  background:var(--menu-active);color:var(--indigo);font-weight:600;
+}
+.lang-menu button .tick{
+  width:14px;height:14px;opacity:0;color:var(--check);
+}
+.lang-menu button[aria-selected="true"] .tick{opacity:1}
+
+.nav-cta{
+  display:inline-flex;align-items:center;
+  font-size:13px;font-weight:600;
+  color:var(--indigo-on);background:var(--indigo);
+  padding:8px 14px;border-radius:8px;
+  text-decoration:none;
+}
+.nav-cta:hover{text-decoration:none;filter:brightness(1.06)}
+
+.draft-banner{
+  display:none;
+  background:var(--indigo-soft);
+  border-bottom:1px solid var(--thread);
+  color:var(--ink-2);
+  font-size:13px;text-align:center;
+  padding:8px var(--pad);
+}
+.draft-banner.show{display:block}
+
+.hero{
+  position:relative;
+  overflow:hidden;
+  padding:72px 0 140px;
+}
+/* Dark-only PRO Threads ring — behind copy; warm charcoal host, never pure black */
+.hero-threads{
+  position:absolute;
+  inset:-6% 0 -4% 0;
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 68%,transparent 100%);
+  mask-image:linear-gradient(to bottom,#000 0%,#000 68%,transparent 100%);
+  z-index:0;
+  pointer-events:none;
+  display:none;
+  background:var(--paper);
+}
+.hero-threads.is-on{display:block}
+.hero-threads pro-threads{
+  display:block;
+  width:100%;
+  height:100%;
+  min-height:280px;
+  background:var(--paper) !important;
+}
+.hero-grid{
+  position:relative;
+  z-index:1;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+  gap:48px;align-items:end;
+}
+.hero-copy{
+  position:relative;
+  max-width:42ch;
+}
+/* Soft warm-charcoal scrim so title stays ≥4.5 over animated threads */
+
+html[data-theme="dark"] .hero-copy{
+  background:linear-gradient(105deg,rgba(28,26,23,.78) 0%,rgba(28,26,23,.42) 62%,rgba(28,26,23,0) 100%);
+  padding:10px 16px 14px 0;
+  margin:-10px 0 -6px -4px;
+  border-radius:12px;
+}
+
+.hero h1{
+  font-size:clamp(36px,5.2vw,56px);
+  line-height:1.08;letter-spacing:-.025em;font-weight:650;
+  max-width:14ch;
+}
+.hero .lead{
+  margin-top:22px;font-size:18px;line-height:1.6;
+  color:var(--ink-2);max-width:38ch;
+}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px;align-items:center}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  font-size:15px;font-weight:600;
+  padding:12px 18px;border-radius:9px;
+  text-decoration:none;border:1px solid transparent;
+}
+.btn:hover{text-decoration:none}
+.btn-primary{background:var(--indigo);color:var(--indigo-on)}
+.btn-primary:hover{filter:brightness(1.06)}
+.btn-ghost{
+  background:transparent;color:var(--ink);
+  border-color:var(--thread);
+}
+.btn-ghost:hover{background:rgba(44,42,38,.03)}
+[data-theme="dark"] .btn-ghost:hover{background:rgba(240,235,227,.05)}
+.hero-note{margin-top:18px;font-size:13px;color:var(--ink-3)}
+.hero-shot{
+  background:var(--surface);
+  border:1px solid var(--win-border);
+  border-radius:14px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.hero-shot img{width:100%;height:auto}
+
+.sec{padding:72px 0}
+.sec-head{max-width:var(--measure);margin-bottom:36px}
+.sec h2{
+  font-size:clamp(26px,3.2vw,36px);
+  line-height:1.15;letter-spacing:-.02em;font-weight:650;
+}
+.sec .sub{
+  margin-top:14px;font-size:17px;line-height:1.6;color:var(--ink-2);
+  max-width:58ch;
+}
+
+.compare{display:flex;flex-direction:column;border-top:1px solid var(--thread)}
+.compare-row{
+  display:grid;
+  grid-template-columns:160px 1fr;
+  gap:28px;
+  padding:28px 0;
+  border-bottom:1px solid var(--thread);
+  align-items:start;
+}
+.compare-row .name{
+  font-size:15px;font-weight:650;letter-spacing:-.01em;
+}
+.compare-row .name span[data-i18n$=".label"]{
+  display:block;margin-top:4px;font-size:13px;font-weight:500;color:var(--ink-3);
+}
+.compare-row .body{font-size:16px;line-height:1.65;color:var(--ink-2);max-width:62ch}
+.compare-row .body strong{color:var(--ink);font-weight:600}
+.compare-row.ours{
+  background:var(--indigo-soft);
+  margin:0 calc(-1 * var(--pad));
+  padding-left:var(--pad);padding-right:var(--pad);
+  border-bottom:1px solid var(--thread);
+}
+.compare-row.ours .name{color:var(--indigo)}
+
+.feat{display:flex;flex-direction:column}
+.feat-item{
+  display:grid;
+  grid-template-columns:48px 1fr;
+  gap:20px;
+  padding:32px 0;
+  border-bottom:1px solid var(--thread);
+  align-items:start;
+}
+.feat-item:first-child{border-top:1px solid var(--thread)}
+.feat-ico{
+  width:40px;height:40px;
+  display:grid;place-items:center;
+  color:var(--indigo);
+}
+.feat-ico svg{width:26px;height:26px}
+.feat-item h3{
+  font-size:20px;font-weight:650;letter-spacing:-.015em;line-height:1.25;
+}
+.feat-item p{
+  margin-top:8px;font-size:16px;line-height:1.65;color:var(--ink-2);max-width:58ch;
+}
+
+.price-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0;
+  border:1px solid var(--thread);
+  border-radius:12px;
+  overflow:hidden;
+  background:var(--surface);
+}
+.price{padding:36px 32px}
+.price + .price{border-left:1px solid var(--thread)}
+.price .tier{font-size:14px;font-weight:600;color:var(--ink-2)}
+.price h3{margin-top:8px;font-size:28px;font-weight:650;letter-spacing:-.02em}
+.price .amount{
+  margin-top:18px;font-size:40px;font-weight:650;letter-spacing:-.03em;line-height:1;
+}
+.price .amount em{
+  font-style:normal;font-size:16px;font-weight:500;color:var(--ink-3);margin-left:6px;
+}
+.price ul{list-style:none;margin-top:24px;display:flex;flex-direction:column;gap:12px}
+.price li{
+  font-size:15px;line-height:1.5;color:var(--ink-2);
+  padding-left:18px;position:relative;
+}
+.price li::before{
+  content:"";position:absolute;left:0;top:9px;
+  width:8px;height:1px;background:var(--indigo);
+}
+.price.pro{background:var(--indigo-soft)}
+.price.pro .tier{color:var(--indigo)}
+.price-note{margin-top:20px;font-size:13px;color:var(--ink-3);max-width:62ch}
+
+.dl-list{border-top:1px solid var(--thread)}
+.dl-row{
+  display:flex;align-items:center;gap:20px;
+  padding:22px 0;border-bottom:1px solid var(--thread);
+}
+.dl-row .plat{font-size:17px;font-weight:600;min-width:120px}
+.dl-row .status{flex:1;font-size:15px;color:var(--ink-2)}
+.dl-row .chip{
+  font-size:12px;font-weight:600;
+  padding:6px 12px;border-radius:999px;
+  border:1px solid var(--thread);color:var(--ink-3);
+  background:var(--surface-2);
+}
+.dl-row.is-soon .plat{color:var(--ink-2)}
+
+.foot{
+  border-top:1px solid var(--thread);
+  padding:40px 0 56px;
+  margin-top:24px;
+}
+.foot-inner{
+  display:flex;flex-wrap:wrap;gap:16px 28px;align-items:center;
+  font-size:13px;color:var(--ink-3);
+}
+.foot a{color:var(--ink-2);font-weight:500}
+.foot .sep{width:1px;height:12px;background:var(--thread)}
+.foot .grow{margin-left:auto}
+
+@media (max-width:860px){
+  .nav-links{display:none}
+  .nav-cta{display:none}
+  .hero{padding:48px 0 96px}
+  .hero-grid{grid-template-columns:1fr;gap:36px}
+  .hero h1{max-width:none;font-size:40px}
+  .hero-actions{flex-direction:column;align-items:stretch}
+  .hero-actions .btn{width:100%;justify-content:center}
+  .sec{padding:56px 0}
+  .compare-row{grid-template-columns:1fr;gap:8px}
+  .price-grid{grid-template-columns:1fr}
+  .price + .price{border-left:0;border-top:1px solid var(--thread)}
+  .dl-row{flex-wrap:wrap}
+  .foot .grow{margin-left:0;width:100%}
+}
+</style>
+</head>
+<body>
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top" aria-label="StoatMD">
+      <img src="assets/mark.svg" alt="" width="28" height="28">
+      <span>Stoat<span class="md">MD</span></span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#why" data-i18n="nav.why">Why</a>
+      <a href="#features" data-i18n="nav.features">Features</a>
+      <a href="#pricing" data-i18n="nav.pricing">Pricing</a>
+      <a href="#download" data-i18n="nav.download">Download</a>
+    </nav>
+    <div class="nav-tools">
+      <div class="lang-wrap" id="langWrap">
+        <button type="button" class="lang-btn" id="langBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Language">
+          <span id="langBtnLabel">English</span>
+          <svg class="chev" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"><path d="M64 96l64 64 64-64"/></svg>
+        </button>
+        <div class="lang-menu" id="langMenu" role="listbox" aria-label="Language">
+          <button type="button" role="option" data-lang="system" aria-selected="false">跟随系统<svg class="tick" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"><path d="M48 136l56 56 104-120"/></svg></button>
+          <button type="button" role="option" data-lang="en" aria-selected="false">English<svg class="tick" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"><path d="M48 136l56 56 104-120"/></svg></button>
+          <button type="button" role="option" data-lang="zh" aria-selected="false">简体中文<svg class="tick" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"><path d="M48 136l56 56 104-120"/></svg></button>
+          <button type="button" role="option" data-lang="zh-Hant" aria-selected="false">繁體中文<svg class="tick" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"><path d="M48 136l56 56 104-120"/></svg></button>
+          <button type="button" role="option" data-lang="ja" aria-selected="false">日本語<svg class="tick" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"><path d="M48 136l56 56 104-120"/></svg></button>
+          <button type="button" role="option" data-lang="ko" aria-selected="false">한국어<svg class="tick" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"><path d="M48 136l56 56 104-120"/></svg></button>
+          <button type="button" role="option" data-lang="de" aria-selected="false">Deutsch<svg class="tick" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"><path d="M48 136l56 56 104-120"/></svg></button>
+          <button type="button" role="option" data-lang="fr" aria-selected="false">Français<svg class="tick" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"><path d="M48 136l56 56 104-120"/></svg></button>
+          <button type="button" role="option" data-lang="es" aria-selected="false">Español<svg class="tick" viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"><path d="M48 136l56 56 104-120"/></svg></button>
+        </div>
+      </div>
+      <a class="nav-cta" href="#pricing" data-i18n="nav.cta">Buy once</a>
+    </div>
+  </div>
+</header>
+
+<div class="draft-banner" id="draftBanner" role="status"></div>
+
+<main id="top">
+  <section class="hero">
+    <div class="hero-threads" id="heroThreads" aria-hidden="true"></div>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <h1 data-i18n="hero.title">Your notes. Your Drive. Your agents.</h1>
+        <p class="lead" data-i18n="hero.lead">A local-first Markdown notebook. Sync with Google Drive or Dropbox so you — and your AI agents — can read and write the same library, on any device.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#pricing" data-i18n="hero.cta">Buy once · unlock sync</a>
+          <a class="btn btn-ghost" href="#download" data-i18n="hero.secondary">Download for Mac</a>
+        </div>
+        <p class="hero-note" data-i18n="hero.note">Local editing is always free. No subscription. No iCloud. No self-hosted server.</p>
+      </div>
+      <figure class="hero-shot">
+        <img src="assets/app-mac-light.png" width="1520" height="980" alt="StoatMD Mac app — source and preview on warm paper">
+      </figure>
+    </div>
+  </section>
+
+  <hr class="thread wrap" style="max-width:var(--max);margin:0 auto;width:calc(100% - 2 * var(--pad))">
+
+  <section class="sec" id="why">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-i18n="why.title">Why not just use Obsidian?</h2>
+        <p class="sub" data-i18n="why.sub">Multi-device sync that agents can reach — without locking you into a closed subscription sync, and without a .git explosion on your phone.</p>
+      </div>
+      <div class="compare">
+        <div class="compare-row">
+          <div class="name">Obsidian<span data-i18n="cmp.obsidian.label">Subscription sync</span></div>
+          <div class="body" data-i18n="cmp.obsidian.body" data-i18n-html="1">Official sync is a subscription — and a closed pipe. Hard to hand to a remote AI. GitHub sync is painful on phones; stacking GitHub with iCloud balloons <strong>.git</strong> until storage and file counts explode.</div>
+        </div>
+        <div class="compare-row">
+          <div class="name">Typora<span data-i18n="cmp.typora.label">WYSIWYG</span></div>
+          <div class="body" data-i18n="cmp.typora.body" data-i18n-html="1">Great for polished writing. StoatMD keeps <strong>plain Markdown source</strong> with a separate preview (edit / split / preview) — better when you want the file itself, and agents that rewrite .md.</div>
+        </div>
+        <div class="compare-row">
+          <div class="name"><span data-i18n="cmp.miaoyan.name">Miaoyan-class</span><span data-i18n="cmp.miaoyan.label">Apple-only</span></div>
+          <div class="body" data-i18n="cmp.miaoyan.body" data-i18n-html="1">Close in spirit: native, light, source + preview, ordinary .md files. But often locked to the Apple ecosystem — and usually cannot let an agent remotely push notes into the same library.</div>
+        </div>
+        <div class="compare-row ours">
+          <div class="name">StoatMD<span data-i18n="cmp.stoat.label">Buy once · your cloud</span></div>
+          <div class="body" data-i18n="cmp.stoat.body" data-i18n-html="1">Sync with <strong>Google Drive</strong> or <strong>Dropbox</strong>. Local forever free. Unlock sync with a one-time purchase — so you and your Personal Agent can archive into the same folder, from desktop or phone.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="features" style="padding-top:24px">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-i18n="feat.title">Built for notes agents can touch</h2>
+        <p class="sub" data-i18n="feat.sub">The library lives in a folder you own. Sync is alignment to your cloud — not a second home for your writing.</p>
+      </div>
+      <div class="feat">
+        <article class="feat-item">
+          <div class="feat-ico" aria-hidden="true">
+            <svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"><rect x="40" y="40" width="72" height="176" rx="8"/><rect x="144" y="40" width="72" height="176" rx="8"/><path d="M64 88h24M64 120h24M168 88h24M168 120h24M168 152h16"/></svg>
+          </div>
+          <div>
+            <h3 data-i18n="feat.1.title">Source + preview, not WYSIWYG</h3>
+            <p data-i18n="feat.1.body">Edit real Markdown. Switch edit / split / preview. Ordinary .md files stay portable — open them anywhere, diff them, let an agent rewrite them.</p>
+          </div>
+        </article>
+        <article class="feat-item">
+          <div class="feat-ico" aria-hidden="true">
+            <svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"><path d="M40 144c40-64 136-64 176 0"/><path d="M80 168c24-36 72-36 96 0"/><circle cx="128" cy="188" r="12" fill="currentColor" stroke="none"/><path d="M48 88h40l16-24h48l16 24h40v104H48z"/></svg>
+          </div>
+          <div>
+            <h3 data-i18n="feat.2.title">Google Drive &amp; Dropbox</h3>
+            <p data-i18n="feat.2.body">Phase one sync providers — both first-class for global users and Personal Agents. No iCloud. No self-built server. No WebDAV in v1.</p>
+          </div>
+        </article>
+        <article class="feat-item">
+          <div class="feat-ico" aria-hidden="true">
+            <svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"><circle cx="84" cy="96" r="28"/><circle cx="172" cy="96" r="28"/><path d="M36 188c8-36 28-52 48-52s40 16 48 52"/><path d="M124 188c8-36 28-52 48-52s40 16 48 52"/><path d="M128 40v24M116 52h24"/></svg>
+          </div>
+          <div>
+            <h3 data-i18n="feat.3.title">Agents read and write the same vault</h3>
+            <p data-i18n="feat.3.body">Typical flow: ask Grok Bot to research, then archive into your notes. Because the vault is on Drive or Dropbox, a remote agent can push Markdown without a local MCP bridge.</p>
+          </div>
+        </article>
+        <article class="feat-item">
+          <div class="feat-ico" aria-hidden="true">
+            <svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"><rect x="48" y="48" width="160" height="160" rx="16"/><path d="M88 128h80M128 88v80"/><path d="M72 72h24v24H72z" opacity=".35"/></svg>
+          </div>
+          <div>
+            <h3 data-i18n="feat.4.title">Buy once. Local always free.</h3>
+            <p data-i18n="feat.4.body">Editing on your Mac costs nothing. The moment you turn on sync, you hit a paywall — one purchase, not a subscription bolted onto your notebook.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="pricing">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-i18n="price.title">Pricing</h2>
+        <p class="sub" data-i18n="price.sub">No sync subscription. Unlock cloud alignment once — keep your files.</p>
+      </div>
+      <div class="price-grid">
+        <div class="price">
+          <div class="tier" data-i18n="price.free.tier">Local</div>
+          <h3 data-i18n="price.free.name">Free forever</h3>
+          <div class="amount">$0<em data-i18n="price.free.unit">always</em></div>
+          <ul>
+            <li data-i18n="price.free.1">Open any folder of .md files</li>
+            <li data-i18n="price.free.2">Source edit · split · preview</li>
+            <li data-i18n="price.free.3">Themes &amp; typography settings</li>
+            <li data-i18n="price.free.4">Works fully offline</li>
+          </ul>
+        </div>
+        <div class="price pro">
+          <div class="tier" data-i18n="price.pro.tier">Sync</div>
+          <h3 data-i18n="price.pro.name">Buy once</h3>
+          <div class="amount" data-i18n="price.pro.amount">—<em data-i18n="price.pro.unit">placeholder</em></div>
+          <ul>
+            <li data-i18n="price.pro.1">Google Drive or Dropbox sync</li>
+            <li data-i18n="price.pro.2">Same vault for you &amp; agents</li>
+            <li data-i18n="price.pro.3">Conflict picker — never silent overwrite</li>
+            <li data-i18n="price.pro.4">No subscription. No iCloud.</li>
+          </ul>
+        </div>
+      </div>
+      <p class="price-note" data-i18n="price.note">Price TBA. Turning on sync shows the paywall before OAuth — unpaid installs never start cloud auth.</p>
+    </div>
+  </section>
+
+  <section class="sec" id="download" style="padding-top:24px">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 data-i18n="dl.title">Download</h2>
+        <p class="sub" data-i18n="dl.sub">macOS first. No fake download links while builds ship.</p>
+      </div>
+      <div class="dl-list">
+        <div class="dl-row is-soon">
+          <div class="plat">macOS</div>
+          <div class="status" data-i18n="dl.mac">Installer coming soon — source builds exist for development only.</div>
+          <span class="chip" data-i18n="dl.soon">Coming soon</span>
+        </div>
+        <div class="dl-row is-soon">
+          <div class="plat">iOS / iPad</div>
+          <div class="status" data-i18n="dl.ios">Planned after the Mac release.</div>
+          <span class="chip" data-i18n="dl.planned">Planned</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <a class="brand" href="#top" style="font-size:14px;margin:0">
+      <img src="assets/mark.svg" alt="" width="20" height="20">
+      Stoat<span class="md">MD</span>
+    </a>
+    <span class="sep" aria-hidden="true"></span>
+    <a href="#privacy" data-i18n="foot.privacy">Privacy</a>
+    <a href="#terms" data-i18n="foot.terms">Terms</a>
+    <span class="sep" aria-hidden="true"></span>
+    <span data-i18n="foot.domain">stoatmd.com</span>
+    <div class="grow" style="font-size:12px;color:var(--ink-3)" data-i18n="foot.lang.hint">Language: top bar</div>
+  </div>
+  <div class="wrap legal-stub" id="privacy" style="margin-top:28px;padding-top:24px;border-top:1px solid var(--thread)">
+    <h2 style="font-size:18px;font-weight:650;margin-bottom:8px" data-i18n="foot.privacy">Privacy</h2>
+    <p style="font-size:14px;color:var(--ink-2);max-width:62ch" data-i18n="foot.privacy.body">Privacy policy will live here.</p>
+  </div>
+  <div class="wrap legal-stub" id="terms" style="margin-top:20px">
+    <h2 style="font-size:18px;font-weight:650;margin-bottom:8px" data-i18n="foot.terms">Terms</h2>
+    <p style="font-size:14px;color:var(--ink-2);max-width:62ch" data-i18n="foot.terms.body">Terms of use will live here.</p>
+  </div>
+</footer>
+
+<script src="i18n.js"></script>
+<script src="theme-lang.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/gh/kubai087/pro-threads@main/embed.js"></script>
+<script src="threads-hero.js"></script>
+</body>
+</html>
