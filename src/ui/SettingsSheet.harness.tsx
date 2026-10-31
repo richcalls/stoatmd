@@ -1,4 +1,4 @@
-import { Text, View, mount, signal } from "nsh";
+import { Storage, Text, View, mount, signal } from "nsh";
 import { Button } from "nsh/base";
 import { fixSyncConfigForTest } from "../sync/config";
 import { appLogo, restoreAppLogo } from "./appLogo";
@@ -38,7 +38,7 @@ function Harness() {
   );
 }
 
-fixSyncConfigForTest({
+const testConfig = {
   googleClientId: "",
   googleClientSecret: "",
   dropboxAppKey: "",
@@ -46,10 +46,14 @@ fixSyncConfigForTest({
   dropboxRedirectPort: 0,
   purchaseRequired: false,
   configPath: "/tmp/stoatmd-test-sync.json",
-});
+};
 loadSystemFonts();
 void Promise.all([
   restoreTypography(),
   restoreAppLogo(),
   restoreSettingsWindowFrame(),
-]).then(() => mount(Harness));
+]).then(async () => {
+  testConfig.purchaseRequired = await Storage.getItem("test.locked") === "true";
+  fixSyncConfigForTest(testConfig);
+  mount(Harness);
+});

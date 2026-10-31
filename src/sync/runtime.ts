@@ -1,10 +1,11 @@
 import { Storage, signal } from "nsh";
-import { OAuth, type Vault } from "stoatmd/native";
+import { OAuth, Vault } from "stoatmd/native";
 import { loadSyncConfig } from "./config";
 import { DropboxProvider } from "./dropbox";
 import { planSync, probeCandidates, resolveConflict as resolveActions } from "./engine";
 import { GoogleDriveProvider } from "./google";
-import { sha256Hex } from "./hash";
+import { activeStorage, readActiveStorage, writeActiveStorage, storageBusy, type Cleanup } from "../storage/state";
+import { sha256Hex, sha256Bytes } from "./hash";
 import { uniqueConflictCopyPath } from "./naming";
 import { dirName, isMarkdownName, normalizeSyncPath } from "./paths";
 import {
@@ -97,7 +98,9 @@ export class SyncRuntime {
   private stored: SyncConnection | null = null;
   private base: BaseState = emptyBase();
   private loaded = false;
+  private loading: Promise<void> | null = null;
   private running: Promise<SyncRunResult> | null = null;
+  private resolving: Promise<void> | null = null;
   private sessions = new Map<ProviderId, TokenSession>();
   private pending: { provider: ProviderId; session: TokenSession } | null = null;
 
@@ -110,14 +113,55 @@ export class SyncRuntime {
 
   /** 读一次本地偏好；之后 UI 直接读信号。 */
   async load(): Promise<void> {
+    if (this.loading) return this.loading;
     if (this.loaded) return;
-    this.loaded = true;
-    this.stored = await readJson<SyncConnection>(CONNECTION_KEY);
-    this.base = (await readJson<BaseState>(BASE_KEY)) ?? emptyBase();
-    if (!this.base.entries) this.base = emptyBase();
-    const last = await Storage.getItem(LAST_KEY);
-    this.lastSyncAt.set(last ? Number(last) || 0 : 0);
-    this.applyForVault();
+    this.loading = (async () => {
+      const active = await readActiveStorage();
+      this.stored = active ? active.connection : await readJson<SyncConnection>(CONNECTION_KEY);
+      this.base = (await readJson<BaseState>(this.baseKey())) ?? emptyBase();
+      if (!this.base.entries) this.base = emptyBase();
+      const last = await Storage.getItem(this.lastKey());
+      this.lastSyncAt.set(last ? Number(last) || 0 : 0);
+      this.loaded = true;
+      this.applyForVault();
+    })().finally(() => { this.loading = null; });
+    return this.loading;
+  }
+
+  /** Drain a running sync before taking the migration snapshot. */
+  async pause(): Promise<void> {
+    await Promise.all([this.running, this.resolving?.catch(() => {})]);
+  }
+
+  async providerFor(provider: ProviderId, expectedAccount?: string | null): Promise<SyncProvider> {
+    const session = this.activeSession(provider);
+    const bundle = await session.restore();
+    if (!bundle) throw new SyncError("auth", "authorization expired");
+    if (expectedAccount && bundle.account !== expectedAccount) throw new SyncError("auth", "storage.error.account");
+    return this.makeProvider(provider, session);
+  }
+
+  /** One durable record is the commit point for root + cloud binding + cleanup journal. */
+  async activate(root: string, conn: SyncConnection | null, cleanup: Cleanup | null): Promise<void> {
+    const vault = Vault.open(root);
+    await writeActiveStorage({ version: 1, root, connection: conn, cleanup });
+    this.stored = conn;
+    this.vault = vault;
+    this.base = emptyBase();
+    this.pending = null;
+    this.connection.set(conn);
+    this.lastSyncAt.set(0);
+    this.conflicts.set([]);
+    this.error.set(null);
+    this.phase.set(conn ? "synced" : "off");
+  }
+
+  private lastKey(): string {
+    return activeStorage() ? `storage.lastAt.${this.stored?.connectedAt ?? "local"}` : LAST_KEY;
+  }
+
+  private baseKey(): string {
+    return activeStorage() ? `storage.base.${this.stored?.connectedAt ?? "local"}` : BASE_KEY;
   }
 
   /** 当前库根是否就是已绑定同步的库。 */
@@ -141,7 +185,7 @@ export class SyncRuntime {
     this.error.set(null);
     try {
       const session = this.sessionFor(provider, config);
-      const bundle = await session.connect();
+      const bundle = await session.restore() ?? await session.connect();
       this.pending = { provider, session };
       this.phase.set("off");
       return bundle.account;
@@ -151,16 +195,13 @@ export class SyncRuntime {
     }
   }
 
-  /** 取消授权 / 选文件夹流程：清掉刚拿到的令牌，避免悬挂授权。 */
+  /** 取消授权 / 选文件夹流程；保留当前库和清理重试所需的授权。 */
   async cancelConnect(): Promise<void> {
     OAuth.cancel();
-    const pending = this.pending;
     this.pending = null;
-    if (pending) {
-      await pending.session.disconnect();
-      this.sessions.delete(pending.provider);
-    }
-    this.phase.set("off");
+    // Persisted sessions also belong to the current/previous storage location.
+    // Cancelling the folder picker preserves them for sync and cleanup retries.
+    this.phase.set(this.connection() ? "synced" : "off");
   }
 
   /** 授权后浏览远端目录（S4）。 */
@@ -181,49 +222,24 @@ export class SyncRuntime {
     return remote.createFolder(remoteRoot(provider), parent, name);
   }
 
-  /** 绑定远程文件夹并持久化；返回绑定结果。 */
-  async bind(remote: RemoteDir): Promise<SyncConnection> {
-    const vault = this.requireVault();
-    const pending = this.pending;
-    if (!pending) throw new SyncError("auth", "no pending authorization");
-    const conn: SyncConnection = {
-      provider: pending.provider,
-      account: pending.session.account,
-      remoteId: remote.id,
-      remotePath: normalizeSyncPath(remote.path),
-      remoteName: remote.name,
-      localRoot: vault.root,
-      connectedAt: Date.now(),
-    };
-    this.stored = conn;
-    this.base = emptyBase(Date.now());
-    this.pending = null;
-    this.sessions.set(conn.provider, pending.session);
-    await Storage.setItem(CONNECTION_KEY, JSON.stringify(conn));
-    await this.persistBase();
-    await Storage.setItem(LAST_KEY, "0");
-    this.connection.set(conn);
-    this.lastSyncAt.set(0);
-    this.conflicts.set([]);
-    this.error.set(null);
-    this.phase.set("synced");
-    return conn;
-  }
-
   /** 授权失效后重新走一次 OAuth，保留现有绑定与锚点。 */
-  async reconnect(provider: ProviderId): Promise<string | null> {
+  async reconnect(provider: ProviderId, forExport = false): Promise<string | null> {
+    if (storageBusy()) throw new SyncError("config", "storage migration in progress");
     const config = loadSyncConfig(true);
-    if (config.purchaseRequired) {
+    const conn = this.stored;
+    if (config.purchaseRequired && !(forExport && conn?.provider === provider)) {
       throw new SyncError("config", "purchase required");
     }
     const session = this.sessionFor(provider, config);
-    const bundle = await session.connect();
-    const conn = this.stored;
+    const bundle = await session.connect(conn?.provider === provider ? conn.account : undefined);
+    if (storageBusy()) throw new SyncError("config", "storage migration in progress");
     if (conn && conn.provider === provider) {
       const next: SyncConnection = { ...conn, account: bundle.account };
       this.stored = next;
       this.connection.set(next);
-      await Storage.setItem(CONNECTION_KEY, JSON.stringify(next));
+      const active = activeStorage();
+      if (active) await writeActiveStorage({ ...active, connection: next });
+      else await Storage.setItem(CONNECTION_KEY, JSON.stringify(next));
       this.error.set(null);
       this.conflicts.set([]);
       this.phase.set("synced");
@@ -231,32 +247,12 @@ export class SyncRuntime {
     return bundle.account;
   }
 
-  /** 断开：清令牌、锚点与绑定；本地文件不动。 */
-  async disconnect(): Promise<void> {
-    const conn = this.stored;
-    if (conn) {
-      const session = this.sessions.get(conn.provider);
-      if (session) await session.disconnect();
-      this.sessions.delete(conn.provider);
-    }
-    if (this.pending) await this.cancelConnect();
-    this.stored = null;
-    this.base = emptyBase();
-    this.connection.set(null);
-    this.phase.set("off");
-    this.lastSyncAt.set(0);
-    this.conflicts.set([]);
-    this.error.set(null);
-    this.progress.set({ done: 0, total: 0 });
-    await Storage.removeItem(CONNECTION_KEY);
-    await Storage.removeItem(BASE_KEY);
-    await Storage.removeItem(LAST_KEY);
-  }
-
   /** 手动 / 自动同步；并发调用返回同一轮。 */
   async syncNow(): Promise<SyncRunResult | null> {
     await this.load();
-    if (!this.isAttached()) return null;
+    if (this.resolving) await this.resolving.catch(() => {});
+    if (storageBusy() || !this.isAttached()) return null;
+    if (loadSyncConfig(true).purchaseRequired) return this.finishError(new SyncError("config", "purchase required"));
     if (this.running) return this.running;
     this.running = this.run().finally(() => {
       this.running = null;
@@ -266,6 +262,18 @@ export class SyncRuntime {
 
   /** 对单个冲突应用用户选择；调用方在所有冲突处理完后重新同步。 */
   async resolveConflict(item: ConflictItem, choice: ConflictChoice): Promise<void> {
+    if (storageBusy() || loadSyncConfig(true).purchaseRequired) throw new SyncError("config", "cloud writes paused");
+    const operation = (this.resolving ?? Promise.resolve()).catch(() => {}).then(async () => {
+      if (this.running) await this.running;
+      if (storageBusy()) throw new SyncError("config", "cloud writes paused");
+      await this.applyConflict(item, choice);
+    });
+    this.resolving = operation;
+    try { await operation; }
+    finally { if (this.resolving === operation) this.resolving = null; }
+  }
+
+  private async applyConflict(item: ConflictItem, choice: ConflictChoice): Promise<void> {
     const vault = this.requireVault();
     const conn = this.connection();
     if (!conn) throw new SyncError("config", "no connection");
@@ -279,20 +287,20 @@ export class SyncRuntime {
 
     for (const action of actions) {
       if (action.type === "upload") {
-        const content = vault.read(item.path).content;
+        const content = new Uint8Array(vault.readBytes(item.path));
         const remoteFile = item.remote ?? null;
-        const result = await remote.upload(root, item.path, content, { existing: remoteFile });
+        const result = await remote.uploadBytes(root, item.path, content, { existing: remoteFile });
         this.setBase(item.path, {
           remoteId: result.id,
           remoteRev: result.rev,
           localMtimeMs: vault.mtime(item.path),
-          localSize: utf8Size(content),
-          hash: sha256Hex(content),
+          localSize: content.length,
+          hash: sha256Bytes(content),
         });
       } else if (action.type === "download") {
         const source = item.remote;
         if (!source) continue;
-        const content = await remote.download(source);
+        const content = await remote.downloadBytes(source);
         let path = item.path;
         if (action.copyRemote) {
           path = uniqueConflictCopyPath(item.path, Date.now(), (candidate) =>
@@ -305,8 +313,8 @@ export class SyncRuntime {
             remoteId: source.id,
             remoteRev: source.rev,
             localMtimeMs: vault.mtime(path),
-            localSize: utf8Size(content),
-            hash: sha256Hex(content),
+            localSize: content.length,
+            hash: sha256Bytes(content),
           });
         }
       } else if (action.type === "localDelete") {
@@ -369,16 +377,21 @@ export class SyncRuntime {
       const remote = this.makeProvider(conn.provider, session);
       const root = this.rootDir(conn);
 
-      const local = buildLocalFiles(vault, this.base);
-      const remoteFiles = await remote.listFiles(root);
+      const local = buildLocalFiles(vault, this.base, true);
+      const inventory = await remote.inventory(root);
+      const remoteFiles = inventory.files;
+      for (const dir of inventory.directories) vault.ensureDir(dir);
+      for (const entry of vault.inventory()) {
+        if (entry.isDir) await remote.ensureDirectory(root, entry.path);
+      }
 
       const remoteHashes: Record<string, string> = {};
       const candidates = probeCandidates({ base: this.base, local, remote: remoteFiles });
       for (const candidate of candidates) {
         const file = remoteFiles.find((r) => r.path === candidate.path);
         if (!file) continue;
-        const content = await remote.download(file);
-        remoteHashes[candidate.path] = sha256Hex(content);
+        const content = await remote.downloadBytes(file);
+        remoteHashes[candidate.path] = sha256Bytes(content);
       }
 
       const plan = planSync({ base: this.base, local, remote: remoteFiles, remoteHashes });
@@ -394,17 +407,18 @@ export class SyncRuntime {
       const tick = () => this.progress.set({ done: ++done, total });
 
       for (const action of plan.uploads) {
-        const file = vault.read(action.path);
+        const content = new Uint8Array(vault.readBytes(action.path));
+        const mtimeMs = vault.mtime(action.path);
         const remoteFile = remoteFiles.find((r) => r.path === action.path) ?? null;
-        const uploaded = await remote.upload(root, action.path, file.content, {
+        const uploaded = await remote.uploadBytes(root, action.path, content, {
           existing: remoteFile,
         });
         this.setBase(action.path, {
           remoteId: uploaded.id,
           remoteRev: uploaded.rev,
-          localMtimeMs: file.mtimeMs,
-          localSize: utf8Size(file.content),
-          hash: sha256Hex(file.content),
+          localMtimeMs: mtimeMs,
+          localSize: content.length,
+          hash: sha256Bytes(content),
         });
         result.uploaded += 1;
         tick();
@@ -412,14 +426,15 @@ export class SyncRuntime {
 
       for (const action of plan.downloads) {
         assertLocalUnchanged(vault, action.path, action.local);
-        const content = await remote.download(action.remote);
+        const content = await remote.downloadBytes(action.remote);
+        assertLocalUnchanged(vault, action.path, action.local);
         writeLocal(vault, action.path, content);
         this.setBase(action.path, {
           remoteId: action.remote.id,
           remoteRev: action.remote.rev,
           localMtimeMs: vault.mtime(action.path),
-          localSize: utf8Size(content),
-          hash: sha256Hex(content),
+          localSize: content.length,
+          hash: sha256Bytes(content),
         });
         result.downloaded += 1;
         result.changedLocal.push(action.path);
@@ -443,7 +458,7 @@ export class SyncRuntime {
       if (plan.remoteDeletes.length > 0) {
         // 删除远端不可逆：先确认云端版本仍是规划时那一版
         const fresh = new Map(
-          (await remote.listFiles(root)).map((file) => [file.path, file] as const),
+          (await remote.inventory(root)).files.map((file) => [file.path, file] as const),
         );
         for (const action of plan.remoteDeletes) {
           const current = fresh.get(action.path);
@@ -488,7 +503,7 @@ export class SyncRuntime {
         this.phase.set("synced");
         const now = Date.now();
         this.lastSyncAt.set(now);
-        await Storage.setItem(LAST_KEY, String(now));
+        await Storage.setItem(this.lastKey(), String(now));
       }
       return result;
     } catch (err) {
@@ -540,7 +555,7 @@ export class SyncRuntime {
 
   private async persistBase(): Promise<void> {
     this.base.savedAt = Date.now();
-    await Storage.setItem(BASE_KEY, JSON.stringify(this.base));
+    await Storage.setItem(this.baseKey(), JSON.stringify(this.base));
   }
 
   private rootDir(conn: SyncConnection): RemoteDir {
@@ -590,11 +605,11 @@ export class SyncRuntime {
 export const syncRuntime = new SyncRuntime();
 
 /** 本地库 → 引擎输入；只有 mtime + size 变过的文件才读盘算哈希。 */
-export function buildLocalFiles(vault: Vault, base: BaseState): LocalFile[] {
-  const entries = vault.listRecursive("");
+export function buildLocalFiles(vault: Vault, base: BaseState, attachments = false): LocalFile[] {
+  const entries = attachments ? vault.inventory() : vault.listRecursive("");
   const out: LocalFile[] = [];
   for (const entry of entries) {
-    if (entry.isDir === true || !isMarkdownName(entry.name)) continue;
+    if (entry.isDir === true || (!attachments && !isMarkdownName(entry.name))) continue;
     const path = normalizeSyncPath(entry.path);
     const anchor = base.entries[path] ?? null;
     const unchanged =
@@ -602,9 +617,9 @@ export function buildLocalFiles(vault: Vault, base: BaseState): LocalFile[] {
     let hash: string | null = null;
     if (!unchanged) {
       try {
-        hash = sha256Hex(vault.read(path).content);
-      } catch {
-        hash = null;
+        hash = attachments ? sha256Bytes(new Uint8Array(vault.readBytes(path))) : sha256Hex(vault.read(path).content);
+      } catch (err) {
+        throw new SyncError("unknown", `Unable to read library file: ${path}`);
       }
     }
     out.push({ path, mtimeMs: entry.mtimeMs, size: entry.size, hash });
@@ -616,13 +631,13 @@ export function utf8Size(text: string): number {
   return new TextEncoder().encode(text).length;
 }
 
-function writeLocal(vault: Vault, path: string, content: string): void {
+function writeLocal(vault: Vault, path: string, content: Uint8Array): void {
   const parent = dirName(path);
   if (parent) vault.ensureDir(parent);
   if (localExists(vault, path)) {
-    vault.write(path, content, null);
+    vault.writeBytes(path, content);
   } else {
-    vault.create(path, content);
+    vault.createBytes(path, content);
   }
 }
 

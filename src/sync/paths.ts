@@ -37,6 +37,12 @@ export function usableName(name: string): boolean {
   return !/[\u0000-\u001f\u007f]/.test(name);
 }
 
+/** Files belonging to the library; hidden app metadata stays in its original location. */
+export function libraryPath(path: string): boolean {
+  return !!path && path.split("/").every((part) => usableName(part) &&
+    !part.startsWith(".") && part.toLowerCase() !== "node_modules");
+}
+
 /** 把绝对路径（Dropbox `/StoatMD/notes/a.md`）转成库内相对路径。 */
 export function relativeToRoot(rootPath: string, absolute: string): string | null {
   const root = normalizeSyncPath(rootPath);

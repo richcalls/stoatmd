@@ -15,6 +15,7 @@ import {
   normalizeSyncPath,
   relativeToRoot,
   usableName,
+  libraryPath,
 } from "./paths";
 import type { TokenSession } from "./tokens";
 import type { ProviderId, RemoteFile } from "./types";
@@ -62,22 +63,26 @@ export class DropboxProvider implements SyncProvider {
   }
 
   async listFiles(root: RemoteDir): Promise<RemoteFile[]> {
+    return (await this.inventory(root)).files.filter((file) => isMarkdownName(file.path));
+  }
+
+  async inventory(root: RemoteDir): Promise<{ files: RemoteFile[]; directories: string[] }> {
     const entries = await this.listFolder(root.id, true);
     const out: RemoteFile[] = [];
+    const directories: string[] = [];
     const seen = new Set<string>();
     for (const entry of entries) {
-      if (entry[".tag"] !== "file") continue;
-      const name = entry.name ?? baseName(entry.path_display ?? "");
-      if (!isMarkdownName(name)) continue;
+      if (entry[".tag"] !== "file" && entry[".tag"] !== "folder") continue;
       if (!entry.path_display) continue;
       const relative = relativeToRoot(root.id, entry.path_display);
       if (relative === null) continue;
       const path = normalizeSyncPath(relative);
-      if (!path) continue;
+      if (!libraryPath(path)) continue;
       if (seen.has(path)) {
         throw new SyncError("ambiguous", `duplicate remote path: ${path}`);
       }
       seen.add(path);
+      if (entry[".tag"] === "folder") { directories.push(path); continue; }
       out.push({
         path,
         id: entry.id ?? entry.path_lower ?? entry.path_display,
@@ -86,7 +91,11 @@ export class DropboxProvider implements SyncProvider {
         size: Number(entry.size ?? 0),
       });
     }
-    return out;
+    return { files: out, directories };
+  }
+
+  async ensureDirectory(root: RemoteDir, path: string): Promise<void> {
+    await this.ensureFolderPath(root, path);
   }
 
   async listFolders(_root: RemoteDir, dir: RemoteDir): Promise<RemoteDir[]> {
@@ -112,6 +121,10 @@ export class DropboxProvider implements SyncProvider {
   }
 
   async download(file: RemoteFile): Promise<string> {
+    return new TextDecoder().decode(await this.downloadBytes(file));
+  }
+
+  async downloadBytes(file: RemoteFile): Promise<Uint8Array> {
     const response = await this.request(
       "https://content.dropboxapi.com/2/files/download",
       {
@@ -122,9 +135,8 @@ export class DropboxProvider implements SyncProvider {
         },
       },
     );
-    const body = await response.text();
-    if (!response.ok) throw dropboxError(response.status, body);
-    return body;
+    if (!response.ok) throw dropboxError(response.status, await response.text());
+    return new Uint8Array(await response.arrayBuffer());
   }
 
   async upload(
@@ -133,6 +145,16 @@ export class DropboxProvider implements SyncProvider {
     content: string,
     options: { existing: RemoteFile | null },
   ): Promise<RemoteFile> {
+    return this.uploadContent(root, path, content, options);
+  }
+
+  async uploadBytes(root: RemoteDir, path: string, content: Uint8Array,
+    options: { existing: RemoteFile | null }): Promise<RemoteFile> {
+    return this.uploadContent(root, path, content, options);
+  }
+
+  private async uploadContent(root: RemoteDir, path: string, content: string | Uint8Array,
+    options: { existing: RemoteFile | null }): Promise<RemoteFile> {
     const existing = options.existing;
     const absolute = joinDropboxPath(root.id, path);
     await this.ensureFolderPath(root, dirName(path));
@@ -169,7 +191,7 @@ export class DropboxProvider implements SyncProvider {
     const response = await this.request("https://api.dropboxapi.com/2/files/delete_v2", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: file.id }),
+      body: JSON.stringify({ path: file.id, parent_rev: file.rev }),
     });
     const body = await response.text();
     if (response.ok) return;

@@ -57,8 +57,9 @@ export class TokenSession {
   }
 
   /** 浏览器授权；成功后立即写入令牌存储。 */
-  async connect(): Promise<TokenBundle> {
+  async connect(expectedAccount?: string | null): Promise<TokenBundle> {
     const bundle = await authorizeProvider(this.provider, this.config, this.deps);
+    if (expectedAccount && bundle.account !== expectedAccount) throw new SyncError("auth", "storage.error.account");
     this.bundle = bundle;
     this.loaded = true;
     await this.store.save(this.provider, bundle);

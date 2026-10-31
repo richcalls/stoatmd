@@ -75,6 +75,57 @@ pub struct Vault {
 }
 
 impl Vault {
+    /// Migration/sync inventory includes attachments and empty directories.
+    /// Hidden metadata and dependency directories remain outside the library.
+    pub fn inventory(&self) -> Result<Vec<VaultEntry>, VaultError> {
+        let mut out = Vec::new();
+        self.collect_inventory(&self.root, &mut out)?;
+        sort_entries(&mut out);
+        Ok(out)
+    }
+
+    fn collect_inventory(&self, dir: &Path, out: &mut Vec<VaultEntry>) -> Result<(), VaultError> {
+        for item in fs::read_dir(dir).map_err(|e| VaultError::Io(e.to_string()))? {
+            let item = item.map_err(|e| VaultError::Io(e.to_string()))?;
+            let name = nfc(&item.file_name().to_string_lossy());
+            if should_skip_dir(&name) { continue; }
+            let ty = item.file_type().map_err(|e| VaultError::Io(e.to_string()))?;
+            // Refuse links explicitly: a successful migration must be a complete snapshot.
+            if ty.is_symlink() || (!ty.is_dir() && !ty.is_file()) {
+                return Err(VaultError::InvalidPath(self.rel_string(&item.path())?));
+            }
+            let meta = item.metadata().map_err(|e| VaultError::Io(e.to_string()))?;
+            out.push(VaultEntry {
+                path: self.rel_string(&item.path())?, name, is_dir: ty.is_dir(),
+                mtime_ms: mtime_ms(&meta), size: if ty.is_dir() { 0 } else { meta.len() },
+            });
+            if ty.is_dir() { self.collect_inventory(&item.path(), out)?; }
+        }
+        Ok(())
+    }
+
+    pub fn read_bytes(&self, rel: &str) -> Result<Vec<u8>, VaultError> {
+        let path = self.resolve(rel, false)?;
+        if !path.is_file() { return Err(VaultError::NotFound(rel.to_owned())); }
+        fs::read(path).map_err(|e| VaultError::Io(e.to_string()))
+    }
+
+    /// Exclusive creation protects a target changed after the inventory was taken.
+    pub fn create_bytes(&self, rel: &str, bytes: &[u8]) -> Result<(), VaultError> {
+        use std::io::Write;
+        let path = self.resolve(rel, false)?;
+        let mut file = fs::OpenOptions::new().write(true).create_new(true).open(path)
+            .map_err(|e| if e.kind() == std::io::ErrorKind::AlreadyExists {
+                VaultError::AlreadyExists(rel.to_owned())
+            } else { VaultError::Io(e.to_string()) })?;
+        file.write_all(bytes).and_then(|_| file.sync_all()).map_err(|e| VaultError::Io(e.to_string()))
+    }
+
+    pub fn write_bytes(&self, rel: &str, bytes: &[u8]) -> Result<(), VaultError> {
+        let path = self.resolve(rel, false)?;
+        fs::write(path, bytes).map_err(|e| VaultError::Io(e.to_string()))
+    }
+
     /// 打开库根；要求路径存在且为目录。会 canonicalize。
     pub fn open(root: impl AsRef<Path>) -> Result<Self, VaultError> {
         let root = root.as_ref();
@@ -500,6 +551,35 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let vault = Vault::open(dir.path()).unwrap();
         (dir, vault)
+    }
+
+    #[test]
+    fn migration_inventory_and_binary_io_preserve_attachments() {
+        let (_dir, vault) = temp_vault();
+        vault.ensure_dir("assets/empty").unwrap();
+        vault.create_bytes("assets/picture.png", &[0, 255, 128, 10]).unwrap();
+        vault.create_bytes("note.md", b"![image](assets/picture.png)").unwrap();
+        vault.ensure_dir(".private").unwrap();
+        vault.create_bytes(".private/config", b"private").unwrap();
+        let entries = vault.inventory().unwrap();
+        assert_eq!(entries.len(), 4);
+        assert!(entries.iter().any(|e| e.path == "assets/empty" && e.is_dir));
+        assert_eq!(vault.read_bytes("assets/picture.png").unwrap(), [0, 255, 128, 10]);
+        assert!(matches!(vault.create_bytes("note.md", b"replace"), Err(VaultError::AlreadyExists(_))));
+        assert_eq!(vault.read_bytes("note.md").unwrap(), b"![image](assets/picture.png)");
+        assert!(vault.create_bytes("../escape.bin", b"escape").is_err());
+        assert!(vault.read_bytes("../escape.bin").is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn migration_rejects_symlinks_instead_of_omitting_source_data() {
+        let (dir, vault) = temp_vault();
+        let outside = tempfile::tempdir().unwrap();
+        fs::write(outside.path().join("outside.bin"), b"outside").unwrap();
+        std::os::unix::fs::symlink(outside.path().join("outside.bin"), dir.path().join("linked.bin")).unwrap();
+        assert!(matches!(vault.inventory(), Err(VaultError::InvalidPath(_))));
+        assert!(vault.read_bytes("linked.bin").is_err());
     }
 
     #[test]

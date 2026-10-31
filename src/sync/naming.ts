@@ -25,9 +25,7 @@ function appendSuffix(path: string, suffix: string): string {
   const name = slash >= 0 ? path.slice(slash + 1) : path;
   const dot = name.toLowerCase().endsWith(".markdown")
     ? name.length - ".markdown".length
-    : name.toLowerCase().endsWith(".md")
-      ? name.length - 3
-      : name.length;
+    : name.lastIndexOf(".") > 0 ? name.lastIndexOf(".") : name.length;
   return `${dir}${name.slice(0, dot)}${suffix}${name.slice(dot)}`;
 }
 

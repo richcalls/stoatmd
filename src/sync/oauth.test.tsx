@@ -222,3 +222,23 @@ test("TokenSession：过期前自动续期；refresh 被拒后清空令牌", asy
   expect((error as SyncError).kind).toBe("auth");
   expect(await store.load("google")).toBe(null);
 });
+
+test("TokenSession：重新授权须匹配原账号，选错账号时保留原令牌", async () => {
+  const store = new MemoryTokenStore();
+  const original: TokenBundle = { accessToken: "original", refreshToken: "refresh", expiresAt: NOW + 3600000, account: "original@example.com" };
+  await store.save("google", original);
+  const deps: OAuthDeps = {
+    authorize: async (_url, state) => ({ code: "code", state, redirectUri: "http://127.0.0.1/callback" }),
+    fetch: async input => String(input).includes("/token")
+      ? jsonResponse({ access_token: "wrong", refresh_token: "wrong-refresh", expires_in: 3600 })
+      : jsonResponse({ user: { emailAddress: "other@example.com" } }),
+    now: () => NOW,
+  };
+  const session = new TokenSession("google", config(), deps, store);
+  await session.restore();
+  let message = "";
+  try { await session.connect(original.account); } catch (err) { message = (err as Error).message; }
+  expect(message).toBe("storage.error.account");
+  expect(await store.load("google")).toEqual(original);
+  expect(await session.accessToken()).toBe("original");
+});

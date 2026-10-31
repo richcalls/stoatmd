@@ -10,6 +10,7 @@ import {
   rememberSettingsWindowFrame,
   settingsWindowFrame,
 } from "./settingsWindow";
+import { storageBusy } from "../storage/state";
 import { SyncSettings } from "./SyncSettings";
 import { THEMES, applyTheme, colors, themeId, type ThemePreset } from "./theme";
 import {
@@ -52,6 +53,8 @@ type Props = {
   windowHeight: number;
   vaultRoot?: string | null;
   onOpenVault?: () => void;
+  onBeforeMigration?: () => Promise<void>;
+  onStorageActivated?: (root: string) => Promise<void>;
   onSyncNow?: () => void;
   onManageConflicts?: () => void;
 };
@@ -59,7 +62,7 @@ type Props = {
 const TABS: { id: SettingsTab; labelKey: string; icon: IconName }[] = [
   { id: "appearance", labelKey: "settings.appearance", icon: "palette" },
   { id: "font", labelKey: "settings.font", icon: "text-t" },
-  { id: "sync", labelKey: "settings.sync", icon: "sync" },
+  { id: "sync", labelKey: "storage.title", icon: "folder" },
 ];
 
 /** 语言名用各自的写法，只有「跟随系统」随界面翻译。 */
@@ -541,6 +544,7 @@ function LocalePicker() {
 /** 设置浮窗：主窗口内的小窗，可拖标题栏移动，位置写入偏好；关闭只收起。 */
 export function SettingsSheet(props: Props) {
   const close = () => {
+    if (storageBusy()) return;
     rememberSettingsWindowFrame();
     props.onClose();
   };
@@ -660,6 +664,8 @@ export function SettingsSheet(props: Props) {
           <View style={{ width: 64, flexShrink: 0, paddingLeft: 12 }}>
             <Button
               testID="settings-close"
+              disabled={storageBusy()}
+              disabledStyle={{ opacity: 0.4 }}
               accessibilityLabel={t("settings.close")}
               tooltip={<Text style={{ fontSize: uiTextSize(12) }}>{t("settings.close")}</Text>}
               onPress={close}
@@ -733,7 +739,7 @@ export function SettingsSheet(props: Props) {
                 <View
                   role="button"
                   testID={`settings-tab-${item.id}`}
-                  onPress={() => props.onTab(item.id)}
+                  onPress={() => { if (!storageBusy()) props.onTab(item.id); }}
                   style={{
                     height: uiControlHeight(32),
                     borderRadius: 7,
@@ -1002,6 +1008,8 @@ export function SettingsSheet(props: Props) {
                 open={props.open}
                 vaultRoot={props.vaultRoot}
                 onOpenVault={props.onOpenVault}
+                onBeforeMigration={props.onBeforeMigration}
+                onStorageActivated={props.onStorageActivated}
                 onSyncNow={props.onSyncNow}
                 onManageConflicts={props.onManageConflicts}
               />

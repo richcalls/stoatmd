@@ -11,7 +11,7 @@
 - 文件内搜索：编辑区右上角紧凑浮窗，macOS `⌘F`，Windows/Linux `Ctrl+F`；匹配高亮与计数，`Enter` / `Shift+Enter` 循环跳转，`Esc` 关闭并返回编辑器。系统结果快捷键为 macOS `⌘G` / `⇧⌘G`、Windows/Linux `F3` / `Shift+F3`；纯预览模式发起搜索时展开分栏显示匹配源码。
 - 分栏时**编辑区与预览 60fps 双向滚动同步，丝滑跟手**（硬性验收标准）
 - 预览默认采用 [Kami](https://github.com/tw93/kami) 文章排版（衬线正文、克制留白）；配色内置 **25 套 [Otty](https://otty.sh) 主题**（默认 Paper，9 浅色 / 16 深色），设置 → 外观即切即换（归属见 `THIRD_PARTY_NOTICES.md`）
-- Google Drive / Dropbox 云盘同步；本地库始终是真相，冲突逐文件弹选，不静默覆盖
+- 本地 / Dropbox / Google Drive 三选一；切换时迁移并校验笔记、附件与文件夹，原数据默认保留
 - 本机永远免费；开启同步走**买断**付费墙（不做订阅制，不绑 iCloud）
 - **不做 MCP**
 
@@ -38,7 +38,7 @@ StoatMD **不做所见即所得**，而是保留纯 Markdown 源码编辑与独�
 
 ### 和妙言一类产品相比
 
-理念接近：原生轻量、源码编辑 + 独立预览、本机文件夹是真相。但妙言类产品多锁在**全苹果生态**，通常也不能让 AI 远程推笔记、给 Agent 调用同一库。StoatMD **不锁死全苹果生态**，正式支持云盘同步，并让 AI / Agent 可远程读写归档。
+理念接近：原生轻量、源码编辑 + 独立预览、普通 Markdown 文件。但妙言类产品多锁在**全苹果生态**，通常也不能让 AI 远程推笔记、给 Agent 调用同一库。StoatMD **不锁死全苹果生态**，正式支持云盘同步，并让 AI / Agent 可远程读写归档。
 
 ### 明确不做
 
@@ -62,6 +62,7 @@ StoatMD **不做所见即所得**，而是保留纯 Markdown 源码编辑与独�
 App.tsx                 # nsh 入口
 src/ui/                 # TSX：Mac 两栏壳（文件树 + 编辑/预览）+ Vault 接线
 src/sync/               # 同步引擎、OAuth PKCE、Google Drive / Dropbox Provider
+src/storage/            # 单一存储记录、校验迁移、离线缓存、清理重试
 src/lib.rs              # stoatmd/native 薄桥（选文件夹 / 监视 / OAuth / 钥匙串）
 crates/stoatmd-core/    # Vault 路径沙箱与 CRUD
 theme.json              # Paper / Nord 基础 token（nsh 原生控件兜底）
@@ -100,9 +101,9 @@ nsh run --target macos
 9. 语言默认跟随系统（识别简体中文、繁體中文、日本語、한국어、Deutsch、Français、Español），也可在设置中强制其中任一种（菜单文案随之切换）
 10. 右键任意笔记：打开 / 在 Finder 中显示 / 复制路径 / 复制相对路径 / 重命名 / 创建副本 / 移到废纸篓；菜单与弹窗随界面语言切换
 
-11. 配置好云盘 OAuth 凭据后，设置 → 同步 →「开启同步」→ 选提供商 → 浏览器授权 → 选/新建远程文件夹 → 首轮同步
-12. 两台设备同时改同一篇 → 冲突表弹出，必须逐文件选择；「全部应用」有二次确认；不静默覆盖
-13. 断开同步只清绑定与令牌，本地 `.md` 原样保留
+11. 设置 → 存储：本地 / Dropbox / Google Drive 三选一；免费安装默认开放本地，云盘通过 Pro 开发配置解锁
+12. 切换位置：选目标文件夹 → 确认迁移（默认保留原位置数据）→ 复制与校验 → 切换。迁移期间暂停编辑与同步；同名差异以独立目录保留整套迁入资料
+13. 云盘模式使用应用管理的离线副本；同步冲突逐文件选择。云盘之间、云盘返回本地与更换本地文件夹都使用相同迁移流程；清理失败可重试或保留剩余文件
 
 > **本 Cloud / Linux 环境限制**：无 macOS AppKit，无法真机弹出系统选文件夹做端到端验证；可用 `nsh check`、`nsh test` 与 `cargo test -p stoatmd-core` 验收编译与 Vault 单元测试。选文件夹在桌面依赖 `rfd`（macOS 为系统面板；Linux 需 GTK 文件对话框）。
 
@@ -110,7 +111,7 @@ Linux 可做类型/编译冒烟：`nsh check`；有 GTK 4.14+ 时可 `nsh run`�
 
 ## 云盘同步（开发者配置）
 
-一期仅 **Google Drive / Dropbox**（不做 iCloud、不出现 OneDrive 灰显入口）。本地库永远是真相；OAuth 令牌只存 macOS 钥匙串（`TokenVault`），不写 `Storage`、不进仓库。
+云盘支持 **Google Drive / Dropbox**。一个笔记库同一时间使用一个存储位置。选择云盘后，应用管理离线缓存，原本地目录解除绑定；缓存负责离线编辑。OAuth 令牌在 macOS 使用钥匙串（`TokenVault`），与 `Storage` 中的存储记录分离。
 
 开发者需自备 OAuth 客户端，二选一：环境变量，或 `~/Library/Application Support/StoatMD/sync.json`（可用 `STOATMD_CONFIG_PATH` 改路径）。
 
@@ -130,7 +131,9 @@ Linux 可做类型/编译冒烟：`nsh check`；有 GTK 4.14+ 时可 `nsh run`�
 }
 ```
 
-`purchaseRequired`（或 `STOATMD_PURCHASE_REQUIRED=1`）只挡「开启同步」入口；默认关闭，等商业化接入再开。同步偏好存 `Storage`（`sync.connection` / `sync.base` / `sync.lastAt`），令牌在钥匙串，断开即清。
+`purchaseRequired` 默认 `true`，免费状态开放本地。`STOATMD_PURCHASE_REQUIRED=0` / 上例 `purchaseRequired: false` 用于开发测试 Pro；当前购买流程和真实权益校验仍待接入。受限状态暂停云盘同步与写入，允许重新授权原账号并迁回本地，包含离线修改及远程独有文件。
+
+当前存储根、云盘连接与待清理任务统一保存在 `Storage` 的 `storage.active` 记录中。迁移校验完成后一次提交该记录；旧版本 `sync.connection` 仅用于兼容读取。配置变量参见 [.env.example](.env.example)，nsh 启动前需要显式导出环境变量。完整规则见 [存储与迁移](docs/product/SYNC.md)。
 
 ## 第三方
 
@@ -144,3 +147,5 @@ Linux 可做类型/编译冒烟：`nsh check`；有 GTK 4.14+ 时可 `nsh run`�
 - [x] Phase 2：Vault 读写、选文件夹、自动保存、冲突提示
 - [x] Phase 3：25 套 Otty 主题网格、字体偏好、文件树折叠、菜单快捷键、跟随系统多语言（8 种界面语言）
 - [x] Phase 4：Google Drive / Dropbox 同步（OAuth PKCE、选/建远程库、锚点增量、冲突逐文件弹选、自动推送与定时拉取）
+
+- [x] 存储迁移：本地 / Dropbox / Google Drive 三选一，笔记与二进制附件校验，默认保留原数据，清理任务持久化

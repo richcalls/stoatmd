@@ -224,6 +224,10 @@ test("Google Drive：新文件先建父目录再 multipart 创建；同名已存
 
 test("Google Drive：删除走回收站，404 视为已删除", async () => {
   const { fetchImpl, calls } = makeFetch((call) => {
+    if (call.method === "GET" && call.url.includes("/files/f1?")) {
+      return new Response(JSON.stringify({ id: "f1", version: "1" }), { headers: { ETag: '"version-1"' } });
+    }
+    if (call.method === "GET" && call.url.includes("/files/gone?")) return json({}, 404);
     if (call.method === "PATCH" && call.url.includes("/files/f1?")) {
       return json({ id: "f1" });
     }
@@ -235,5 +239,43 @@ test("Google Drive：删除走回收站，404 视为已删除", async () => {
   const provider = new GoogleDriveProvider(tokens, fetchImpl, null);
   await provider.remove({ path: "a.md", id: "f1", rev: "1", mtimeMs: 0, size: 0 });
   await provider.remove({ path: "b.md", id: "gone", rev: "1", mtimeMs: 0, size: 0 });
-  expect(JSON.parse(calls[0]!.body).trashed).toBe(true);
+  const patch = calls.find(c => c.method === "PATCH")!;
+  expect(JSON.parse(patch.body).trashed).toBe(true);
+  expect(patch.headers["If-Match"]).toBe('"version-1"');
+});
+
+
+test("Google Drive：清理校验版本和 ETag，变化或缺少条件令牌时保留原文件", async () => {
+  for (const version of ["1", "2"]) {
+    const { fetchImpl, calls } = makeFetch(() => json({ id: "f1", version }));
+    const provider = new GoogleDriveProvider(tokens, fetchImpl, null);
+    let conflict = false;
+    try { await provider.remove({ path: "a.md", id: "f1", rev: "1", mtimeMs: 0, size: 1 }); }
+    catch (err) { conflict = err instanceof RemoteConflictError; }
+    expect(conflict).toBe(true);
+    expect(calls.some(c => c.method === "PATCH")).toBe(false);
+  }
+});
+
+test("Google Drive：二进制 multipart 上传和下载保留全部字节", async () => {
+  const content = new Uint8Array([0, 255, 128, 13, 10]);
+  let uploaded = false;
+  const provider = new GoogleDriveProvider(tokens, async (input, init = {}) => {
+    const url = String(input);
+    if (url.includes("alt=media")) return new Response(content);
+    if (url.includes("uploadType=multipart")) {
+      const body = init.body as Uint8Array;
+      const marker = new TextEncoder().encode("Content-Type: application/octet-stream\r\n\r\n");
+      const text = new TextDecoder().decode(body);
+      const start = text.indexOf("Content-Type: application/octet-stream");
+      expect(start >= 0).toBe(true);
+      expect([...body.slice(start + marker.length, start + marker.length + content.length)]).toEqual([...content]);
+      uploaded = true;
+      return json({ id: "binary", name: "image.png", mimeType: "image/png", version: "1", size: "5" });
+    }
+    return json({ files: [] });
+  }, null);
+  const file = await provider.uploadBytes(root, "image.png", content, { existing: null });
+  expect(uploaded).toBe(true);
+  expect([...await provider.downloadBytes(file)]).toEqual([...content]);
 });

@@ -152,7 +152,7 @@ pub struct SyncConfigDto {
     pub dropbox_app_secret: String,
     /// Dropbox 要求回调端口固定并在应用后台登记；0 表示随机端口。
     pub dropbox_redirect_port: u32,
-    /// 付费墙开关；商业化接入前默认关闭。
+    /// 付费墙开关；商业化接入前默认开启。
     pub purchase_required: bool,
     /// 配置文件路径（UI 在缺凭据时提示）。
     pub config_path: String,
@@ -298,6 +298,47 @@ pub struct Vault {
 
 #[class]
 impl Vault {
+    /// Fresh, app-owned offline cache; never reuses a user-selected folder.
+    pub fn create_cache() -> Result<Vault, String> {
+        let base = dirs::data_local_dir().ok_or("application data directory unavailable")?
+            .join("com.stoatmd.app").join("libraries");
+        std::fs::create_dir_all(&base).map_err(|e| e.to_string())?;
+        let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
+            .map_err(|e| e.to_string())?.as_nanos();
+        let root = base.join(format!("{stamp}-{}", std::process::id()));
+        std::fs::create_dir(&root).map_err(|e| e.to_string())?;
+        Self::open(root.display().to_string())
+    }
+
+    /// Files, binary attachments and empty folders in this library.
+    pub fn inventory(&self) -> Result<Vec<VaultEntryDto>, String> {
+        self.core.inventory().map(map_entries).map_err(map_err)
+    }
+
+    /// Read exact file bytes inside this library.
+    pub fn read_bytes(&self, path: String) -> Result<Vec<u8>, String> {
+        self.core.read_bytes(&path).map_err(map_err)
+    }
+
+    /// Create a file exclusively without replacing an existing path.
+    pub fn create_bytes(&self, path: String, bytes: Vec<u8>) -> Result<(), String> {
+        self.core.create_bytes(&path, &bytes).map_err(map_err)
+    }
+
+    /// Replace file bytes inside this library.
+    pub fn write_bytes(&self, path: String, bytes: Vec<u8>) -> Result<(), String> {
+        self.core.write_bytes(&path, &bytes).map_err(map_err)
+    }
+
+    /// Remove a temporary app-owned cache after migration; user folders are rejected.
+    pub fn discard_cache(&self) -> Result<(), String> {
+        let base = dirs::data_local_dir().ok_or("application data directory unavailable")?
+            .join("com.stoatmd.app").join("libraries").canonicalize().map_err(|e| e.to_string())?;
+        let root = self.core.root();
+        if root.parent() != Some(base.as_path()) { return Err("not an app-owned cache".to_owned()); }
+        std::fs::remove_dir_all(root).map_err(|e| e.to_string())
+    }
+
     /// 打开绝对路径上的库根。
     pub fn open(root: String) -> Result<Vault, String> {
         let core = CoreVault::open(&root).map_err(map_err)?;
@@ -483,7 +524,7 @@ mod sync_tests {
         let empty = config_from_json(&serde_json::Value::Null, Path::new("x"));
         assert_eq!(empty.google_client_id, "");
         assert_eq!(empty.dropbox_redirect_port, 53682);
-        assert!(!empty.purchase_required);
+        assert!(empty.purchase_required);
     }
 
     #[test]
@@ -528,12 +569,7 @@ fn support_dir() -> PathBuf {
     if let Some(dir) = std::env::var_os("STOATMD_SUPPORT_DIR") {
         return PathBuf::from(dir);
     }
-    let home = std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("."));
-    home.join("Library")
-        .join("Application Support")
-        .join("StoatMD")
+    dirs::data_local_dir().unwrap_or_else(|| PathBuf::from(".")).join("StoatMD")
 }
 
 fn config_file_path() -> PathBuf {
@@ -555,7 +591,7 @@ fn config_from_json(doc: &serde_json::Value, path: &Path) -> SyncConfigDto {
         purchase_required: doc
             .get("purchaseRequired")
             .and_then(|value| value.as_bool())
-            .unwrap_or(false),
+            .unwrap_or(true),
         config_path: path.display().to_string(),
     }
 }

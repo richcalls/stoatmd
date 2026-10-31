@@ -31,6 +31,7 @@ import {
 
 type Props = {
   source: string;
+  readOnly?: boolean;
   /** 延迟同步的正文：预览只在输入停顿后重排，不跟随每个按键。 */
   preview: string;
   onChange: (value: string) => void;
@@ -299,6 +300,7 @@ export function EditorWorkspace(props: Props) {
           }}
           testID="document-editor"
           value={props.source}
+          readOnly={props.readOnly}
           onChange={props.onChange}
           onFocus={() => markEditorFocus(true)}
           onBlur={() => markEditorFocus(false)}
