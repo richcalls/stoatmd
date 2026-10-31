@@ -141,6 +141,7 @@
   "menu.settings": "Einstellungen…",
   "menu.quit": "Beenden",
   "vault.open": "Ordner öffnen…",
+  "vault.menu": "Bibliotheksmenü: {name}",
   "vault.section": "Lokale Bibliothek",
   "vault.none": "Kein Ordner ausgewählt",
   "vault.rootFolder": "Stammverzeichnis",

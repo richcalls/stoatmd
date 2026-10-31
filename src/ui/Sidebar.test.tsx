@@ -2,6 +2,35 @@ import { expect, open, test } from "nsh/test";
 
 const options = { width: 800, height: 600, locale: "zh-CN", platform: "macos" as const };
 
+test("笔记库菜单：点击库名展开，明确选择打开文件夹才触发切换，Esc 可取消", async () => {
+  const app = await open("./Sidebar.harness.tsx", options);
+  expect(app.shows("id:sidebar-open")).toBe(false);
+  await app.press("id:sidebar-vault-menu");
+  expect(app.texts()).toContain("/notes/我的库");
+  expect(app.shows("id:sidebar-open")).toBe(true);
+  expect(app.texts()).toContain("vault-closed");
+  await app.keyboard.press("escape");
+  expect(app.shows("id:sidebar-open")).toBe(false);
+  expect(app.texts()).toContain("vault-closed");
+  await app.press("id:sidebar-vault-menu");
+  await app.press("id:sidebar-open");
+  expect(app.texts()).toContain("vault-open");
+  expect(app.shows("id:sidebar-open")).toBe(false);
+});
+
+test("笔记库菜单：选择当前库回到根目录，关闭菜单并保留当前笔记", async () => {
+  const app = await open("./Sidebar.harness.tsx", options);
+  await app.press("id:feed");
+  await app.press("text:计划");
+  await app.press("label:项目");
+  expect(app.texts()).toContain("Projects");
+  await app.press("id:sidebar-vault-menu");
+  await app.press("id:sidebar-vault-root");
+  expect(app.texts().includes("Projects")).toBe(false);
+  expect(app.texts()).toContain("Projects/Stoat/计划.md");
+  expect(app.shows("id:sidebar-open")).toBe(false);
+});
+
 test("文件树：后到的笔记嵌套显示，点击笔记回调路径", async () => {
   const app = await open("./Sidebar.harness.tsx", options);
   expect(app.shows("text:我的库")).toBe(true);

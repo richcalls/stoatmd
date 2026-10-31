@@ -141,6 +141,7 @@
   "menu.settings": "Réglages…",
   "menu.quit": "Quitter",
   "vault.open": "Ouvrir un dossier…",
+  "vault.menu": "Menu de bibliothèque : {name}",
   "vault.section": "Bibliothèque locale",
   "vault.none": "Aucun dossier sélectionné",
   "vault.rootFolder": "Racine",

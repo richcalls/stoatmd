@@ -141,6 +141,7 @@
   "menu.settings": "設定…",
   "menu.quit": "結束",
   "vault.open": "開啟資料夾…",
+  "vault.menu": "筆記庫選單：{name}",
   "vault.section": "本機資料庫",
   "vault.none": "尚未選擇資料夾",
   "vault.rootFolder": "根目錄",

@@ -141,6 +141,7 @@
   "menu.settings": "설정…",
   "menu.quit": "종료",
   "vault.open": "폴더 열기…",
+  "vault.menu": "보관함 메뉴: {name}",
   "vault.section": "로컬 보관함",
   "vault.none": "선택한 폴더가 없습니다",
   "vault.rootFolder": "루트",

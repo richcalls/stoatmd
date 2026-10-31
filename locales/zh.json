@@ -141,6 +141,7 @@
   "menu.settings": "设置…",
   "menu.quit": "退出",
   "vault.open": "打开文件夹…",
+  "vault.menu": "笔记库菜单：{name}",
   "vault.section": "本地库",
   "vault.none": "尚未选择文件夹",
   "vault.rootFolder": "根目录",

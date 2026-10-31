@@ -31,6 +31,7 @@ function Harness() {
   const folder = signal("");
   const syncOpen = signal(false);
   const newNote = signal(false);
+  const vaultOpen = signal(false);
   const menuNote = signal("");
   const phase = signal<SyncPhase>("off");
   const conflicts = signal(0);
@@ -56,7 +57,7 @@ function Harness() {
             )
           }
           onNoteMenu={(id) => menuNote.set(id)}
-          onOpenVault={() => {}}
+          onOpenVault={() => vaultOpen.set(true)}
           onNewNote={() => newNote.set(true)}
           onSync={() => syncOpen.set(true)}
           vaultRoot="/notes/我的库"
@@ -87,6 +88,7 @@ function Harness() {
       <Text testID="folder-value">{folder()}</Text>
       <Text testID="sync-value">{syncOpen() ? "sync-open" : "sync-closed"}</Text>
       <Text testID="new-value">{newNote() ? "new-open" : "new-closed"}</Text>
+      <Text testID="vault-value">{vaultOpen() ? "vault-open" : "vault-closed"}</Text>
       <Text testID="menu-value">{menuNote()}</Text>
     </View>
   );
