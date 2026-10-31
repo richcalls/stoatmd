@@ -277,5 +277,6 @@
   "mobile.connectTitle": "Conecta tu cuaderno",
   "mobile.connectHint": "Elige Google Drive o Dropbox. Tras la primera sincronización, puedes leer y escribir sin conexión.",
   "mobile.paidCloud": "La app de pago para iOS incluye sincronización en la nube. Conecta tu cuenta para empezar.",
-  "mobile.cloudIncluded": "Sincronización en la nube incluida"
+  "mobile.cloudIncluded": "Sincronización en la nube incluida",
+  "mobile.folderDescription": "Elige una carpeta para tus notas. Se sincronizará con este dispositivo en cuanto continúes."
 }

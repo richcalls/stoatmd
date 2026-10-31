@@ -277,5 +277,6 @@
   "mobile.connectTitle": "连接你的笔记库",
   "mobile.connectHint": "选择 Google Drive 或 Dropbox。首次同步后，笔记库支持离线读写。",
   "mobile.paidCloud": "iOS 付费版已包含云盘同步，连接自己的账号即可开始。",
-  "mobile.cloudIncluded": "云盘同步已包含"
+  "mobile.cloudIncluded": "云盘同步已包含",
+  "mobile.folderDescription": "选择用于存放笔记的文件夹，继续后立即同步到这台设备。"
 }

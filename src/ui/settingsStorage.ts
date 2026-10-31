@@ -1,10 +1,11 @@
-import { keepRemainingOriginals, migrateStorage, prepareMigration, retryCleanup, storageMigration } from "../storage/runtime";
+import { activateInitialStorage, keepRemainingOriginals, migrateStorage, prepareMigration, retryCleanup, storageMigration } from "../storage/runtime";
 import { syncRuntime } from "../sync/runtime";
 import { storageBusy } from "../storage/state";
 
 /** The secondary engine replaces these operations with requests to the main engine. */
 export const settingsStorage = {
   prepare: prepareMigration,
+  activate: activateInitialStorage,
   migrate: migrateStorage,
   retryCleanup: async () => {
     if (storageBusy()) return;

@@ -95,14 +95,20 @@ export function SyncSettings(props: SyncSettingsProps) {
     } catch (err) { if (gen === generation) localError.set(errorText(err)); }
     finally { if (gen === generation) loading.set(false); }
   };
+  // iOS first run has no library to move: bind the chosen cloud folder directly.
+  const initialSetup = () => !!props.cloudOnly && !props.vaultRoot && !!props.onStorageActivated;
   const selectTarget = async (location: Location) => {
     const gen = ++generation;
     localError.set(null);
     loading.set(true);
     try {
-      await settingsStorage.prepare(props.vaultRoot ?? null, location, () => gen === generation);
-      if (gen === generation) stage.set("migration");
-      else await settingsStorage.cancel();
+      if (initialSetup()) {
+        await settingsStorage.activate(location, props.onStorageActivated!);
+      } else {
+        await settingsStorage.prepare(props.vaultRoot ?? null, location, () => gen === generation);
+        if (gen === generation) stage.set("migration");
+        else await settingsStorage.cancel();
+      }
     } catch (err) { if (gen === generation) localError.set(errorText(err)); }
     finally { if (gen === generation) loading.set(false); }
   };
@@ -256,7 +262,7 @@ export function SyncSettings(props: SyncSettingsProps) {
 
       <If when={stage() === "folders"}>
         {label(t("sync.folder.title"))}
-        {detail(t("storage.folderDescription"))}
+        {detail(t(initialSetup() ? "mobile.folderDescription" : "storage.folderDescription"))}
         <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
           <If when={stack().length > 1}>
             {button("sync-folder-up", "‹", () => { stack.update(s => s.slice(0, -1)); void loadFolders(currentDir()); }, false, loading())}
