@@ -43,7 +43,7 @@ npm run preview  # 预览构建产物
 | 触发 | 行为 |
 |------|------|
 | `pull_request` 且改动 `website/**` 或本 workflow | 仅 `npm ci && npm run build`，**不发布** |
-| `push` 到 `main` 且同上路径 | 构建 → 确保 Pages 项目存在 → `wrangler pages deploy` |
+| `push` 到 `main` 且同上路径 | **同一 job** 内：构建 → 确保 Pages 项目存在 → `wrangler pages deploy`（**不用** Actions artifact，避开组织存储配额） |
 
 本 agent / 本 PR **不会**实际部署，也 **不会**改 DNS。合并到 `main` 且 secrets 配好后，Actions 才会发布。
 
