@@ -89,7 +89,7 @@
   "settings.renderMode.desc": "Color distinguishes headings, quotes, links, and code. Monochrome keeps type sizes, weights, and layout. Applies to editing and preview.",
   "settings.theme": "Theme",
   "settings.theme.desc": "Colors only, layout stays put. Presets from Otty themes.",
-  "settings.font.desc": "Adjust interface, editor and reading sizes independently. Changes are saved automatically.",
+  "settings.font.desc": "The editor and preview share a body font. Adjust interface, editor and reading sizes independently. Changes are saved automatically.",
   "settings.font.interfaceSize": "Interface size",
   "settings.font.editorSize": "Editor size",
   "settings.font.reading": "Reading",

@@ -13,7 +13,7 @@ import {
   resolveAnchor,
 } from "./previewModel";
 import { colors, themePreset, type ThemePreset } from "./theme";
-import { editorFontSize, editorLineHeight, fontSize, lineHeightPx, previewFontFamily, systemFonts } from "./typography";
+import { editorFontSize, editorLineHeight, fontSize, lineHeightPx, documentFontFamily, systemFonts } from "./typography";
 import type { ViewMode } from "./Toolbar";
 import {
   attachEditor,
@@ -61,7 +61,7 @@ const previewTextStyles = (): TextViewStyles => {
       color: colors().ink,
       fontSize: size,
       lineHeight: lh,
-      fontFamily: previewFontFamily(),
+      fontFamily: documentFontFamily(),
       letterSpacing: 0.3,
     },
     heading: { fontWeight: 500, color: ink.heading },
@@ -334,6 +334,7 @@ export function EditorWorkspace(props: Props) {
           highlighting={renderMode() === "color"}
           softWrap
           lineNumbers={false}
+          fontFamily={documentFontFamily()}
           fontSize={editorFontSize()}
           lineHeight={editorLineHeight()}
           scrollBeyondLastLine={false}
@@ -358,6 +359,7 @@ export function EditorWorkspace(props: Props) {
           language="markdown"
           softWrap
           lineNumbers={false}
+          fontFamily={documentFontFamily()}
           fontSize={editorFontSize()}
           lineHeight={editorLineHeight()}
           scrollBeyondLastLine={false}
@@ -459,9 +461,10 @@ export function EditorWorkspace(props: Props) {
     refreshPreviewMetrics();
   });
 
-  // 字号变化会改变折行及内容高度，重新测量两侧的滚动比例。
+  // 字体与字号变化会改变折行及内容高度，重新测量两侧的滚动比例。
   effect(() => {
     editorFontSize();
+    documentFontFamily();
     refreshPreviewMetrics();
   });
 
