@@ -43,6 +43,7 @@
   "sync.manageConflicts": "Resolve conflicts",
   "sync.firstSync": "First sync…",
   "sync.error.network": "Network unavailable. Local editing continues; sync retries automatically.",
+  "sync.error.connectNetwork": "Could not reach the cloud service. Check your connection and try connecting again.",
   "sync.error.auth": "Authorization expired. Please reconnect the drive.",
   "sync.error.config": "Cloud client credentials are missing. Finish the developer setup first.",
   "sync.error.configHint": "Configure:",
