@@ -6,10 +6,7 @@ from pathlib import Path
 import sys
 
 
-def main():
-    args = sys.argv[1:] or ["run"]
-    if args[0] not in ("run", "test", "package"):
-        raise SystemExit("Usage: python3 scripts/ios.py [run|test|package] [nsh arguments]")
+def build_environment():
     env = os.environ.copy()
     support = Path(env.get("STOATMD_SUPPORT_DIR", Path.home() / "Library/Application Support/StoatMD"))
     config_path = Path(env.get("STOATMD_CONFIG_PATH", support / "sync.json"))
@@ -27,6 +24,14 @@ def main():
     if (toolchain / "cargo/bin/cargo").exists() and (toolchain / "rustup").is_dir():
         env["PATH"] = str(toolchain / "cargo/bin") + os.pathsep + env.get("PATH", "")
         env["RUSTUP_HOME"] = str(toolchain / "rustup")
+    return env
+
+
+def main():
+    args = sys.argv[1:] or ["run"]
+    if args[0] not in ("run", "test", "package"):
+        raise SystemExit("Usage: python3 scripts/ios.py [run|test|package] [nsh arguments]")
+    env = build_environment()
     os.execvpe("nsh", ["nsh", args[0], "--target", "ios", *args[1:]], env)
 
 

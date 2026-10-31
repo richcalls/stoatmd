@@ -39,7 +39,7 @@ python3 scripts/ios.py run
 - Google：在现有 Google Cloud 项目增加「iOS」OAuth 客户端，绑定正式 Bundle ID `com.stoatmd.app`，启用 Drive API。把客户端 ID 存为 `googleIosClientId`，或导出 `STOATMD_GOOGLE_IOS_CLIENT_ID`。
 - iOS 使用 PKCE 公共客户端；桌面客户端 secret 留在 Mac 配置中。iOS 原生加载会清空 secret。
 
-正式 iOS 包需登记 `CFBundleURLTypes`，Google scheme 为 `com.googleusercontent.apps.<客户端 ID 去掉 .apps.googleusercontent.com>`，Dropbox scheme 为 `db-<AppKey>`。回调分别为 `<Google scheme>:/oauthredirect` 和 `<Dropbox scheme>://oauth2redirect`。开发宿主 Bundle ID 为 `com.longbridge.nsh.host`，Google 调试客户端需匹配宿主标识。正式签名与打包仍需配置。
+发布脚本自动登记 `CFBundleURLTypes`，Google scheme 为 `com.googleusercontent.apps.<客户端 ID 去掉 .apps.googleusercontent.com>`，Dropbox scheme 为 `db-<AppKey>`。回调分别为 `<Google scheme>:/oauthredirect` 和 `<Dropbox scheme>://oauth2redirect`。开发宿主 Bundle ID 为 `com.longbridge.nsh.host`，Google 调试客户端需匹配宿主标识。
 
 可指定模拟器和原生回归：
 
@@ -47,6 +47,23 @@ python3 scripts/ios.py run
 python3 scripts/ios.py run --device "iPhone 17 Pro Max"
 python3 scripts/ios.py test src/mobile/MobileShell.test.tsx
 ```
+
+## TestFlight 打包
+
+使用已安装的 Apple Distribution 证书与匹配 `com.stoatmd.app` 的 App Store 描述文件：
+
+```sh
+rustup target add aarch64-apple-ios
+python3 scripts/ios_release.py \
+  --identity "Apple Distribution: YOUR NAME (TEAM_ID)" \
+  --profile /absolute/path/StoatMD-AppStore.mobileprovision \
+  --build 1
+asc builds upload --app 6829230372 --ipa .nsh/testflight/StoatMD.ipa
+```
+
+脚本复用上述公共 OAuth 配置，打包真机程序，编译无透明通道的 AppIcon 资源，加入回调 scheme、标准加密出口声明与 `PrivacyInfo.xcprivacy`，嵌入描述文件后逐层签名并校验，输出 `.nsh/testflight/StoatMD.ipa`。每次上传递增 `--build`；证书、描述文件和安装包保留在忽略目录。
+
+隐私清单声明应用容器和用户所选文件的元数据访问（`C617.1`、`3B52.1`），以及计时用途（`35F9.1`）。笔记由用户授权同步到自己的云盘。正式 App Store 上架的隐私问卷与定价仍需单独设置。
 
 ## 验证状态
 
