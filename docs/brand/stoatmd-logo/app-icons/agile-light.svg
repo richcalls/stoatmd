@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <g transform="translate(100 100) scale(0.8046875)">
-    <defs><clipPath id="r"><rect x="0" y="0" width="1024" height="1024" rx="224" ry="224"/></clipPath></defs>
+<defs><clipPath id="r"><rect x="0" y="0" width="1024" height="1024" rx="224" ry="224"/></clipPath></defs>
     <g clip-path="url(#r)">
       <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224" fill="#F7F3EB"/>
       <line x1="240" y1="790" x2="784" y2="790" stroke="#3D5A80" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
@@ -9,5 +8,4 @@
         <path d="M 90 42 L 82 34 L 76 16 L 70 32 L 62 18 L 60 34 C 46 30, 32 34, 20 42 C 10 38, 4 28, 8 18 C 10 14, 16 16, 18 22 C 16 30, 18 38, 24 44 L 28 58 L 34 58 L 36 48 L 46 58 L 52 58 L 52 48 L 64 56 L 70 56 L 68 46 C 76 48, 84 48, 92 44 Z" fill="#1C1A18"/>
       </g>
     </g>
-  </g>
 </svg>
