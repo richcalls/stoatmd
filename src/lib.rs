@@ -94,13 +94,14 @@ impl VaultDialog {
     }
 }
 
-/// 应用图标（Dock / 窗口切换器）。两套 Logo 的浅色 / 暗色 PNG 打进二进制，切换不需要文件。
+/// 应用图标（Dock / 窗口切换器）。Logo PNG 打进二进制，切换不需要文件。
 #[module]
 pub struct AppIcon;
 
 #[module]
 impl AppIcon {
-    /// 切换应用图标：`thread`（织线白鼬，默认）或 `agile`（敏捷剪影）；`dark` 用炭底版本。
+    /// 切换应用图标：`thread`（织线白鼬，默认）、`agile`（敏捷剪影），
+    /// 或头像草案 `head-a` / `head-b` / `head-d`；`dark` 用炭底版本。
     pub fn set(id: String, dark: bool) -> Result<(), String> {
         #[cfg(target_os = "macos")]
         {
@@ -109,6 +110,12 @@ impl AppIcon {
                 ("thread", true) => include_bytes!("../assets/app-logos/thread-dark.png"),
                 ("agile", false) => include_bytes!("../assets/app-logos/agile.png"),
                 ("agile", true) => include_bytes!("../assets/app-logos/agile-dark.png"),
+                ("head-a", false) => include_bytes!("../assets/app-logos/head-a.png"),
+                ("head-a", true) => include_bytes!("../assets/app-logos/head-a-dark.png"),
+                ("head-b", false) => include_bytes!("../assets/app-logos/head-b.png"),
+                ("head-b", true) => include_bytes!("../assets/app-logos/head-b-dark.png"),
+                ("head-d", false) => include_bytes!("../assets/app-logos/head-d.png"),
+                ("head-d", true) => include_bytes!("../assets/app-logos/head-d-dark.png"),
                 (other, _) => return Err(format!("unknown app icon: {other}")),
             };
             // 引擎在独立线程运行，AppKit 的图标只能在主线程设置。
