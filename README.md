@@ -4,7 +4,7 @@
 
 - 定名 **StoatMD** · 域名 [stoatmd.com](https://stoatmd.com) · 曾用名 LoomMD
 - 自选文件夹，普通 `.md` 文件（Vault：open / list / read / write / create / rename / delete）
-- 两栏：左栏搜索 + 可折叠文件树（笔记嵌在文件夹下），右栏编辑 / 分栏 / 预览
+- 两栏：左栏全库搜索（标题、路径与正文）+ 可折叠文件树（笔记嵌在文件夹下），右栏编辑 / 分栏 / 预览；正文搜索在后台执行，包含嵌套目录与当前未保存正文
 - 笔记右键菜单：打开、在 Finder 中显示、复制路径 / 相对路径、重命名、创建副本、移到废纸篓；文案随界面语言
 - 源码编辑 + 仅编辑 / 分栏 / 仅预览；停顿自动保存；外部改文件冲突提示
 - 文件内搜索：编辑区右上角紧凑浮窗，macOS `⌘F`，Windows/Linux `Ctrl+F`；匹配高亮与计数，`Enter` / `Shift+Enter` 循环跳转，`Esc` 关闭并返回编辑器。系统结果快捷键为 macOS `⌘G` / `⇧⌘G`、Windows/Linux `F3` / `Shift+F3`；纯预览模式发起搜索时展开分栏显示匹配源码。

@@ -187,5 +187,7 @@
   "find.previous": "上一個符合項目",
   "find.close": "關閉尋找",
   "find.noResults": "沒有符合的結果",
-  "find.count": "{current} / {total}"
+  "find.count": "{current} / {total}",
+  "search.pending": "正在搜尋…",
+  "search.failed": "搜尋失敗，請修改關鍵字重試"
 }

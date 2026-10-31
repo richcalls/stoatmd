@@ -187,5 +187,7 @@
   "find.previous": "Find Previous",
   "find.close": "Close Find",
   "find.noResults": "No results",
-  "find.count": "{current} of {total}"
+  "find.count": "{current} of {total}",
+  "search.pending": "Searching…",
+  "search.failed": "Search failed. Edit the query to retry."
 }

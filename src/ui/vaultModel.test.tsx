@@ -129,6 +129,25 @@ test("libraryRows：搜索忽略折叠，平铺匹配笔记并带父文件夹名
   expect(rootHit[0]?.kind === "note" && rootHit[0].hint).toBe("我的库");
 });
 
+test("libraryRows：合并标题、路径与正文命中，折叠目录里的结果每篇出现一次", () => {
+  const rows = libraryRows(TREE_FOLDERS, TREE_NOTES, ["Projects"], "计划", "我的库", [
+    "Diary/今天.md", "Projects/Stoat/计划.md", "missing.md",
+  ]);
+  expect(rows.map((r) => r.id)).toEqual(["Diary/今天.md", "Projects/Stoat/计划.md"]);
+  expect(libraryRows(TREE_FOLDERS, TREE_NOTES, [], "projects").map((r) => r.id))
+    .toEqual(["Projects/Stoat/计划.md"]);
+});
+
+test("libraryRows：当前未保存正文替换磁盘命中，保留标题匹配与 Unicode 匹配", () => {
+  const current = { path: "Diary/今天.md", content: "CAFÉ 😀" };
+  expect(libraryRows(TREE_FOLDERS, TREE_NOTES, [], "cafe\u0301", "", [], current).map((r) => r.id))
+    .toEqual(["Diary/今天.md"]);
+  expect(libraryRows(TREE_FOLDERS, TREE_NOTES, [], "计划", "", ["Diary/今天.md"], current).map((r) => r.id))
+    .toEqual(["Projects/Stoat/计划.md"]);
+  expect(libraryRows(TREE_FOLDERS, TREE_NOTES, [], "今天", "", [], current).map((r) => r.id))
+    .toEqual(["Diary/今天.md"]);
+});
+
 test("formatWhen：八种语言都用各自的「今天」与时间写法", () => {
   const now = Date.now();
   const prefixes: [string, string][] = [

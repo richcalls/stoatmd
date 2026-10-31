@@ -1,6 +1,7 @@
 import { Text, View, mount, signal } from "nsh";
 import type { SyncPhase } from "../sync/runtime";
 import { Sidebar } from "./Sidebar";
+import { librarySearch } from "./librarySearch";
 import type { FolderNode, NoteItem } from "./vaultModel";
 
 const FOLDERS: FolderNode[] = [
@@ -21,6 +22,11 @@ function Harness() {
   const notes = signal<NoteItem[]>([]);
   const collapsed = signal<string[]>([]);
   const query = signal("");
+  const search = librarySearch(() => ({
+    searchContent: async (q: string) => notes().filter((n) =>
+      n.id !== "root.md" && "#读书笔记".includes(q),
+    ).map((n) => n.id),
+  }), query, notes);
   const selected = signal("");
   const folder = signal("");
   const syncOpen = signal(false);
@@ -38,6 +44,9 @@ function Harness() {
           folderId={folder()}
           collapsed={collapsed()}
           query={query()}
+          contentMatches={search.matches()}
+          searchPending={search.pending()}
+          searchError={search.error()}
           onQuery={(q) => query.set(q)}
           onSelectNote={(id) => selected.set(id)}
           onSelectFolder={(id) => folder.set(id)}

@@ -21,6 +21,10 @@ type Props = {
   folderId: string;
   collapsed: string[];
   query: string;
+  contentMatches?: readonly string[];
+  currentNote?: { path: string; content: string };
+  searchPending?: boolean;
+  searchError?: string;
   onQuery: (q: string) => void;
   onSelectNote: (id: string) => void;
   onSelectFolder: (id: string) => void;
@@ -50,7 +54,7 @@ export function Sidebar(props: Props) {
   const rootLabel = (): string => vaultNameFromRoot(props.vaultRoot) || t("vault.rootFolder");
 
   const rows = () =>
-    libraryRows(props.folders, props.notes, props.collapsed, props.query, rootLabel());
+    libraryRows(props.folders, props.notes, props.collapsed, props.query, rootLabel(), props.contentMatches, props.currentNote);
 
   const syncLabel = (): string => {
     const phase = props.syncPhase ?? "off";
@@ -174,6 +178,12 @@ export function Sidebar(props: Props) {
         </View>
       </View>
 
+      <If when={!!props.query.trim() && (!!props.searchError || !!props.searchPending)}>
+        <Text testID="sidebar-search-status" style={{ fontSize: uiTextSize(12), color: colors().ink3, paddingHorizontal: 10, paddingBottom: 6 }}>
+          {props.searchError ? t("search.failed") : t("search.pending")}
+        </Text>
+      </If>
+
       {/* 虚拟化文件树：行被复用，所有取值都通过 row() 读取，不能捕获成常量。 */}
       <List
         style={{ flex: 1 }}
@@ -191,7 +201,7 @@ export function Sidebar(props: Props) {
               lineHeight: uiLineHeight(18),
             }}
           >
-            {props.query.trim() ? t("search.empty") : t("note.empty")}
+            {props.query.trim() ? (props.searchPending || props.searchError ? "" : t("search.empty")) : t("note.empty")}
           </Text>
         }
       >

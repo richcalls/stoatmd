@@ -187,5 +187,7 @@
   "find.previous": "Vorherigen Treffer suchen",
   "find.close": "Suche schließen",
   "find.noResults": "Keine Treffer",
-  "find.count": "{current} von {total}"
+  "find.count": "{current} von {total}",
+  "search.pending": "Suche läuft…",
+  "search.failed": "Suche fehlgeschlagen. Suchbegriff ändern und erneut versuchen."
 }

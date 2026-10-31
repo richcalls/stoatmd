@@ -10,6 +10,7 @@ import { ConflictDialog } from "./ConflictDialog";
 import { EditorWorkspace } from "./EditorWorkspace";
 import { findShortcuts, type FindAction, type FindRequest } from "./findShortcuts";
 import { Icon } from "./Icon";
+import { librarySearch } from "./librarySearch";
 import { t } from "./i18n";
 import { loadSavedRoot, saveRoot } from "./prefs";
 import { scrollEditorToLine, scrollPreviewToIndex } from "./scrollSync";
@@ -67,6 +68,7 @@ export function MacShell() {
   const folderId = signal("");
   const selectedNoteId = signal("");
   const query = signal("");
+  const search = librarySearch(vault, query, notes);
   const collapsed = signal<string[]>([]);
   const opened = signal<OpenedNote | null>(null);
   /** 打开笔记时的正文，作为 Editor 的 value；键入期间不再回灌。 */
@@ -956,6 +958,10 @@ export function MacShell() {
                 folderId={folderId()}
                 collapsed={collapsed()}
                 query={query()}
+                contentMatches={search.matches()}
+                searchPending={search.pending()}
+                searchError={search.error()}
+                currentNote={opened() ? { path: opened()!.path, content: previewDraft() } : undefined}
                 onQuery={(q) => query.set(q)}
                 onSelectNote={selectNote}
                 onSelectFolder={selectFolder}

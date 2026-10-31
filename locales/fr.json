@@ -187,5 +187,7 @@
   "find.previous": "Résultat précédent",
   "find.close": "Fermer la recherche",
   "find.noResults": "Aucun résultat",
-  "find.count": "{current} sur {total}"
+  "find.count": "{current} sur {total}",
+  "search.pending": "Recherche en cours…",
+  "search.failed": "La recherche a échoué. Modifiez la requête pour réessayer."
 }
