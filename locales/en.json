@@ -278,5 +278,7 @@
   "mobile.connectHint": "Choose Google Drive or Dropbox. Your notebook stays available offline after the first sync.",
   "mobile.paidCloud": "The paid iOS app includes cloud sync. Connect your account to get started.",
   "mobile.cloudIncluded": "Cloud sync included",
-  "mobile.folderDescription": "Choose a folder for your notes. It syncs to this device right after you continue."
+  "mobile.folderDescription": "Choose a folder for your notes. It syncs to this device right after you continue.",
+  "mobile.syncPreparing": "Preparing your notebook…",
+  "mobile.syncProgress": "Syncing {done} / {total}"
 }

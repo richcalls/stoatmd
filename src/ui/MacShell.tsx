@@ -260,12 +260,20 @@ export function MacShell() {
     }
   };
 
-  const scheduleSyncPush = () => {
+  // 保存后只推变化的文件；云端版本冲突时交回一次全量同步处理。
+  const pendingPush = new Set<string>();
+  const scheduleSyncPush = (path: string) => {
     if (!syncRuntime.isAttached()) return;
+    pendingPush.add(path);
     if (syncTimer) clearTimeout(syncTimer);
     syncTimer = setTimeout(() => {
       syncTimer = null;
-      void runSync();
+      const paths = Array.from(pendingPush);
+      pendingPush.clear();
+      void (async () => {
+        const result = await syncRuntime.pushPaths(paths);
+        if (result?.needsFullSync) await runSync();
+      })();
     }, SYNC_AFTER_SAVE_MS);
   };
 
@@ -565,7 +573,7 @@ export function MacShell() {
         markSelfWrite(cur.path);
         patchNoteMtime(cur.path, result.mtimeMs);
         status.set(t("vault.saved"));
-        scheduleSyncPush();
+        scheduleSyncPush(cur.path);
         // 写盘期间可能已经切到别的笔记：只更新仍打开的那篇
         if (opened()?.path === cur.path) {
           const stillDirty = liveText !== content;

@@ -278,5 +278,7 @@
   "mobile.connectHint": "Wähle Google Drive oder Dropbox. Nach der ersten Synchronisierung kannst du auch offline lesen und schreiben.",
   "mobile.paidCloud": "Die kostenpflichtige iOS-App enthält die Cloud-Synchronisierung. Verbinde dein Konto, um zu starten.",
   "mobile.cloudIncluded": "Cloud-Synchronisierung inklusive",
-  "mobile.folderDescription": "Wähle einen Ordner für deine Notizen. Nach dem Fortfahren wird er sofort mit diesem Gerät synchronisiert."
+  "mobile.folderDescription": "Wähle einen Ordner für deine Notizen. Nach dem Fortfahren wird er sofort mit diesem Gerät synchronisiert.",
+  "mobile.syncPreparing": "Notizbuch wird vorbereitet…",
+  "mobile.syncProgress": "Synchronisiere {done} / {total}"
 }

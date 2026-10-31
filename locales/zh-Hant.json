@@ -278,5 +278,7 @@
   "mobile.connectHint": "選擇 Google Drive 或 Dropbox。首次同步後，筆記庫支援離線讀寫。",
   "mobile.paidCloud": "iOS 付費版已包含雲端同步，連接自己的帳號即可開始。",
   "mobile.cloudIncluded": "已包含雲端同步",
-  "mobile.folderDescription": "選擇用於存放筆記的資料夾，繼續後立即同步到這台裝置。"
+  "mobile.folderDescription": "選擇用於存放筆記的資料夾，繼續後立即同步到這台裝置。",
+  "mobile.syncPreparing": "正在準備筆記庫…",
+  "mobile.syncProgress": "正在同步 {done} / {total}"
 }
