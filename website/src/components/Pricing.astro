@@ -1,0 +1,46 @@
+---
+import type { Locale } from '../i18n';
+import { t } from '../i18n';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const m = t(locale);
+---
+
+<section class="sec" id="pricing" aria-labelledby="price-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 id="price-title">{m['price.title']}</h2>
+      <p class="sub">{m['price.sub']}</p>
+    </div>
+    <div class="price-grid">
+      <div class="price">
+        <div class="tier">{m['price.free.tier']}</div>
+        <h3>{m['price.free.name']}</h3>
+        <div class="amount">$0<em>{m['price.free.unit']}</em></div>
+        <ul>
+          <li>{m['price.free.1']}</li>
+          <li>{m['price.free.2']}</li>
+          <li>{m['price.free.3']}</li>
+          <li>{m['price.free.4']}</li>
+        </ul>
+      </div>
+      <div class="price pro">
+        <div class="tier">{m['price.pro.tier']}</div>
+        <h3>{m['price.pro.name']}</h3>
+        {/* 买断金额未定：用明显占位符，不编造价格 */}
+        <div class="amount">{m['price.pro.amount']}<em>{m['price.pro.unit']}</em></div>
+        <ul>
+          <li>{m['price.pro.1']}</li>
+          <li>{m['price.pro.2']}</li>
+          <li>{m['price.pro.3']}</li>
+          <li>{m['price.pro.4']}</li>
+        </ul>
+      </div>
+    </div>
+    <p class="price-note">{m['price.note']}</p>
+  </div>
+</section>

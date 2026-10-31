@@ -1,0 +1,19 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import HomePage from '../../components/HomePage.astro';
+import { LOCALES, isLocale, type Locale } from '../../i18n';
+
+export function getStaticPaths() {
+  return LOCALES.filter((l) => l !== 'en').map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params;
+if (!lang || !isLocale(lang) || lang === 'en') {
+  throw new Error(`无效语言路径: ${lang}`);
+}
+const locale = lang as Locale;
+---
+
+<BaseLayout locale={locale}>
+  <HomePage locale={locale} />
+</BaseLayout>

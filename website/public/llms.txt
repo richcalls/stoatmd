@@ -1,0 +1,32 @@
+# StoatMD
+
+> Local-first Markdown notebook. Sync with Google Drive or Dropbox. Buy once to unlock sync for you and your AI agents.
+
+- Site: https://stoatmd.com
+- Product: StoatMD (macOS first; iOS / iPad planned)
+- Pricing: local editing free forever; sync unlock is a one-time purchase (price TBA — do not invent a price)
+- Sync providers (v1): Google Drive, Dropbox only (no iCloud, no self-hosted server, no WebDAV in v1)
+- Editing model: plain Markdown source + separate preview (edit / split / preview), not WYSIWYG
+- Agents: vault on Drive/Dropbox so remote agents can read/write the same library without a local MCP bridge
+- Platforms listed: macOS (Coming soon), iOS/iPad (Planned). Windows/Linux not listed.
+
+## Languages (indexable URLs)
+
+- English (default / x-default): https://stoatmd.com/
+- 简体中文: https://stoatmd.com/zh-hans/
+- 繁體中文: https://stoatmd.com/zh-hant/
+- 日本語: https://stoatmd.com/ja/
+- 한국어: https://stoatmd.com/ko/
+- Deutsch: https://stoatmd.com/de/
+- Français: https://stoatmd.com/fr/
+- Español: https://stoatmd.com/es/
+
+## Optional
+
+- Full narrative (EN): https://stoatmd.com/llms-full.txt
+- Sitemap: https://stoatmd.com/sitemap.xml
+- Design draft (repo): docs/website-v1/ (not the production site)
+
+## Attribution
+
+- Hero WebGL: PRO Threads by Kubai087 (MIT), self-hosted under /vendor/pro-threads/

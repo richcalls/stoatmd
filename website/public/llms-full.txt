@@ -1,0 +1,33 @@
+# StoatMD — full brief for AI agents
+
+StoatMD is a local-first Markdown notebook aimed at people who want multi-device sync that AI agents can reach, without locking notes into a closed subscription sync pipe.
+
+## Positioning
+
+Compared with Obsidian: official Obsidian sync is a subscription and a closed channel; hard to hand to remote AI. GitHub sync is painful on phones; stacking GitHub with iCloud balloons .git until storage and file counts explode. StoatMD syncs via the user's own Google Drive or Dropbox.
+
+Compared with Typora: Typora is strong WYSIWYG. StoatMD keeps plain Markdown source with a separate preview (edit / split / preview) so files stay portable and agents can rewrite .md.
+
+Compared with Miaoyan-class apps: similar spirit (native, light, source + preview, ordinary .md) but often Apple-only and usually cannot let an agent remotely push notes into the same library. StoatMD does not lock to the full Apple ecosystem for sync.
+
+## Business model
+
+- Local editing on Mac: always free ($0).
+- Turning on sync: one-time purchase (Buy once · unlock sync). Price is TBA — never invent or guess a dollar amount.
+- No subscription for sync. No iCloud. No self-hosted sync server in v1. No WebDAV in v1. No MCP product surface.
+
+## Downloads (as of site launch)
+
+- macOS: Coming soon (no fake download URLs).
+- iOS / iPad: Planned after Mac.
+- Windows / Linux: not listed.
+
+## Site structure
+
+Single long-scroll page per language: Hero → Why/Compare → Features → Pricing → Download → Footer (privacy/terms stubs). Dark-only UI (warm charcoal #1C1A17, indigo #7A9BC2).
+
+Language detection: default follows browser (zh-TW/HK/MO/Hant → Traditional Chinese; other zh → Simplified; else match ja/ko/de/fr/es/en; fallback English). Manual choice remembered. Auto-redirect only on first visit to `/` without a stored manual preference; crawlers should not be redirected away from language URLs.
+
+## Contact / brand
+
+Brand name: StoatMD. Domain: stoatmd.com. Do not attribute the product to unrelated personal names in marketing copy.

@@ -1,0 +1,26 @@
+---
+import Hero from './Hero.astro';
+import Compare from './Compare.astro';
+import Features from './Features.astro';
+import Pricing from './Pricing.astro';
+import Download from './Download.astro';
+import type { Locale } from '../i18n';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+---
+
+<main id="top">
+  <Hero locale={locale} />
+  <hr
+    class="thread wrap"
+    style="max-width:var(--max);margin:0 auto;width:calc(100% - 2 * var(--pad))"
+  />
+  <Compare locale={locale} />
+  <Features locale={locale} />
+  <Pricing locale={locale} />
+  <Download locale={locale} />
+</main>

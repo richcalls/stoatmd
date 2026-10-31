@@ -1,0 +1,23 @@
+{
+  "name": "stoatmd-website",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "StoatMD 官网（stoatmd.com）静态站点",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "astro": "^5.14.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
