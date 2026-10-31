@@ -9,22 +9,15 @@ interface Props {
 const { locale } = Astro.props;
 const m = t(locale);
 
-const icons = [
-  `<svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="40" y="40" width="72" height="176" rx="8"/><rect x="144" y="40" width="72" height="176" rx="8"/><path d="M64 88h24M64 120h24M168 88h24M168 120h24M168 152h16"/></svg>`,
-  `<svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M40 144c40-64 136-64 176 0"/><path d="M80 168c24-36 72-36 96 0"/><circle cx="128" cy="188" r="12" fill="currentColor" stroke="none"/><path d="M48 88h40l16-24h48l16 24h40v104H48z"/></svg>`,
-  `<svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="84" cy="96" r="28"/><circle cx="172" cy="96" r="28"/><path d="M36 188c8-36 28-52 48-52s40 16 48 52"/><path d="M124 188c8-36 28-52 48-52s40 16 48 52"/><path d="M128 40v24M116 52h24"/></svg>`,
-  `<svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="48" y="48" width="160" height="160" rx="16"/><path d="M88 128h80M128 88v80"/><path d="M72 72h24v24H72z" opacity=".35"/></svg>`,
-] as const;
-
 const items = [
-  { title: m['feat.1.title'], body: m['feat.1.body'], icon: icons[0] },
-  { title: m['feat.2.title'], body: m['feat.2.body'], icon: icons[1] },
-  { title: m['feat.3.title'], body: m['feat.3.body'], icon: icons[2] },
-  { title: m['feat.4.title'], body: m['feat.4.body'], icon: icons[3] },
+  { num: '01', title: m['feat.1.title'], body: m['feat.1.body'] },
+  { num: '02', title: m['feat.2.title'], body: m['feat.2.body'] },
+  { num: '03', title: m['feat.3.title'], body: m['feat.3.body'] },
+  { num: '04', title: m['feat.4.title'], body: m['feat.4.body'] },
 ] as const;
 ---
 
-<section class="sec" id="features" style="padding-top:24px" aria-labelledby="feat-title">
+<section class="sec" id="features" aria-labelledby="feat-title">
   <div class="wrap">
     <div class="sec-head">
       <h2 id="feat-title">{m['feat.title']}</h2>
@@ -34,7 +27,9 @@ const items = [
       {
         items.map((item) => (
           <article class="feat-item">
-            <div class="feat-ico" aria-hidden="true" set:html={item.icon} />
+            <div class="feat-num" aria-hidden="true">
+              {item.num}
+            </div>
             <div>
               <h3>{item.title}</h3>
               <p>{item.body}</p>

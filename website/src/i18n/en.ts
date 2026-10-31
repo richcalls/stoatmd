@@ -9,7 +9,7 @@ export const en: Messages = {
   'hero.title': 'Your notes. Your Drive. Your agents.',
   'hero.lead':
     'A local-first Markdown notebook. Sync with Google Drive or Dropbox so you — and your AI agents — can read and write the same library, on any device.',
-  'hero.cta': 'Buy once · unlock sync',
+  'hero.cta': 'Buy once · sync',
   'hero.secondary': 'Download for Mac',
   'hero.note': 'Local editing is always free. No subscription. No iCloud. No self-hosted server.',
   'why.title': 'Why not just use Obsidian?',
@@ -27,7 +27,7 @@ export const en: Messages = {
     'Close in spirit: native, light, source + preview, ordinary .md files. But often locked to the Apple ecosystem — and usually cannot let an agent <strong>remotely push</strong> notes into the same library.',
   'cmp.stoat.label': 'Buy once · your cloud',
   'cmp.stoat.body':
-    'Sync with <strong>Google Drive</strong> or <strong>Dropbox</strong>. Local forever free. Unlock sync with a one-time purchase — so you and your Personal Agent can archive into the same folder, from desktop or phone.',
+    'Sync with <strong>Google Drive</strong> or <strong>Dropbox</strong>. Local forever free. One purchase turns on sync — so you and your Personal Agent can archive into the same folder, from desktop or phone.',
   'feat.title': 'Built for notes agents can touch',
   'feat.sub':
     'The library lives in a folder you own. Sync is alignment to your cloud — not a second home for your writing.',
@@ -40,11 +40,11 @@ export const en: Messages = {
   'feat.3.title': 'Agents read and write the same vault',
   'feat.3.body':
     'Typical flow: ask Grok Bot to research, then archive into your notes. Because the vault is on Drive or Dropbox, a remote agent can push Markdown without a local MCP bridge.',
-  'feat.4.title': 'Buy once. Local always free.',
+  'feat.4.title': 'Buy once. Local always free',
   'feat.4.body':
     'Editing on your Mac costs nothing. The moment you turn on sync, you hit a paywall — one purchase, not a subscription bolted onto your notebook.',
   'price.title': 'Pricing',
-  'price.sub': 'No sync subscription. Unlock cloud alignment once — keep your files.',
+  'price.sub': 'No sync subscription. One purchase for cloud alignment — keep your files.',
   'price.free.tier': 'Local',
   'price.free.name': 'Free forever',
   'price.free.unit': 'always',
@@ -76,9 +76,9 @@ export const en: Messages = {
   'foot.lang.hint': 'Language: top bar',
   'foot.threads.credit':
     'Hero animation: <a href="https://github.com/kubai087/pro-threads" rel="noopener noreferrer">PRO Threads</a> by Kubai087 · MIT License (self-hosted).',
-  'doc.title': 'StoatMD — Buy once · unlock sync',
+  'doc.title': 'StoatMD — Buy once · sync',
   'doc.description':
-    'Local-first Markdown notebook. Sync with Google Drive or Dropbox. Buy once to unlock sync for you and your AI agents. macOS first.',
+    'Local-first Markdown notebook. Sync with Google Drive or Dropbox. Buy once for sync — you and your AI agents share the same library. macOS first.',
   'img.alt': 'StoatMD Mac app — source and preview on warm paper',
   'a11y.lang': 'Language',
   'a11y.primaryNav': 'Primary',

@@ -1,4 +1,4 @@
-/* StoatMD · stoatmd.com · 仅暗色 · 暖炭 / 靛蓝 · 严格还原 website-v1 */
+/* StoatMD · stoatmd.com · 仅暗色 · 暖炭织线纸感 · unslop heavy */
 
 @font-face {
   font-family: "Instrument Sans";
@@ -41,16 +41,18 @@
   --indigo: #7a9bc2;
   --indigo-soft: #243040;
   --indigo-on: #1c1a17;
-  --win-border: rgba(240, 235, 227, 0.08);
-  --shadow: 0 24px 64px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
-  --nav-bg: rgba(28, 26, 23, 0.9);
+  --hairline: rgba(240, 235, 227, 0.08);
+  --shadow-shot: 0 28px 80px rgba(0, 0, 0, 0.45), 0 4px 16px rgba(0, 0, 0, 0.28);
+  --nav-bg: rgba(28, 26, 23, 0.92);
   --menu-bg: #26231f;
   --menu-hover: #2e2a25;
   --menu-active: #243040;
   --check: #7a9bc2;
-  --measure: 68ch;
-  --max: 1080px;
-  --pad: clamp(20px, 4vw, 40px);
+  --measure: 64ch;
+  --max: 1120px;
+  --pad: clamp(20px, 4.5vw, 44px);
+  --sec-y: clamp(72px, 10vw, 120px);
+  --hero-min: min(100svh, 920px);
 }
 
 *,
@@ -97,6 +99,7 @@ body {
   text-rendering: optimizeLegibility;
   line-height: 1.55;
   font-size: 16px;
+  font-weight: 400;
 }
 
 img {
@@ -148,13 +151,12 @@ button {
   margin: 0;
 }
 
+/* ——— Nav：安静 chrome，无装饰性玻璃 ——— */
 .nav {
   position: sticky;
   top: 0;
   z-index: 20;
   background: var(--nav-bg);
-  backdrop-filter: saturate(1.2) blur(14px);
-  -webkit-backdrop-filter: saturate(1.2) blur(14px);
   border-bottom: 1px solid var(--thread);
 }
 
@@ -162,7 +164,7 @@ button {
   display: flex;
   align-items: center;
   gap: 16px;
-  height: 58px;
+  height: 56px;
 }
 
 .brand {
@@ -170,7 +172,7 @@ button {
   align-items: center;
   gap: 10px;
   font-weight: 600;
-  font-size: 17px;
+  font-size: 16px;
   letter-spacing: -0.01em;
   color: var(--ink);
   text-decoration: none;
@@ -189,7 +191,7 @@ button {
 
 .nav-links {
   display: flex;
-  gap: 22px;
+  gap: 28px;
   align-items: center;
 }
 .nav-links a {
@@ -205,7 +207,7 @@ button {
 .nav-tools {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .lang-btn {
@@ -218,10 +220,10 @@ button {
   padding: 0 10px;
   border: 1px solid var(--thread);
   border-radius: 8px;
-  background: var(--surface-2);
+  background: transparent;
   color: var(--ink-2);
   font-size: 12px;
-  font-weight: 550;
+  font-weight: 500;
 }
 .lang-btn:hover {
   color: var(--ink);
@@ -249,7 +251,7 @@ button {
   background: var(--menu-bg);
   border: 1px solid var(--thread);
   border-radius: 10px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
   padding: 6px;
   display: none;
   z-index: 30;
@@ -265,7 +267,7 @@ button {
   width: 100%;
   text-align: left;
   padding: 8px 10px;
-  border-radius: 7px;
+  border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
   color: var(--ink-2);
@@ -300,28 +302,46 @@ button {
   align-items: center;
   font-size: 13px;
   font-weight: 600;
-  color: var(--indigo-on);
-  background: var(--indigo);
-  padding: 8px 14px;
+  color: var(--ink);
+  background: transparent;
+  padding: 8px 12px;
   border-radius: 8px;
   text-decoration: none;
+  border: 1px solid var(--thread);
 }
 .nav-cta:hover {
   text-decoration: none;
-  filter: brightness(1.06);
+  background: var(--surface);
 }
 
+/* ——— Hero：织线场景 + 文案 + 产品纸面 ——— */
 .hero {
   position: relative;
   overflow: hidden;
-  padding: 72px 0 140px;
+  min-height: var(--hero-min);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 64px 0 0;
 }
 
 .hero-threads {
   position: absolute;
-  inset: -6% 0 -4% 0;
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 68%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 68%, transparent 100%);
+  inset: -8% -4% -2% -4%;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 55%,
+    rgba(0, 0, 0, 0.55) 78%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 55%,
+    rgba(0, 0, 0, 0.55) 78%,
+    transparent 100%
+  );
   z-index: 0;
   pointer-events: none;
   display: none;
@@ -331,60 +351,75 @@ button {
   display: block;
 }
 .hero-threads.reduced {
-  /* prefers-reduced-motion：不挂载 WebGL，保留暖炭底 */
   display: block;
-  background: radial-gradient(ellipse 70% 55% at 55% 45%, #243040 0%, var(--paper) 70%);
+  background:
+    radial-gradient(ellipse 65% 50% at 58% 42%, #243040 0%, transparent 62%),
+    radial-gradient(ellipse 40% 35% at 30% 60%, rgba(122, 155, 194, 0.12) 0%, transparent 70%),
+    var(--paper);
 }
 .hero-threads pro-threads {
   display: block;
   width: 100%;
   height: 100%;
-  min-height: 280px;
+  min-height: 420px;
   background: var(--paper) !important;
 }
 
-.hero-grid {
-  position: relative;
+.hero-scrim {
+  position: absolute;
+  inset: 0;
   z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      105deg,
+      rgba(28, 26, 23, 0.88) 0%,
+      rgba(28, 26, 23, 0.62) 36%,
+      rgba(28, 26, 23, 0.18) 58%,
+      rgba(28, 26, 23, 0) 72%
+    ),
+    linear-gradient(to top, var(--paper) 0%, rgba(28, 26, 23, 0.55) 18%, transparent 42%);
+}
+
+.hero-stage {
+  position: relative;
+  z-index: 2;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-  gap: 48px;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.2fr);
+  gap: clamp(32px, 5vw, 56px);
   align-items: end;
+  padding-bottom: 0;
+  flex: 1;
+  width: 100%;
 }
 
 .hero-copy {
   position: relative;
-  max-width: 42ch;
-  background: linear-gradient(
-    105deg,
-    rgba(28, 26, 23, 0.78) 0%,
-    rgba(28, 26, 23, 0.42) 62%,
-    rgba(28, 26, 23, 0) 100%
-  );
-  padding: 10px 16px 14px 0;
-  margin: -10px 0 -6px -4px;
-  border-radius: 12px;
+  max-width: 40ch;
+  padding: 24px 0 72px;
 }
 
 .hero h1 {
-  font-size: clamp(36px, 5.2vw, 56px);
-  line-height: 1.08;
-  letter-spacing: -0.025em;
-  font-weight: 650;
-  max-width: 14ch;
+  font-size: clamp(40px, 5.6vw, 64px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  max-width: 12ch;
+  text-wrap: balance;
 }
 .hero .lead {
-  margin-top: 22px;
-  font-size: 18px;
-  line-height: 1.6;
+  margin-top: 24px;
+  font-size: 17px;
+  line-height: 1.65;
   color: var(--ink-2);
-  max-width: 38ch;
+  max-width: 36ch;
+  font-weight: 400;
 }
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 32px;
+  margin-top: 36px;
   align-items: center;
 }
 .btn {
@@ -394,20 +429,22 @@ button {
   gap: 8px;
   font-size: 15px;
   font-weight: 600;
-  padding: 12px 18px;
-  border-radius: 9px;
+  padding: 12px 20px;
+  border-radius: 8px;
   text-decoration: none;
   border: 1px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .btn:hover {
   text-decoration: none;
 }
+/* 暗色主 CTA：纸白墨字，靛蓝留给内容时刻 */
 .btn-primary {
-  background: var(--indigo);
+  background: var(--ink);
   color: var(--indigo-on);
 }
 .btn-primary:hover {
-  filter: brightness(1.06);
+  background: #fff8f0;
 }
 .btn-ghost {
   background: transparent;
@@ -415,46 +452,58 @@ button {
   border-color: var(--thread);
 }
 .btn-ghost:hover {
-  background: rgba(240, 235, 227, 0.05);
+  background: rgba(240, 235, 227, 0.04);
+  border-color: var(--ink-3);
 }
 .hero-note {
-  margin-top: 18px;
+  margin-top: 20px;
   font-size: 13px;
+  line-height: 1.5;
   color: var(--ink-3);
+  max-width: 42ch;
 }
+
 .hero-shot {
-  background: var(--surface);
-  border: 1px solid var(--win-border);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
+  position: relative;
+  margin: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 12px 12px 0 0;
+  border-bottom: 0;
+  box-shadow: var(--shadow-shot);
   overflow: hidden;
+  background: var(--surface);
+  transform: translateY(0);
 }
 .hero-shot img {
   width: 100%;
   height: auto;
+  display: block;
 }
 
+/* ——— Sections ——— */
 .sec {
-  padding: 72px 0;
+  padding: var(--sec-y) 0;
 }
 .sec-head {
   max-width: var(--measure);
-  margin-bottom: 36px;
+  margin-bottom: 48px;
 }
 .sec h2 {
-  font-size: clamp(26px, 3.2vw, 36px);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  font-weight: 650;
+  font-size: clamp(28px, 3.4vw, 40px);
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  font-weight: 600;
+  text-wrap: balance;
 }
 .sec .sub {
-  margin-top: 14px;
+  margin-top: 16px;
   font-size: 17px;
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--ink-2);
-  max-width: 58ch;
+  max-width: 52ch;
 }
 
+/* Compare：编辑式竖列，Stoat 行是靛蓝时刻 */
 .compare {
   display: flex;
   flex-direction: column;
@@ -462,203 +511,221 @@ button {
 }
 .compare-row {
   display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: 28px;
-  padding: 28px 0;
+  grid-template-columns: minmax(120px, 180px) 1fr;
+  gap: 32px;
+  padding: 32px 0;
   border-bottom: 1px solid var(--thread);
   align-items: start;
 }
 .compare-row .name {
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: -0.01em;
+  color: var(--ink);
 }
 .compare-row .name .label {
   display: block;
-  margin-top: 4px;
+  margin-top: 6px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--ink-3);
+  letter-spacing: 0;
 }
 .compare-row .body {
   font-size: 16px;
-  line-height: 1.65;
+  line-height: 1.7;
   color: var(--ink-2);
-  max-width: 62ch;
+  max-width: 60ch;
 }
 .compare-row .body strong {
   color: var(--ink);
-  font-weight: 600;
+  font-weight: 500;
 }
 .compare-row.ours {
   background: var(--indigo-soft);
-  margin: 0 calc(-1 * var(--pad));
-  padding-left: var(--pad);
-  padding-right: var(--pad);
+  margin: 8px calc(-1 * var(--pad)) 0;
+  padding: 40px var(--pad);
   border-bottom: 1px solid var(--thread);
+  border-top: 1px solid rgba(122, 155, 194, 0.22);
 }
 .compare-row.ours .name {
   color: var(--indigo);
+  font-size: 16px;
+}
+.compare-row.ours .body {
+  color: var(--ink-2);
+  font-size: 17px;
 }
 
+/* Features：无 icon tile，织线序号 */
 .feat {
   display: flex;
   flex-direction: column;
+  border-top: 1px solid var(--thread);
 }
 .feat-item {
   display: grid;
   grid-template-columns: 48px 1fr;
-  gap: 20px;
-  padding: 32px 0;
+  gap: 24px;
+  padding: 36px 0;
   border-bottom: 1px solid var(--thread);
   align-items: start;
 }
-.feat-item:first-child {
-  border-top: 1px solid var(--thread);
-}
-.feat-ico {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  color: var(--indigo);
-}
-.feat-ico svg {
-  width: 26px;
-  height: 26px;
+.feat-num {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  padding-top: 4px;
+  font-variant-numeric: tabular-nums;
 }
 .feat-item h3 {
   font-size: 20px;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: -0.015em;
   line-height: 1.25;
 }
 .feat-item p {
-  margin-top: 8px;
+  margin-top: 10px;
   font-size: 16px;
-  line-height: 1.65;
+  line-height: 1.7;
   color: var(--ink-2);
-  max-width: 58ch;
+  max-width: 56ch;
+}
+.feat-item:first-child h3 {
+  font-size: 22px;
 }
 
-.price-grid {
+/* Pricing：非对称 — 本机安静、同步为抬升面 */
+.price-stack {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
   gap: 0;
-  border: 1px solid var(--thread);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--surface);
+  border-top: 1px solid var(--thread);
 }
 .price {
-  padding: 36px 32px;
+  padding: 40px 0 40px;
 }
-.price + .price {
-  border-left: 1px solid var(--thread);
+.price.local {
+  padding-right: 40px;
+  border-bottom: 1px solid var(--thread);
+}
+.price.pro {
+  background: var(--indigo-soft);
+  margin-right: calc(-1 * var(--pad));
+  padding: 40px var(--pad) 40px 40px;
+  border: 1px solid rgba(122, 155, 194, 0.2);
+  border-right: 0;
+  border-radius: 12px 0 0 12px;
 }
 .price .tier {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+}
+.price.pro .tier {
+  color: var(--indigo);
 }
 .price h3 {
   margin-top: 8px;
-  font-size: 28px;
-  font-weight: 650;
+  font-size: 26px;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 .price .amount {
-  margin-top: 18px;
-  font-size: 40px;
-  font-weight: 650;
-  letter-spacing: -0.03em;
+  margin-top: 20px;
+  font-size: 44px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .price .amount em {
   font-style: normal;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 400;
   color: var(--ink-3);
-  margin-left: 6px;
+  margin-left: 8px;
+  letter-spacing: 0;
 }
 .price ul {
   list-style: none;
-  margin-top: 24px;
+  margin-top: 28px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 .price li {
   font-size: 15px;
   line-height: 1.5;
   color: var(--ink-2);
-  padding-left: 18px;
+  padding-left: 16px;
   position: relative;
 }
 .price li::before {
   content: "";
   position: absolute;
   left: 0;
-  top: 9px;
+  top: 10px;
   width: 8px;
   height: 1px;
+  background: var(--thread);
+}
+.price.pro li::before {
   background: var(--indigo);
 }
-.price.pro {
-  background: var(--indigo-soft);
-}
-.price.pro .tier {
-  color: var(--indigo);
-}
 .price-note {
-  margin-top: 20px;
+  margin-top: 28px;
   font-size: 13px;
   color: var(--ink-3);
-  max-width: 62ch;
+  max-width: 58ch;
+  line-height: 1.55;
 }
 
+/* Download：安静行，无 pill chip */
 .dl-list {
   border-top: 1px solid var(--thread);
 }
 .dl-row {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
   gap: 20px;
-  padding: 22px 0;
+  padding: 28px 0;
   border-bottom: 1px solid var(--thread);
+  align-items: baseline;
 }
 .dl-row .plat {
   font-size: 17px;
   font-weight: 600;
-  min-width: 120px;
+  letter-spacing: -0.01em;
 }
 .dl-row .status {
-  flex: 1;
   font-size: 15px;
   color: var(--ink-2);
+  line-height: 1.5;
 }
 .dl-row .chip {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--thread);
+  font-size: 13px;
+  font-weight: 500;
   color: var(--ink-3);
-  background: var(--surface-2);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 .dl-row.is-soon .plat {
-  color: var(--ink-2);
+  color: var(--ink);
 }
 
+/* Footer */
 .foot {
   border-top: 1px solid var(--thread);
-  padding: 40px 0 56px;
-  margin-top: 24px;
+  padding: 48px 0 64px;
+  margin-top: 16px;
 }
 .foot-inner {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px 28px;
+  gap: 16px 24px;
   align-items: center;
   font-size: 13px;
   color: var(--ink-3);
@@ -676,7 +743,7 @@ button {
   margin-left: auto;
 }
 .foot .credit {
-  margin-top: 20px;
+  margin-top: 24px;
   font-size: 12px;
   color: var(--ink-3);
   max-width: 72ch;
@@ -686,19 +753,24 @@ button {
   color: var(--ink-2);
 }
 .legal-stub {
-  margin-top: 28px;
-  padding-top: 24px;
+  margin-top: 36px;
+  padding-top: 28px;
   border-top: 1px solid var(--thread);
 }
 .legal-stub h2 {
-  font-size: 18px;
-  font-weight: 650;
+  font-size: 16px;
+  font-weight: 600;
   margin-bottom: 8px;
 }
 .legal-stub p {
   font-size: 14px;
   color: var(--ink-2);
   max-width: 62ch;
+}
+.legal-stub + .legal-stub {
+  margin-top: 20px;
+  border-top: 0;
+  padding-top: 0;
 }
 
 .visually-hidden {
@@ -713,6 +785,12 @@ button {
   border: 0;
 }
 
+.section-rule {
+  max-width: var(--max);
+  margin: 0 auto;
+  width: calc(100% - 2 * var(--pad));
+}
+
 @media (max-width: 860px) {
   .nav-links {
     display: none;
@@ -721,15 +799,24 @@ button {
     display: none;
   }
   .hero {
-    padding: 48px 0 96px;
+    min-height: 0;
+    padding: 40px 0 0;
+    justify-content: flex-start;
   }
-  .hero-grid {
+  .hero-stage {
     grid-template-columns: 1fr;
-    gap: 36px;
+    gap: 40px;
+  }
+  .hero-copy {
+    max-width: none;
+    padding: 8px 0 8px;
   }
   .hero h1 {
     max-width: none;
-    font-size: 40px;
+    font-size: clamp(36px, 9vw, 48px);
+  }
+  .hero .lead {
+    max-width: 42ch;
   }
   .hero-actions {
     flex-direction: column;
@@ -739,22 +826,86 @@ button {
     width: 100%;
     justify-content: center;
   }
+  .hero-scrim {
+    background:
+      linear-gradient(
+        to bottom,
+        rgba(28, 26, 23, 0.55) 0%,
+        rgba(28, 26, 23, 0.28) 28%,
+        rgba(28, 26, 23, 0.12) 48%,
+        var(--paper) 92%
+      );
+  }
+  .hero-shot {
+    border-radius: 12px 12px 0 0;
+    margin-top: 8px;
+  }
+  .hero-threads {
+    inset: -6% -12% 8% -12%;
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 48%,
+      rgba(0, 0, 0, 0.45) 72%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 48%,
+      rgba(0, 0, 0, 0.45) 72%,
+      transparent 100%
+    );
+  }
   .sec {
-    padding: 56px 0;
+    padding: 64px 0;
+  }
+  .sec-head {
+    margin-bottom: 36px;
   }
   .compare-row {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 10px;
+    padding: 28px 0;
   }
-  .price-grid {
+  .compare-row.ours {
+    margin-top: 4px;
+    padding-top: 32px;
+    padding-bottom: 32px;
+  }
+  .feat-item {
+    grid-template-columns: 36px 1fr;
+    gap: 16px;
+    padding: 28px 0;
+  }
+  .price-stack {
     grid-template-columns: 1fr;
   }
-  .price + .price {
+  .price.local {
+    padding-right: 0;
+    padding-bottom: 36px;
+  }
+  .price.pro {
+    margin-right: calc(-1 * var(--pad));
+    margin-left: calc(-1 * var(--pad));
+    padding: 36px var(--pad);
+    border-radius: 0;
     border-left: 0;
-    border-top: 1px solid var(--thread);
+    border-right: 0;
   }
   .dl-row {
-    flex-wrap: wrap;
+    grid-template-columns: 1fr auto;
+    gap: 8px 16px;
+  }
+  .dl-row .plat {
+    grid-column: 1;
+  }
+  .dl-row .chip {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .dl-row .status {
+    grid-column: 1 / -1;
   }
   .foot .grow {
     margin-left: 0;

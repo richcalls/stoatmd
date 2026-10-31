@@ -5,7 +5,8 @@ body {
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background: #000000;
+  /* StoatMD：嵌入页避免纯黑闪一下，贴合暖炭纸底 */
+  background: #1c1a17;
 }
 
 body[data-ui="off"] { --panel-w: 0px; }

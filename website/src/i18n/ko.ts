@@ -9,7 +9,7 @@ export const ko: Messages = {
   'hero.title': '당신의 노트. 당신의 Drive. 당신의 에이전트.',
   'hero.lead':
     '로컬 우선 Markdown 노트북. Google Drive 또는 Dropbox로 동기화해 당신과 AI 에이전트가 어떤 기기에서든 같은 라이브러리를 읽고 쓸 수 있습니다.',
-  'hero.cta': 'Buy once · unlock sync',
+  'hero.cta': 'Buy once · 동기화',
   'hero.secondary': 'Mac용 다운로드',
   'hero.note': '로컬 편집은 항상 무료. 구독 없음. iCloud 없음. 자체 서버 없음.',
   'why.title': '왜 그냥 Obsidian을 쓰지 않나요?',
@@ -27,7 +27,7 @@ export const ko: Messages = {
     '정신은 가깝습니다: 네이티브·가벼움·소스 + 미리보기·일반 .md. 하지만 대개 Apple 생태계에 묶여 있고, 에이전트가 <strong>원격으로</strong> 같은 라이브러리에 노트를 푸시하지 못하는 경우가 많습니다.',
   'cmp.stoat.label': '일회 구매 · 당신의 클라우드',
   'cmp.stoat.body':
-    '<strong>Google Drive</strong> 또는 <strong>Dropbox</strong>로 동기화. 로컬은 영원히 무료. 일회 구매로 동기화 해제—당신과 Personal Agent가 같은 폴더에, 데스크톱이나 휴대폰에서 아카이브할 수 있습니다.',
+    '<strong>Google Drive</strong> 또는 <strong>Dropbox</strong>로 동기화. 로컬은 영원히 무료. 일회 구매로 동기화 시작—당신과 Personal Agent가 같은 폴더에, 데스크톱이나 휴대폰에서 아카이브할 수 있습니다.',
   'feat.title': '에이전트가 만질 수 있는 노트를 위해',
   'feat.sub':
     '라이브러리는 당신이 소유한 폴더에 있습니다. 동기화는 클라우드와의 정렬이지, 글의 두 번째 집이 아닙니다.',
@@ -40,11 +40,11 @@ export const ko: Messages = {
   'feat.3.title': '에이전트가 같은 vault를 읽고 씀',
   'feat.3.body':
     '전형적 흐름: Grok Bot에게 조사하게 한 뒤 노트에 아카이브. vault가 Drive 또는 Dropbox에 있으므로 원격 에이전트는 로컬 MCP 없이 Markdown을 푸시할 수 있습니다.',
-  'feat.4.title': '일회 구매. 로컬은 항상 무료.',
+  'feat.4.title': '일회 구매. 로컬은 항상 무료',
   'feat.4.body':
     'Mac에서 편집은 무료. 동기화를 켜는 순간 결제 벽—일회 구매이며, 노트북에 구독을 붙이는 방식이 아닙니다.',
   'price.title': '가격',
-  'price.sub': '동기화 구독 없음. 클라우드 정렬을 한 번 해제—파일은 당신의 것.',
+  'price.sub': '동기화 구독 없음. 일회 구매로 클라우드 정렬—파일은 당신의 것.',
   'price.free.tier': '로컬',
   'price.free.name': '영원히 무료',
   'price.free.unit': '항상',
@@ -76,9 +76,9 @@ export const ko: Messages = {
   'foot.lang.hint': '언어: 상단 바',
   'foot.threads.credit':
     '히어로 애니메이션: Kubai087의 <a href="https://github.com/kubai087/pro-threads" rel="noopener noreferrer">PRO Threads</a> · MIT 라이선스(자체 호스팅).',
-  'doc.title': 'StoatMD — Buy once · unlock sync',
+  'doc.title': 'StoatMD — Buy once · 동기화',
   'doc.description':
-    '로컬 우선 Markdown 노트북. Google Drive 또는 Dropbox로 동기화. 일회 구매로 동기화 해제, 당신과 AI 에이전트가 같은 라이브러리 공유. macOS 우선.',
+    '로컬 우선 Markdown 노트북. Google Drive 또는 Dropbox로 동기화. 일회 구매로 동기화, 당신과 AI 에이전트가 같은 라이브러리 공유. macOS 우선.',
   'img.alt': 'StoatMD Mac 앱 — 따뜻한 종이 위의 소스와 미리보기',
   'a11y.lang': '언어',
   'a11y.primaryNav': '주 탐색',

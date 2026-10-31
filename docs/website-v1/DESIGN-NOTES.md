@@ -152,3 +152,29 @@
 - 上文亮色织线 / 反色方案与「主题规矩」作废。
 - Hero 织线：`ring` · `ocean` · fps 30 · 参数同上，保持动画；织线层溢出 + `mask-image` 底部 68%→100% 渐隐到 `#1C1A17`，Hero 底部 padding 加到 140px（手机 96px），圆环不再被切平。
 - 语言切换保留，默认跟浏览器的规则不变。
+
+## Unslop heavy（2026-10-31 · 正式站 website/）
+
+正海：现网「难看」→ 按 [unslop](https://github.com/heydamir/unslop) **heavy** + [impeccable](https://impeccable.style/) craft floor 重做 `website/` 视觉节奏；信息架构与暗色织线世界不变。
+
+### 方向五句
+
+| 线 | 定稿 |
+|----|------|
+| **Product** | 本地优先 Markdown 笔记本；用你自己的 Drive/Dropbox 同步，人和 Agent 共用同一库；同步一次买断 |
+| **Character** | 暖炭、织线、墨迹沉稳（纸面有重量） |
+| **World** | 暖炭纸底 `#1C1A17` 上的靛蓝织线环，源码 Markdown 摊开在纸上 |
+| **Moments** | (1) 首屏 PRO Threads `ring` 织线场景；(2) 真实 Mac 应用截图作为纸面物件升起 |
+| **Signature** | 1px 织线分隔；靛蓝只落在买断相关时刻与 Stoat 对比行，不洒满按钮/边框 |
+
+### Audit → 已修
+
+- Hero 标准 SaaS 左右分栏模板感 → 织线全bleed 场景 + 左文案 scrim + 底部升起产品图
+- CTA / SEO 文案 `unlock` 等 hype → `Buy once · sync` / 各语对应
+- Nav `backdrop-filter` 玻璃模糊 → 去掉，安静 sticky 暖炭
+- 功能区描边 icon tile 墙 → 织线序号 `01–04` 编辑列表
+- 定价等宽双卡墙 → 非对称：本机安静 / 同步 indigo-soft 抬升
+- Download pill chip → 安静状态字
+- 主 CTA 靛蓝铺色 → 纸白墨字主按钮；靛蓝留给内容时刻
+- pro-threads Ocean 纯黑/过青 → 自托管 palette 调成暖炭底 + 靛蓝纤维；参数加强可见度
+- `prefers-reduced-motion` → 静态暖炭径向，不挂 WebGL

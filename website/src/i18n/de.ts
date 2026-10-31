@@ -9,7 +9,7 @@ export const de: Messages = {
   'hero.title': 'Deine Notizen. Dein Drive. Deine Agents.',
   'hero.lead':
     'Ein lokal-first Markdown-Notizbuch. Synchronisiere mit Google Drive oder Dropbox, damit du — und deine KI-Agents — dieselbe Bibliothek auf jedem Gerät lesen und schreiben könnt.',
-  'hero.cta': 'Buy once · unlock sync',
+  'hero.cta': 'Buy once · Sync',
   'hero.secondary': 'Für Mac laden',
   'hero.note': 'Lokales Bearbeiten ist immer kostenlos. Kein Abo. Kein iCloud. Kein eigener Server.',
   'why.title': 'Warum nicht einfach Obsidian?',
@@ -27,7 +27,7 @@ export const de: Messages = {
     'Nah im Geist: nativ, leicht, Quelle + Vorschau, gewöhnliche .md-Dateien. Oft aber auf das Apple-Ökosystem beschränkt — und meist kann ein Agent Notizen nicht <strong>remote</strong> in dieselbe Bibliothek schieben.',
   'cmp.stoat.label': 'Einmal kaufen · deine Cloud',
   'cmp.stoat.body':
-    'Sync mit <strong>Google Drive</strong> oder <strong>Dropbox</strong>. Lokal für immer kostenlos. Sync mit einem Einmalkauf freischalten — damit du und dein Personal Agent denselben Ordner archivieren könnt, vom Desktop oder Handy.',
+    'Sync mit <strong>Google Drive</strong> oder <strong>Dropbox</strong>. Lokal für immer kostenlos. Ein Einmalkauf schaltet Sync ein — damit du und dein Personal Agent denselben Ordner archivieren könnt, vom Desktop oder Handy.',
   'feat.title': 'Für Notizen, die Agents berühren können',
   'feat.sub':
     'Die Bibliothek lebt in einem Ordner, den du besitzt. Sync ist Ausrichtung auf deine Cloud — kein zweites Zuhause für deine Texte.',
@@ -40,11 +40,11 @@ export const de: Messages = {
   'feat.3.title': 'Agents lesen und schreiben denselben Tresor',
   'feat.3.body':
     'Typischer Ablauf: Grok Bot recherchieren lassen, dann in deine Notizen archivieren. Weil der Tresor auf Drive oder Dropbox liegt, kann ein Remote-Agent Markdown ohne lokale MCP-Brücke pushen.',
-  'feat.4.title': 'Einmal kaufen. Lokal immer kostenlos.',
+  'feat.4.title': 'Einmal kaufen. Lokal immer kostenlos',
   'feat.4.body':
     'Bearbeiten auf dem Mac kostet nichts. Sobald du Sync einschaltest, erscheint die Bezahlschranke — ein Kauf, kein Abo an dein Notizbuch gekoppelt.',
   'price.title': 'Preise',
-  'price.sub': 'Kein Sync-Abo. Cloud-Ausrichtung einmal freischalten — behalte deine Dateien.',
+  'price.sub': 'Kein Sync-Abo. Ein Kauf für Cloud-Ausrichtung — behalte deine Dateien.',
   'price.free.tier': 'Lokal',
   'price.free.name': 'Für immer kostenlos',
   'price.free.unit': 'immer',
@@ -76,9 +76,9 @@ export const de: Messages = {
   'foot.lang.hint': 'Sprache: obere Leiste',
   'foot.threads.credit':
     'Hero-Animation: <a href="https://github.com/kubai087/pro-threads" rel="noopener noreferrer">PRO Threads</a> von Kubai087 · MIT-Lizenz (selbst gehostet).',
-  'doc.title': 'StoatMD — Buy once · unlock sync',
+  'doc.title': 'StoatMD — Buy once · Sync',
   'doc.description':
-    'Lokal-first Markdown-Notizbuch. Sync mit Google Drive oder Dropbox. Einmal kaufen, Sync freischalten — für dich und deine KI-Agents. Zuerst macOS.',
+    'Lokal-first Markdown-Notizbuch. Sync mit Google Drive oder Dropbox. Einmal kaufen für Sync — für dich und deine KI-Agents. Zuerst macOS.',
   'img.alt': 'StoatMD-Mac-App — Quelle und Vorschau auf warmem Papier',
   'a11y.lang': 'Sprache',
   'a11y.primaryNav': 'Hauptnavigation',
