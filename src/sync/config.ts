@@ -1,10 +1,11 @@
+import { platform } from "nsh";
 import { SyncConfig, type SyncConfigDto } from "stoatmd/native";
 import type { ProviderId } from "./types";
 
 export type ProviderCredentials = {
   clientId: string;
   clientSecret: string;
-  /** Dropbox 需固定回调端口；Google 用随机端口。 */
+  /** 桌面端 Dropbox 需固定回调端口；iOS 使用应用 URL scheme。 */
   redirectPort: number | null;
 };
 
@@ -19,9 +20,9 @@ export function fixSyncConfigForTest(config: SyncConfigDto | null): void {
 
 /** 开发者配置（环境变量 / sync.json），进程内缓存。 */
 export function loadSyncConfig(refresh = false): SyncConfigDto {
-  if (fixed) return fixed;
+  if (fixed) return platform.os === "ios" ? { ...fixed, purchaseRequired: false } : fixed;
   if (!cached || refresh) cached = SyncConfig.load();
-  return cached;
+  return platform.os === "ios" ? { ...cached, purchaseRequired: false } : cached;
 }
 
 export function credentialsFor(
@@ -47,7 +48,7 @@ export function credentialsFor(
 /** 缺凭据时给开发者的可执行提示（界面展示环境变量名，不泄漏任何 secret）。 */
 export function credentialsHint(provider: ProviderId): string {
   if (provider === "google") {
-    return "STOATMD_GOOGLE_CLIENT_ID / STOATMD_GOOGLE_CLIENT_SECRET";
+    return platform.os === "ios" ? "STOATMD_GOOGLE_IOS_CLIENT_ID" : "STOATMD_GOOGLE_CLIENT_ID / STOATMD_GOOGLE_CLIENT_SECRET";
   }
-  return "STOATMD_DROPBOX_APP_KEY / STOATMD_DROPBOX_APP_SECRET";
+  return platform.os === "ios" ? "STOATMD_DROPBOX_APP_KEY" : "STOATMD_DROPBOX_APP_KEY / STOATMD_DROPBOX_APP_SECRET";
 }

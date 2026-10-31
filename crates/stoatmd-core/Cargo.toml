@@ -7,6 +7,4 @@ description = "StoatMD Vault：本地库读写与路径沙箱"
 
 [dependencies]
 unicode-normalization = "0.1"
-
-[dev-dependencies]
 tempfile = "3"

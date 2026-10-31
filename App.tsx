@@ -1,4 +1,5 @@
-import { host, mount } from "nsh";
+import { host, mount, platform } from "nsh";
+import { MobileShell } from "./src/mobile/MobileShell";
 import { restoreAppLogo } from "./src/ui/appLogo";
 import { MacShell } from "./src/ui/MacShell";
 import { restoreLocale } from "./src/ui/i18n";
@@ -31,5 +32,5 @@ if (host.params.settingsWindow === true) {
 }
 
 function App() {
-  return <MacShell />;
+  return platform.os === "ios" ? <MobileShell /> : <MacShell />;
 }

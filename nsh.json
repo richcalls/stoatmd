@@ -4,7 +4,12 @@
   "version": "0.1.0",
   "build": 1,
   "rust": ".",
-  "capabilities": { "host": ["settings"] },
+  "capabilities": {
+    "host": [
+      "settings"
+    ],
+    "statusBar": true
+  },
   "theme": "theme.json",
   "appearance": "light"
 }

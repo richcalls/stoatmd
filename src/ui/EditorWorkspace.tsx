@@ -50,7 +50,7 @@ const editorTextStyles = () => ({
 });
 
 /** 预览排版：Kami 文章样式（衬线、500 字重、引用无底色），字号随设置缩放。 */
-const previewTextStyles = (): TextViewStyles => {
+export const previewTextStyles = (): TextViewStyles => {
   const size = fontSize();
   const lh = lineHeightPx(size);
   const scale = kamiTypeScale(size);

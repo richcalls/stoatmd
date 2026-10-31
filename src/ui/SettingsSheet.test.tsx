@@ -1,6 +1,6 @@
 import { expect, open, test } from "nsh/test";
 
-const desktop = { width: 1280, height: 800, locale: "zh-CN" };
+const desktop = { platform: "macos" as const, width: 1280, height: 800, locale: "zh-CN" };
 
 test("设置：文稿配色即时保存，重启恢复，切主题后保留模式", async () => {
   const app = await open("./SettingsSheet.harness.tsx", desktop);

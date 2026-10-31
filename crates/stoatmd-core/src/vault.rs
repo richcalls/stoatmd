@@ -123,7 +123,7 @@ impl Vault {
 
     pub fn write_bytes(&self, rel: &str, bytes: &[u8]) -> Result<(), VaultError> {
         let path = self.resolve(rel, false)?;
-        fs::write(path, bytes).map_err(|e| VaultError::Io(e.to_string()))
+        atomic_replace(&path, bytes)
     }
 
     /// 打开库根；要求路径存在且为目录。会 canonicalize。
@@ -283,7 +283,7 @@ impl Vault {
                 });
             }
         }
-        fs::write(&path, content).map_err(|e| VaultError::Io(e.to_string()))?;
+        atomic_replace(&path, content.as_bytes())?;
         let meta = fs::metadata(&path).map_err(|e| VaultError::Io(e.to_string()))?;
         Ok(mtime_ms(&meta))
     }
@@ -305,7 +305,7 @@ impl Vault {
                 ));
             }
         }
-        fs::write(&path, content).map_err(|e| VaultError::Io(e.to_string()))?;
+        self.create_bytes(rel, content.as_bytes())?;
         let meta = fs::metadata(&path).map_err(|e| VaultError::Io(e.to_string()))?;
         Ok(mtime_ms(&meta))
     }
@@ -427,6 +427,23 @@ impl Vault {
                 .join("/"),
         ))
     }
+}
+
+/// Finish and sync a sibling temporary file before replacing the destination.
+/// A failed write leaves the previous file intact; temporary files stay hidden.
+fn atomic_replace(path: &Path, bytes: &[u8]) -> Result<(), VaultError> {
+    use std::io::Write;
+    let parent = path.parent().ok_or_else(|| VaultError::InvalidPath(path.display().to_string()))?;
+    let mut staged = tempfile::Builder::new().prefix(".stoatmd-write-").tempfile_in(parent)
+        .map_err(|e| VaultError::Io(e.to_string()))?;
+    if let Ok(meta) = fs::metadata(path) {
+        staged.as_file().set_permissions(meta.permissions()).map_err(|e| VaultError::Io(e.to_string()))?;
+    }
+    staged.write_all(bytes).and_then(|_| staged.as_file().sync_all()).map_err(|e| VaultError::Io(e.to_string()))?;
+    staged.persist(path).map_err(|e| VaultError::Io(e.to_string()))?;
+    #[cfg(unix)]
+    fs::File::open(parent).and_then(|dir| dir.sync_all()).map_err(|e| VaultError::Io(e.to_string()))?;
+    Ok(())
 }
 
 fn is_markdown(name: &str) -> bool {
@@ -663,6 +680,44 @@ mod tests {
             vault.read("/etc/passwd"),
             Err(VaultError::InvalidPath(_))
         ));
+    }
+
+    #[test]
+    fn atomic_write_replaces_complete_file_and_cleans_staging_files() {
+        use std::io::Read;
+        let (_dir, vault) = temp_vault();
+        let mtime = vault.create("note.md", "original").unwrap();
+        let mut old_handle = fs::File::open(vault.root().join("note.md")).unwrap();
+        vault.write("note.md", "replacement 中文", Some(mtime)).unwrap();
+        let mut original = String::new();
+        old_handle.read_to_string(&mut original).unwrap();
+        assert_eq!(original, "original");
+        assert_eq!(vault.read("note.md").unwrap().content, "replacement 中文");
+        assert_eq!(fs::read_dir(vault.root()).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn failed_atomic_replace_preserves_destination_and_removes_staging_file() {
+        let (_dir, vault) = temp_vault();
+        vault.ensure_dir("folder").unwrap();
+        assert!(atomic_replace(&vault.root().join("folder"), b"bytes").is_err());
+        assert!(vault.root().join("folder").is_dir());
+        assert_eq!(fs::read_dir(vault.root()).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn hidden_journal_and_recycle_bin_stay_out_of_library_inventory() {
+        let (_dir, vault) = temp_vault();
+        vault.ensure_dir(".stoatmd").unwrap();
+        vault.write_bytes(".stoatmd/draft.json", b"draft").unwrap();
+        vault.write_bytes(".stoatmd/draft.json", b"new draft").unwrap();
+        assert_eq!(vault.read_bytes(".stoatmd/draft.json").unwrap(), b"new draft");
+        vault.create("note.md", "body").unwrap();
+        vault.ensure_dir(".stoatmd-trash/123-abc").unwrap();
+        vault.rename("note.md", ".stoatmd-trash/123-abc/note.md").unwrap();
+        assert!(vault.list_recursive("").unwrap().is_empty());
+        assert_eq!(vault.list_recursive(".stoatmd-trash").unwrap().iter().filter(|e| !e.is_dir).count(), 1);
+        vault.delete(".stoatmd/draft.json").unwrap();
     }
 
     #[test]
