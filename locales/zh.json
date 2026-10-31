@@ -180,5 +180,12 @@
   "info.tags": "标签",
   "info.unknown": "未知",
   "info.noTags": "无标签",
-  "preview.copyCode": "复制代码"
+  "preview.copyCode": "复制代码",
+  "find.open": "在文件中查找…",
+  "find.placeholder": "在文件中查找",
+  "find.next": "下一个匹配",
+  "find.previous": "上一个匹配",
+  "find.close": "关闭查找",
+  "find.noResults": "无匹配结果",
+  "find.count": "{current} / {total}"
 }

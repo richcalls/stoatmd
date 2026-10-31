@@ -180,5 +180,12 @@
   "info.tags": "標籤",
   "info.unknown": "未知",
   "info.noTags": "無標籤",
-  "preview.copyCode": "複製程式碼"
+  "preview.copyCode": "複製程式碼",
+  "find.open": "在檔案中尋找…",
+  "find.placeholder": "在檔案中尋找",
+  "find.next": "下一個符合項目",
+  "find.previous": "上一個符合項目",
+  "find.close": "關閉尋找",
+  "find.noResults": "沒有符合的結果",
+  "find.count": "{current} / {total}"
 }

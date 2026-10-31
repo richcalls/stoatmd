@@ -8,6 +8,7 @@ import { ArticleInspector, type InspectorTab } from "./ArticleInspector";
 import { articleModel, type OutlineEntry } from "./articleModel";
 import { ConflictDialog } from "./ConflictDialog";
 import { EditorWorkspace } from "./EditorWorkspace";
+import { findShortcuts, type FindAction, type FindRequest } from "./findShortcuts";
 import { Icon } from "./Icon";
 import { t } from "./i18n";
 import { loadSavedRoot, saveRoot } from "./prefs";
@@ -52,6 +53,7 @@ const NARROW_OVERLAY = 920;
 export function MacShell() {
   const sidebarMode = signal<SidebarMode>("expanded");
   const mode = signal<ViewMode>("split");
+  const findRequest = signal<FindRequest>({ id: 0, action: "open" });
   const inspectorOpen = signal(false);
   const inspectorTab = signal<InspectorTab>("outline");
   /** 阅读模式视口顶部块，供目录滚动高亮。 */
@@ -637,6 +639,12 @@ export function MacShell() {
     settingsOpen.set(true);
   };
 
+  const searchEnabled = () => !!opened() && !settingsOpen() && renamePath() === null
+    && !conflictOpen() && !syncConflictOpen();
+  const requestFind = (action: FindAction) => {
+    if (searchEnabled()) findRequest.update((request) => ({ id: request.id + 1, action }));
+  };
+
   // 启动：恢复上次库根
   effect(() => {
     if (bootstrapped()) return;
@@ -658,6 +666,7 @@ export function MacShell() {
   // 应用菜单：文件 / 视图 / 编辑；语言切换后随 t() 重建
   effect(() => {
     const mac = platform.os === "macos";
+    const findKeys = findShortcuts();
     const settingsItem = {
       label: t("menu.settings"),
       shortcut: "mod+,",
@@ -732,6 +741,10 @@ export function MacShell() {
           { role: "copy" },
           { role: "paste" },
           { role: "selectAll" },
+          { type: "separator" },
+          { label: t("find.open"), shortcut: findKeys.open, disabled: !searchEnabled(), onSelect: () => requestFind("open") },
+          { label: t("find.next"), shortcut: findKeys.next, disabled: !searchEnabled(), onSelect: () => requestFind("next") },
+          { label: t("find.previous"), shortcut: findKeys.previous, disabled: !searchEnabled(), onSelect: () => requestFind("previous") },
         ],
       },
     ]);
@@ -1000,6 +1013,10 @@ export function MacShell() {
                     preview={previewDraft()}
                     onChange={onDraftChange}
                     mode={mode()}
+                    documentId={opened()?.path}
+                    findRequest={findRequest()}
+                    searchEnabled={searchEnabled()}
+                    onRevealEditor={() => changeMode("split")}
                     onVisibleBlock={(index) => visibleBlock.set(index)}
                   />
                 </If>

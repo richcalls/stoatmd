@@ -180,5 +180,12 @@
   "info.tags": "Etiquetas",
   "info.unknown": "Desconocido",
   "info.noTags": "Sin etiquetas",
-  "preview.copyCode": "Copiar código"
+  "preview.copyCode": "Copiar código",
+  "find.open": "Buscar en el archivo…",
+  "find.placeholder": "Buscar en el archivo",
+  "find.next": "Buscar siguiente",
+  "find.previous": "Buscar anterior",
+  "find.close": "Cerrar búsqueda",
+  "find.noResults": "Sin resultados",
+  "find.count": "{current} de {total}"
 }
