@@ -1,0 +1,41 @@
+---
+import type { Locale } from '../i18n';
+import { t } from '../i18n';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const m = t(locale);
+---
+
+<section class="sec" id="why" aria-labelledby="why-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 id="why-title">{m['why.title']}</h2>
+      <p class="sub">{m['why.sub']}</p>
+    </div>
+    <div class="compare">
+      <div class="compare-row">
+        <div class="name">Obsidian<span class="label">{m['cmp.obsidian.label']}</span></div>
+        <div class="body" set:html={m['cmp.obsidian.body']} />
+      </div>
+      <div class="compare-row">
+        <div class="name">Typora<span class="label">{m['cmp.typora.label']}</span></div>
+        <div class="body" set:html={m['cmp.typora.body']} />
+      </div>
+      <div class="compare-row">
+        <div class="name">
+          <span>{m['cmp.miaoyan.name']}</span>
+          <span class="label">{m['cmp.miaoyan.label']}</span>
+        </div>
+        <div class="body" set:html={m['cmp.miaoyan.body']} />
+      </div>
+      <div class="compare-row ours">
+        <div class="name">StoatMD<span class="label">{m['cmp.stoat.label']}</span></div>
+        <div class="body" set:html={m['cmp.stoat.body']} />
+      </div>
+    </div>
+  </div>
+</section>

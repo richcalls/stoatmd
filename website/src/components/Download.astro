@@ -1,0 +1,32 @@
+---
+import type { Locale } from '../i18n';
+import { t } from '../i18n';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const m = t(locale);
+---
+
+<section class="sec" id="download" style="padding-top:24px" aria-labelledby="dl-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 id="dl-title">{m['dl.title']}</h2>
+      <p class="sub">{m['dl.sub']}</p>
+    </div>
+    <div class="dl-list">
+      <div class="dl-row is-soon">
+        <div class="plat">macOS</div>
+        <div class="status">{m['dl.mac']}</div>
+        <span class="chip">{m['dl.soon']}</span>
+      </div>
+      <div class="dl-row is-soon">
+        <div class="plat">iOS / iPad</div>
+        <div class="status">{m['dl.ios']}</div>
+        <span class="chip">{m['dl.planned']}</span>
+      </div>
+    </div>
+  </div>
+</section>

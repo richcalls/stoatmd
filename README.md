@@ -56,6 +56,7 @@ StoatMD **不做所见即所得**，而是保留纯 Markdown 源码编辑与独�
 - [UI v1 设计说明](docs/ui-v1/DESIGN-NOTES.md)（风格 B · 织线）
 - [UI v2 内嵌阅读画布方案](docs/ui-v2/README.md)（交互设计稿与 Qoder 实现说明）
 - [Logo 方向草案](docs/brand/stoatmd-logo/NOTES.md)（默认 A 织线白鼬 · C 敏捷剪影可在设置 → 外观切换 · 浅/暗两版随主题）
+- [官网设计稿 website-v1](docs/website-v1/DESIGN-NOTES.md) · [正式静态站](website/README.md)（Astro · Cloudflare Pages）
 - [Mac 一期实现计划](docs/superpowers/plans/2026-10-29-stoatmd-mac-v1.md)
 
 ## 工程结构

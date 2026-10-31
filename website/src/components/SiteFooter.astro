@@ -1,0 +1,36 @@
+---
+import { localePath, type Locale, t } from '../i18n';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const m = t(locale);
+---
+
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <a class="brand" href={localePath(locale, '#top')} style="font-size:14px;margin:0">
+      <img src="/assets/mark-on-dark.svg" alt="" width="20" height="20" />
+      Stoat<span class="md">MD</span>
+    </a>
+    <span class="sep" aria-hidden="true"></span>
+    <a href={localePath(locale, '#privacy')}>{m['foot.privacy']}</a>
+    <a href={localePath(locale, '#terms')}>{m['foot.terms']}</a>
+    <span class="sep" aria-hidden="true"></span>
+    <span>{m['foot.domain']}</span>
+    <div class="grow" style="font-size:12px;color:var(--ink-3)">{m['foot.lang.hint']}</div>
+  </div>
+  <div class="wrap">
+    <p class="credit" set:html={m['foot.threads.credit']} />
+  </div>
+  <div class="wrap legal-stub" id="privacy">
+    <h2>{m['foot.privacy']}</h2>
+    <p>{m['foot.privacy.body']}</p>
+  </div>
+  <div class="wrap legal-stub" id="terms" style="margin-top:20px;border-top:0;padding-top:0">
+    <h2>{m['foot.terms']}</h2>
+    <p>{m['foot.terms.body']}</p>
+  </div>
+</footer>

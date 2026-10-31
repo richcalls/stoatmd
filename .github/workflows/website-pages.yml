@@ -1,0 +1,121 @@
+# StoatMD 官网 → Cloudflare Pages
+# - push 到 main 且 website/ 或本 workflow 有变更：构建并发布
+# - pull_request 同类路径变更：仅构建校验，不发布
+# 凭据：repo secrets CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID（勿硬编码）
+# 项目名：vars.CLOUDFLARE_PAGES_PROJECT，默认 stoatmd-website
+
+name: Website · Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - ".github/workflows/website-pages.yml"
+  pull_request:
+    paths:
+      - "website/**"
+      - ".github/workflows/website-pages.yml"
+
+concurrency:
+  group: website-pages-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # 可用仓库 Variable `CLOUDFLARE_PAGES_PROJECT` 覆盖；未设置时默认 stoatmd-website
+  PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT || 'stoatmd-website' }}
+
+jobs:
+  build:
+    name: 构建官网
+    # 组织账单异常期间改用 WSL2 自托管 runner（forecho）；仓库为私有，自托管安全
+    runs-on: [self-hosted, linux, wsl2]
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 确认 Node（runner 预装 v22，跳过 setup-node）
+        run: |
+          set -euo pipefail
+          command -v node
+          node -v
+          command -v npm
+          npm -v
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 构建静态站
+        run: npm run build
+
+      - name: 上传 dist 产物
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-dist
+          path: website/dist
+          retention-days: 3
+
+  deploy:
+    name: 发布到 Cloudflare Pages
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # 组织账单异常期间改用 WSL2 自托管 runner（forecho）；仓库为私有，自托管安全
+    runs-on: [self-hosted, linux, wsl2]
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: 检查 Secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          missing=0
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::缺少 repo secret CLOUDFLARE_API_TOKEN"
+            missing=1
+          fi
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::缺少 repo secret CLOUDFLARE_ACCOUNT_ID"
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            echo "请在仓库 Settings → Secrets and variables → Actions 中配置上述 secrets。"
+            echo "API Token 权限见 website/README.md「CI 部署」一节。"
+            exit 1
+          fi
+
+      - name: 下载 dist 产物
+        uses: actions/download-artifact@v4
+        with:
+          name: website-dist
+          path: website/dist
+
+      - name: 确保 Pages 项目存在
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -uo pipefail
+          # runner 已预装全局 wrangler 4.x；无 sudo、不拉 npx 包
+          command -v wrangler
+          wrangler -v
+          echo "检查 / 创建 Pages 项目: ${PAGES_PROJECT}"
+          if wrangler pages project create "${PAGES_PROJECT}" --production-branch=main; then
+            echo "已创建项目 ${PAGES_PROJECT}"
+          else
+            echo "项目可能已存在（或 create 返回非零），继续尝试部署"
+          fi
+
+      - name: 部署到 Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # 固定 v4，与 runner 预装一致；不依赖 sudo
+          wranglerVersion: "4"
+          command: pages deploy website/dist --project-name=${{ env.PAGES_PROJECT }} --branch=main --commit-dirty=true

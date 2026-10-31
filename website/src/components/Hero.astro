@@ -1,0 +1,39 @@
+---
+import { localePath, type Locale, t } from '../i18n';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const m = t(locale);
+---
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-threads" id="heroThreads" aria-hidden="true"></div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <h1 id="hero-title">{m['hero.title']}</h1>
+      <p class="lead">{m['hero.lead']}</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href={localePath(locale, '#pricing')}>{m['hero.cta']}</a>
+        <a class="btn btn-ghost" href={localePath(locale, '#download')}>{m['hero.secondary']}</a>
+      </div>
+      <p class="hero-note">{m['hero.note']}</p>
+    </div>
+    <figure class="hero-shot">
+      <picture>
+        <source srcset="/assets/app-mac-light.webp" type="image/webp" />
+        <img
+          src="/assets/app-mac-light.png"
+          width="1400"
+          height="902"
+          alt={m['img.alt']}
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
+        />
+      </picture>
+    </figure>
+  </div>
+</section>

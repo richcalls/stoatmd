@@ -1,0 +1,45 @@
+---
+import { LOCALE_META, SITE_ORIGIN, absoluteUrl, type Locale, t } from '../i18n';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const m = t(locale);
+
+/** SoftwareApplication：本机免费写实价 $0；买断同步金额未定，不写假价格 */
+const data = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'StoatMD',
+  applicationCategory: 'UtilitiesApplication',
+  applicationSubCategory: 'Markdown notebook',
+  operatingSystem: 'macOS',
+  description: m['doc.description'],
+  url: absoluteUrl(locale),
+  image: `${SITE_ORIGIN}/assets/og-default.png`,
+  inLanguage: LOCALE_META[locale].htmlLang,
+  author: {
+    '@type': 'Organization',
+    name: 'StoatMD',
+    url: SITE_ORIGIN,
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: 'StoatMD',
+    url: SITE_ORIGIN,
+  },
+  offers: {
+    '@type': 'Offer',
+    name: m['price.free.name'],
+    category: 'Local editing',
+    price: '0',
+    priceCurrency: 'USD',
+    description: m['price.sub'],
+    availability: 'https://schema.org/OnlineOnly',
+  },
+};
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(data)} />

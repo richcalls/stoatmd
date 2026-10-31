@@ -1,0 +1,92 @@
+---
+import { LOCALES, LOCALE_META, localePath, type Locale, t } from '../i18n';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const m = t(locale);
+---
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href={localePath(locale, '#top')} aria-label="StoatMD">
+      <img src="/assets/mark-on-dark.svg" alt="" width="28" height="28" />
+      <span>Stoat<span class="md">MD</span></span>
+    </a>
+    <nav class="nav-links" aria-label={m['a11y.primaryNav']}>
+      <a href={localePath(locale, '#why')}>{m['nav.why']}</a>
+      <a href={localePath(locale, '#features')}>{m['nav.features']}</a>
+      <a href={localePath(locale, '#pricing')}>{m['nav.pricing']}</a>
+      <a href={localePath(locale, '#download')}>{m['nav.download']}</a>
+    </nav>
+    <div class="nav-tools">
+      <div class="lang-wrap" id="langWrap">
+        <button
+          type="button"
+          class="lang-btn"
+          id="langBtn"
+          aria-haspopup="listbox"
+          aria-expanded="false"
+          aria-label={m['a11y.lang']}
+        >
+          <span id="langBtnLabel">{LOCALE_META[locale].label}</span>
+          <svg
+            class="chev"
+            viewBox="0 0 256 256"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="20"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            ><path d="M64 96l64 64 64-64"></path></svg
+          >
+        </button>
+        <div class="lang-menu" id="langMenu" role="listbox" aria-label={m['a11y.lang']}>
+          <button type="button" role="option" data-lang="system" aria-selected="false">
+            {m['lang.system']}
+            <svg
+              class="tick"
+              viewBox="0 0 256 256"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="24"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              ><path d="M48 136l56 56 104-120"></path></svg
+            >
+          </button>
+          {
+            LOCALES.map((loc) => (
+              <a
+                role="option"
+                data-lang={loc}
+                href={localePath(loc)}
+                hreflang={LOCALE_META[loc].htmlLang}
+                aria-selected={loc === locale ? 'true' : 'false'}
+              >
+                {LOCALE_META[loc].label}
+                <svg
+                  class="tick"
+                  viewBox="0 0 256 256"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="24"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M48 136l56 56 104-120" />
+                </svg>
+              </a>
+            ))
+          }
+        </div>
+      </div>
+      <a class="nav-cta" href={localePath(locale, '#pricing')}>{m['nav.cta']}</a>
+    </div>
+  </div>
+</header>

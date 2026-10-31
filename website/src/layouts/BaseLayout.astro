@@ -1,0 +1,38 @@
+---
+import '../styles/global.css';
+import SeoHead from '../components/SeoHead.astro';
+import JsonLd from '../components/JsonLd.astro';
+import SiteNav from '../components/SiteNav.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { LOCALE_META, type Locale } from '../i18n';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const htmlLang = LOCALE_META[locale].htmlLang;
+---
+
+<!doctype html>
+<html lang={htmlLang} data-theme="dark">
+  <head>
+    <SeoHead locale={locale} />
+    <JsonLd locale={locale} />
+  </head>
+  <body>
+    <SiteNav locale={locale} />
+    <slot />
+    <SiteFooter locale={locale} />
+    {/* 自托管 PRO Threads web component（iframe 场景同源） */}
+    <script type="module" src="/vendor/pro-threads/embed.js"></script>
+    {/* 语言切换：各语言页均加载；根路径自动跳转逻辑在脚本内判断 */}
+    <script>
+      import '../scripts/lang.ts';
+    </script>
+    {/* Hero 挂载：等待 pro-threads 自定义元素就绪 */}
+    <script>
+      import '../scripts/threads-hero.ts';
+    </script>
+  </body>
+</html>

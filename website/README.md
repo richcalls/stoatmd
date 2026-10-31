@@ -1,0 +1,129 @@
+# StoatMD 官网（stoatmd.com）
+
+正式静态站，视觉与结构严格还原 `docs/website-v1/` 设计稿（设计稿本身不动）。仅暗色；9 语言独立可索引 URL；自托管 PRO Threads 织线环。
+
+## 本地开发
+
+```sh
+cd website
+npm install
+npm run dev      # http://localhost:4321
+npm run build    # 输出到 dist/
+npm run preview  # 预览构建产物
+```
+
+## 技术选型
+
+- **Astro 5** 静态输出（零客户端框架，文案 SSR 进 HTML）
+- 自托管 **Instrument Sans**（woff2）
+- 自托管 **PRO Threads**（`public/vendor/pro-threads/`，MIT © Kubai087）
+
+## 语言与 URL
+
+| 语言 | 路径 |
+|------|------|
+| English（默认 / x-default） | `/` |
+| 简体中文 | `/zh-hans/` |
+| 繁體中文 | `/zh-hant/` |
+| 日本語 | `/ja/` |
+| 한국어 | `/ko/` |
+| Deutsch | `/de/` |
+| Français | `/fr/` |
+| Español | `/es/` |
+
+检测逻辑（客户端，仅首次访问 `/` 且无手动偏好时跳转；爬虫 UA 跳过）：
+
+1. 用户曾手动选择 → 尊重 `localStorage`（含「跟随系统」）
+2. 否则读 `navigator.languages`：繁中（zh-TW/HK/MO/Hant）→ `/zh-hant/`；其他中文 → `/zh-hans/`；ja/ko/de/fr/es/en 前缀匹配；否则留在英文 `/`
+
+## CI 部署（Cloudflare Pages）
+
+由 GitHub Actions [`.github/workflows/website-pages.yml`](../.github/workflows/website-pages.yml) 负责：
+
+| 触发 | 行为 |
+|------|------|
+| `pull_request` 且改动 `website/**` 或本 workflow | 仅 `npm ci && npm run build`，**不发布** |
+| `push` 到 `main` 且同上路径 | 构建 → 确保 Pages 项目存在 → `wrangler pages deploy` |
+
+本 agent / 本 PR **不会**实际部署，也 **不会**改 DNS。合并到 `main` 且 secrets 配好后，Actions 才会发布。
+
+### 构建参数（与本地一致）
+
+| 项 | 值 |
+|----|-----|
+| 工作目录 | `website/` |
+| 安装 | `npm ci`（无需 sudo） |
+| 构建 | `npm run build` |
+| 输出目录 | `website/dist` |
+| Node | runner 预装 `/usr/bin/node` v22（workflow 不跑 setup-node） |
+| Runner | `[self-hosted, linux, wsl2]`（组织账单异常期间；私有仓） |
+| Wrangler | 全局 4.x / `wrangler-action` 固定 `wranglerVersion: "4"` |
+
+静态配置文件随构建进入 `dist/`：
+
+- `_headers` — CSP（自托管 script/frame）、安全头、静态缓存
+- `_redirects` — 轻量兜底（**不做** Accept-Language 强制跳转）
+- `robots.txt` / `sitemap.xml` / `llms.txt` / `llms-full.txt`
+
+### 需要配置的 GitHub Secrets / Variables
+
+在仓库 **Settings → Secrets and variables → Actions**：
+
+| 名称 | 类型 | 说明 |
+|------|------|------|
+| `CLOUDFLARE_API_TOKEN` | Secret（必填） | Cloudflare API Token，见下方权限 |
+| `CLOUDFLARE_ACCOUNT_ID` | Secret（必填） | 账号 ID（Cloudflare 仪表盘右侧 / Overview） |
+| `CLOUDFLARE_PAGES_PROJECT` | Variable（可选） | Pages 项目名；默认 `stoatmd-website` |
+
+### API Token 所需权限
+
+创建 Token：Cloudflare 仪表盘 → **My Profile → API Tokens → Create Token → Create Custom Token**。
+
+| 权限范围 | 权限 | 用途 |
+|----------|------|------|
+| Account → **Cloudflare Pages** | **Edit** | 创建项目、上传部署 |
+| Account → **Account Settings** | **Read** | 解析 Account ID / 项目列表（推荐） |
+
+绑定自定义域若在仪表盘手动操作，Token **不必**含 Zone DNS 权限。若希望用 API/wrangler 管理域名，再额外加：
+
+| 权限范围 | 权限 |
+|----------|------|
+| Zone → **Zone** | Read |
+| Zone → **DNS** | Edit（仅当要用 API 改 DNS 记录时） |
+
+Zone 资源建议限制为 `stoatmd.com` 所在 zone。
+
+### 首次上线清单
+
+1. 配好上述两个 Secrets（Variable 可选）。
+2. 合并本 PR 到 `main`（或推送一次 `website/**` 变更）；workflow 会尝试 `pages project create stoatmd-website --production-branch=main`，已存在则跳过并继续 `pages deploy`。
+3. 在 Cloudflare 仪表盘打开 Pages 项目 `stoatmd-website`，确认生产部署成功（会有 `*.pages.dev` 预览域名）。
+4. **绑定自定义域名 `stoatmd.com`**（人工，本仓库 CI 不改 DNS）：
+   1. Pages 项目 → **Custom domains** → **Set up a custom domain** → 输入 `stoatmd.com`（如需也可加 `www`）。
+   2. 若域名已在同一 Cloudflare 账号代理：按提示一键添加 CNAME/路由即可。
+   3. 若域名在registrar、尚未接入 Cloudflare：把 DNS 迁入 Cloudflare，或按 Pages 提示添加 CNAME（如 `@`/`stoatmd.com` → `<project>.pages.dev`，以控制台文案为准）。
+   4. 等待证书签发与 DNS 生效；用 `https://stoatmd.com/` 验证。
+5. （可选）在 Pages 项目 Settings 里确认 Production branch 为 `main`。
+
+### 本地手动发布（调试用）
+
+```sh
+cd website && npm ci && npm run build
+export CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ACCOUNT_ID=...
+npx wrangler@4 pages deploy dist --project-name=stoatmd-website --branch=main
+```
+
+## SEO / GEO 清单
+
+- [x] 每语言 `title` / `description`
+- [x] `canonical` + 完整 `hreflang`（含 `x-default`）
+- [x] Open Graph / Twitter Card
+- [x] JSON-LD `SoftwareApplication`（本机 $0；买断价未写入假价格）
+- [x] `sitemap.xml`（含 xhtml alternate）
+- [x] `robots.txt`
+- [x] `llms.txt` + `llms-full.txt`
+- [x] 语义化 HTML；关键文案不依赖 JS 渲染
+
+## 第三方许可
+
+见 `public/vendor/pro-threads/LICENSE`（MIT © Kubai087）。页脚有出处说明。
