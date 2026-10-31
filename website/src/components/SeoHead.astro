@@ -1,60 +1,79 @@
 ---
-import { LOCALES, LOCALE_META, SITE_ORIGIN, absoluteUrl, type Locale, t } from '../i18n';
+import {
+  LOCALES,
+  LOCALE_META,
+  SITE_ORIGIN,
+  absoluteUrl,
+  type Locale,
+} from "../i18n";
+
+import { PAPER } from "../i18n/paper";
 
 interface Props {
   locale: Locale;
 }
 
 const { locale } = Astro.props;
-const m = t(locale);
+const p = PAPER[locale];
+const title = `StoatMD — ${p.hero.join(" ")}`;
 const meta = LOCALE_META[locale];
 const canonical = absoluteUrl(locale);
-const ogImage = `${SITE_ORIGIN}/assets/og-default.png`;
+const ogImage = `${SITE_ORIGIN}/assets/og-${locale}.png`;
+const serifFonts: Partial<Record<Locale, string>> = {
+  "zh-hans": "paper-sc",
+  "zh-hant": "paper-tc",
+  ja: "paper-jp",
+  ko: "paper-kr",
+};
+const serifFont = serifFonts[locale] ?? "newsreader-latin-400-normal";
 ---
 
 <meta charset="utf-8" />
-<meta name="color-scheme" content="dark" />
+<meta name="color-scheme" content="light" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>{m['doc.title']}</title>
-<meta name="description" content={m['doc.description']} />
-<meta name="theme-color" content="#1C1A17" />
+<title>{title}</title>
+<meta name="description" content={p.intro} />
+<meta name="theme-color" content="#f8f6f0" />
 <link rel="canonical" href={canonical} />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt" />
 
-{
-  LOCALES.map((loc) => (
-    <link
-      rel="alternate"
-      hreflang={LOCALE_META[loc].htmlLang}
-      href={absoluteUrl(loc)}
-    />
-  ))
-}
-<link rel="alternate" hreflang="x-default" href={absoluteUrl('en')} />
+{LOCALES.map((loc) => (
+  <link
+    rel="alternate"
+    hreflang={LOCALE_META[loc].htmlLang}
+    href={absoluteUrl(loc)}
+  />
+))}
+<link rel="alternate" hreflang="x-default" href={absoluteUrl("en")} />
 
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="StoatMD" />
 <meta property="og:url" content={canonical} />
-<meta property="og:title" content={m['doc.title']} />
-<meta property="og:description" content={m['doc.description']} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={p.intro} />
 <meta property="og:image" content={ogImage} />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:locale" content={meta.ogLocale} />
-{
-  LOCALES.filter((l) => l !== locale).map((loc) => (
-    <meta property="og:locale:alternate" content={LOCALE_META[loc].ogLocale} />
-  ))
-}
+{LOCALES.filter((l) => l !== locale).map((loc) => (
+  <meta property="og:locale:alternate" content={LOCALE_META[loc].ogLocale} />
+))}
 
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content={m['doc.title']} />
-<meta name="twitter:description" content={m['doc.description']} />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={p.intro} />
 <meta name="twitter:image" content={ogImage} />
 
+<link
+  rel="preload"
+  href={`/fonts/${serifFont}.woff2`}
+  as="font"
+  type="font/woff2"
+  crossorigin
+/>
 <link
   rel="preload"
   href="/fonts/instrument-sans-v4-latin_latin-ext-regular.woff2"

@@ -1,36 +1,30 @@
 ---
-import { localePath, type Locale, t } from '../i18n';
-
-interface Props {
-  locale: Locale;
-}
-
-const { locale } = Astro.props;
+import { localePath, type Locale, t } from "../i18n";
+import { PAPER } from "../i18n/paper";
+const { locale } = Astro.props as { locale: Locale };
 const m = t(locale);
+const p = PAPER[locale];
 ---
 
-<footer class="foot">
-  <div class="wrap foot-inner">
-    <a class="brand" href={localePath(locale, '#top')} style="font-size:14px;margin:0">
-      <img src="/assets/mark-on-dark.svg" alt="" width="20" height="20" />
-      Stoat<span class="md">MD</span>
+<footer class="foot wrap">
+  <div class="footer-main">
+    <a class="brand" href={localePath(locale)}>
+      <img src="/assets/mark.svg" width="26" height="26" alt="" />
+      <span>
+        Stoat<span class="md">MD</span>
+      </span>
     </a>
-    <span class="sep" aria-hidden="true"></span>
-    <a href={localePath(locale, '#privacy')}>{m['foot.privacy']}</a>
-    <a href={localePath(locale, '#terms')}>{m['foot.terms']}</a>
-    <span class="sep" aria-hidden="true"></span>
-    <span>{m['foot.domain']}</span>
-    <div class="grow" style="font-size:12px;color:var(--ink-3)">{m['foot.lang.hint']}</div>
+    <span>{p.footer}</span>
+    <span class="copyright">© {new Date().getUTCFullYear()} StoatMD</span>
   </div>
-  <div class="wrap">
-    <p class="credit" set:html={m['foot.threads.credit']} />
-  </div>
-  <div class="wrap legal-stub" id="privacy">
-    <h2>{m['foot.privacy']}</h2>
-    <p>{m['foot.privacy.body']}</p>
-  </div>
-  <div class="wrap legal-stub" id="terms">
-    <h2>{m['foot.terms']}</h2>
-    <p>{m['foot.terms.body']}</p>
+  <div class="legal">
+    <details id="privacy">
+      <summary>{m["foot.privacy"]}</summary>
+      <p>{m["foot.privacy.body"]}</p>
+    </details>
+    <details id="terms">
+      <summary>{m["foot.terms"]}</summary>
+      <p>{m["foot.terms.body"]}</p>
+    </details>
   </div>
 </footer>

@@ -1,42 +1,103 @@
 ---
-import type { Locale } from '../i18n';
-import { t } from '../i18n';
-
-interface Props {
-  locale: Locale;
-}
-
-const { locale } = Astro.props;
-const m = t(locale);
-
-const items = [
-  { num: '01', title: m['feat.1.title'], body: m['feat.1.body'] },
-  { num: '02', title: m['feat.2.title'], body: m['feat.2.body'] },
-  { num: '03', title: m['feat.3.title'], body: m['feat.3.body'] },
-  { num: '04', title: m['feat.4.title'], body: m['feat.4.body'] },
-] as const;
+import type { Locale } from "../i18n";
+import { PAPER } from "../i18n/paper";
+import { DETAILS } from "../i18n/details";
+import { COMPARISON } from "../i18n/comparison";
+import Icon from "./Icon.astro";
+const { locale } = Astro.props as { locale: Locale };
+const p = PAPER[locale];
+const d = DETAILS[locale];
+const c = COMPARISON[locale];
 ---
 
-<section class="sec" id="features" aria-labelledby="feat-title">
-  <div class="wrap">
-    <div class="sec-head">
-      <h2 id="feat-title">{m['feat.title']}</h2>
-      <p class="sub">{m['feat.sub']}</p>
+<div class="benefits wrap">
+  {p.benefits.map((benefit, i) => (
+    <div>
+      <Icon name={["folder", "offline", "palette", "cloud"][i]!} />
+      <span>{benefit}</span>
     </div>
-    <div class="feat">
-      {
-        items.map((item) => (
-          <article class="feat-item">
-            <div class="feat-num" aria-hidden="true">
-              {item.num}
-            </div>
-            <div>
-              <h3>{item.title}</h3>
-              <p>{item.body}</p>
-            </div>
-          </article>
-        ))
-      }
+  ))}
+</div>
+<section class="sync-section wrap" id="sync" aria-labelledby="sync-title">
+  <div class="sync-copy">
+    <h2 id="sync-title">
+      {p.sync.title.split("\n").map((line) => (
+        <span>{line}</span>
+      ))}
+    </h2>
+    <p>{p.sync.body}</p>
+    <div class="providers">
+      <Icon name="cloud" size={18} />
+      Google Drive <span>/</span> Dropbox
     </div>
+    <p class="sync-privacy">{d.privacy}</p>
+  </div>
+  <div class="sync-scene">
+    <p class="scene-caption">{p.sync.folder}</p>
+    <div class="file-stack" aria-hidden="true">
+      <div class="stack-back"></div>
+      <div class="stack-front">
+        <span>.md</span>
+        <Icon name="file" size={36} />
+        <strong>{p.sync.file}</strong>
+        <div class="file-lines">
+          <i></i>
+          <i></i>
+        </div>
+      </div>
+    </div>
+    <div class="sync-flow">
+      {p.sync.flow.map((step, i) => (
+        <>
+          <span>
+            <Icon name={["laptop", "cloud", "agent"][i]!} size={20} />
+            {step}
+          </span>
+          {i < 2 && <Icon name="exchange" size={18} />}
+        </>
+      ))}
+    </div>
+    <p class="scene-caption">{p.sync.caption}</p>
+  </div>
+</section>
+<section
+  class="comparison-section wrap"
+  id="why"
+  aria-labelledby="comparison-title"
+>
+  <div class="comparison-intro">
+    <h2 id="comparison-title">{c.title}</h2>
+    <p>{c.intro}</p>
+  </div>
+  <div class="comparison-grid">
+    {c.cards.map((card, i) => (
+      <article class:list={{ "is-stoat": i === c.cards.length - 1 }}>
+        <div class="comparison-heading">
+          <h3>{card.name}</h3>
+          <span>{card.tag}</span>
+        </div>
+        <p>{card.body}</p>
+      </article>
+    ))}
+  </div>
+</section>
+<section class="details-section wrap" aria-labelledby="details-title">
+  <h2 id="details-title">
+    {d.title.match(/[^。.!]+[。.!]?/g)?.map((phrase) => (
+      <span>{phrase.trim()}</span>
+    ))}
+  </h2>
+  <div class="detail-grid">
+    {d.items.map((item, i) => (
+      <article>
+        <span class="detail-number" aria-hidden="true">
+          0{i + 1}
+        </span>
+        <div>
+          <h3>{item.title}</h3>
+          <p>{item.body}</p>
+        </div>
+      </article>
+    ))}
   </div>
 </section>

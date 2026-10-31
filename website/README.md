@@ -1,12 +1,12 @@
 # StoatMD 官网（stoatmd.com）
 
-正式静态站，视觉与结构严格还原 `docs/website-v1/` 设计稿（设计稿本身不动）。仅暗色；9 语言独立可索引 URL；自托管 PRO Threads 织线环。
+纸间 · 编辑部方案：暖纸色、衬线标题、鼠尾草绿，以及可切换笔记和阅读模式的产品示意。8 种语言拥有独立可索引 URL；页面文案、笔记预览和分享图片按语言配套。设计规范见 [DESIGN.md](./DESIGN.md)，历史方案保存在 `docs/website-v1/`。
 
 ## 本地开发
 
 ```sh
 cd website
-npm install
+npm ci
 npm run dev      # http://localhost:4321
 npm run build    # 输出到 dist/
 npm run preview  # 预览构建产物
@@ -15,8 +15,9 @@ npm run preview  # 预览构建产物
 ## 技术选型
 
 - **Astro 5** 静态输出（零客户端框架，文案 SSR 进 HTML）
-- 自托管 **Instrument Sans**（woff2）
-- 自托管 **PRO Threads**（`public/vendor/pro-threads/`，MIT © Kubai087）
+- 自托管 **Instrument Sans / Newsreader / Noto Serif**（woff2），中日韩衬线字体按文案子集化
+- 原生 HTML / TypeScript：语言菜单、笔记选择、源码 / 分栏 / 阅读切换
+- 预览为界面示意，使用与页面相同的语言字典；产品状态以 `docs/product/PRODUCT.md` 为准
 
 ## 语言与 URL
 
@@ -126,4 +127,4 @@ npx wrangler@4 pages deploy dist --project-name=stoatmd-website --branch=main
 
 ## 第三方许可
 
-见 `public/vendor/pro-threads/LICENSE`（MIT © Kubai087）。页脚有出处说明。
+字体授权见 `public/fonts/*OFL.txt`。保留的历史织线素材许可见 `public/vendor/pro-threads/LICENSE`（MIT © Kubai087）。

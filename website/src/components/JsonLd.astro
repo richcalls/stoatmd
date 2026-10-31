@@ -1,43 +1,45 @@
 ---
-import { LOCALE_META, SITE_ORIGIN, absoluteUrl, type Locale, t } from '../i18n';
+import { LOCALE_META, SITE_ORIGIN, absoluteUrl, type Locale } from "../i18n";
+
+import { PAPER } from "../i18n/paper";
 
 interface Props {
   locale: Locale;
 }
 
 const { locale } = Astro.props;
-const m = t(locale);
+const p = PAPER[locale];
 
 /** SoftwareApplication：本机免费写实价 $0；买断同步金额未定，不写假价格 */
 const data = {
-  '@context': 'https://schema.org',
-  '@type': 'SoftwareApplication',
-  name: 'StoatMD',
-  applicationCategory: 'UtilitiesApplication',
-  applicationSubCategory: 'Markdown notebook',
-  operatingSystem: 'macOS',
-  description: m['doc.description'],
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "StoatMD",
+  applicationCategory: "UtilitiesApplication",
+  applicationSubCategory: "Markdown notebook",
+  operatingSystem: "macOS",
+  description: p.intro,
   url: absoluteUrl(locale),
-  image: `${SITE_ORIGIN}/assets/og-default.png`,
+  image: `${SITE_ORIGIN}/assets/og-${locale}.png`,
   inLanguage: LOCALE_META[locale].htmlLang,
   author: {
-    '@type': 'Organization',
-    name: 'StoatMD',
+    "@type": "Organization",
+    name: "StoatMD",
     url: SITE_ORIGIN,
   },
   publisher: {
-    '@type': 'Organization',
-    name: 'StoatMD',
+    "@type": "Organization",
+    name: "StoatMD",
     url: SITE_ORIGIN,
   },
   offers: {
-    '@type': 'Offer',
-    name: m['price.free.name'],
-    category: 'Local editing',
-    price: '0',
-    priceCurrency: 'USD',
-    description: m['price.sub'],
-    availability: 'https://schema.org/OnlineOnly',
+    "@type": "Offer",
+    name: p.pricing.local,
+    category: "Local editing",
+    price: "0",
+    priceCurrency: "USD",
+    description: p.pricing.localBody,
+    availability: "https://schema.org/OnlineOnly",
   },
 };
 ---

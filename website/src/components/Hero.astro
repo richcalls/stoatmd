@@ -1,40 +1,27 @@
 ---
-import { localePath, type Locale, t } from '../i18n';
-
-interface Props {
-  locale: Locale;
-}
-
-const { locale } = Astro.props;
-const m = t(locale);
+import { localePath, type Locale } from "../i18n";
+import { PAPER } from "../i18n/paper";
+import Icon from "./Icon.astro";
+const { locale } = Astro.props as { locale: Locale };
+const p = PAPER[locale];
 ---
 
-<section class="hero" aria-labelledby="hero-title">
-  <div class="hero-threads" id="heroThreads" aria-hidden="true"></div>
-  <div class="hero-scrim" aria-hidden="true"></div>
-  <div class="wrap hero-stage">
-    <div class="hero-copy">
-      <h1 id="hero-title">{m['hero.title']}</h1>
-      <p class="lead">{m['hero.lead']}</p>
-      <div class="hero-actions">
-        <a class="btn btn-primary" href={localePath(locale, '#pricing')}>{m['hero.cta']}</a>
-        <a class="btn btn-ghost" href={localePath(locale, '#download')}>{m['hero.secondary']}</a>
-      </div>
-      <p class="hero-note">{m['hero.note']}</p>
-    </div>
-    <figure class="hero-shot">
-      <picture>
-        <source srcset="/assets/app-mac-light.webp" type="image/webp" />
-        <img
-          src="/assets/app-mac-light.png"
-          width="1400"
-          height="902"
-          alt={m['img.alt']}
-          loading="eager"
-          decoding="async"
-          fetchpriority="high"
-        />
-      </picture>
-    </figure>
+<section class="hero wrap" aria-labelledby="hero-title">
+  <h1 id="hero-title">
+    {p.hero[0]}
+    <br />
+    <span>{p.hero[1]}</span>
+  </h1>
+  <p class="lead">{p.intro}</p>
+  <div class="hero-actions">
+    <a class="btn btn-primary" href={localePath(locale, "#download")}>
+      {p.cta[0]}
+      <Icon name="down" size={17} />
+    </a>
+    <a class="text-link" href={localePath(locale, "#features")}>
+      {p.cta[1]}
+      <Icon name="arrow" size={17} />
+    </a>
   </div>
+  <p class="hero-note">{p.note}</p>
 </section>
