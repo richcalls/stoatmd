@@ -177,5 +177,12 @@
   "info.tags": "タグ",
   "info.unknown": "不明",
   "info.noTags": "タグなし",
-  "preview.copyCode": "コードをコピー"
+  "preview.copyCode": "コードをコピー",
+  "find.open": "ファイル内を検索…",
+  "find.placeholder": "ファイル内を検索",
+  "find.next": "次を検索",
+  "find.previous": "前を検索",
+  "find.close": "検索を閉じる",
+  "find.noResults": "一致する結果なし",
+  "find.count": "{current} / {total}"
 }

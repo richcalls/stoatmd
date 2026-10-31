@@ -26,6 +26,7 @@ function Harness() {
           preview={docText()}
           onChange={() => {}}
           mode="split"
+          onRevealEditor={() => {}}
         />
       </View>
       <View style={{ flexDirection: "row", gap: 12, height: 24 }}>

@@ -1,4 +1,13 @@
-import { expect, open, test } from "nsh/test";
+import { expect, open, test, type App } from "nsh/test";
+
+async function clearFind(app: App) {
+  // Delete the shortcut's selected query first: the native clear() driver
+  // can leave part of the query when it clicks to focus the field again.
+  await app.keyboard.press("mod+f");
+  await app.keyboard.press("backspace");
+  await app.clear("id:document-find-input");
+  expect(app.value("id:document-find-input")).toBe("");
+}
 
 test("EditorWorkspace：三种模式切换应真正改变面板", async () => {
   const app = await open("./EditorWorkspace.harness.tsx", { width: 1000, height: 700 });
@@ -29,4 +38,77 @@ test("EditorWorkspace：代码块右上角复制按钮写入剪贴板", async ()
   await app.press("label:复制代码");
   await app.waitUntil(() => app.clipboard() === "const a = 1;");
   expect(app.clipboard()).toBe("const a = 1;");
+});
+
+for (const platform of ["macos", "windows", "linux"] as const) {
+  test(`EditorWorkspace：${platform} 文件内搜索、跳转、关闭及恢复焦点`, async () => {
+    const app = await open("./EditorWorkspace.harness.tsx", {
+      width: 1000, height: 700, platform, host: { params: { locale: "en" } },
+    });
+    await app.keyboard.press(platform === "macos" ? "cmd+f" : "ctrl+f");
+    expect(app.shows("id:document-find")).toBe(true);
+    await app.type("id:document-find-input", "hi");
+    expect(app.texts()).toContain("1 of 3");
+    await app.keyboard.press("enter");
+    expect(app.texts()).toContain("2 of 3");
+    await app.keyboard.press("shift+enter");
+    expect(app.texts()).toContain("1 of 3");
+    await app.keyboard.press(platform === "macos" ? "cmd+shift+g" : "shift+f3");
+    expect(app.texts()).toContain("3 of 3");
+    await app.keyboard.press(platform === "macos" ? "cmd+g" : "f3");
+    expect(app.texts()).toContain("1 of 3");
+    await app.press("id:document-find-next");
+    expect(app.texts()).toContain("2 of 3");
+    await app.keyboard.press("escape");
+    expect(app.shows("id:document-find")).toBe(false);
+    await app.keyboard.press("mod+c");
+    expect(app.clipboard()).toBe("hi");
+    await app.keyboard.press(platform === "macos" ? "cmd+f" : "ctrl+f");
+    expect(app.value("id:document-find-input")).toBe("hi");
+    await app.keyboard.press(platform === "macos" ? "cmd+f" : "ctrl+f");
+    expect(app.value("id:document-find-input")).toBe("hi");
+    await clearFind(app);
+    expect(app.value("id:document-find-input")).toBe("");
+  });
+}
+
+test("EditorWorkspace：搜索覆盖预览模式、Unicode、字面量、空结果与换文", async () => {
+  const app = await open("./EditorWorkspace.harness.tsx", {
+    width: 1000, height: 700, platform: "macos", host: { params: { locale: "en" } },
+  });
+  await app.press("id:mode-preview");
+  await app.keyboard.press("cmd+f");
+  expect(app.shows("id:pane-editor")).toBe(true);
+  expect(app.shows("id:pane-preview")).toBe(true);
+  await app.type("id:document-find-input", "中文😀");
+  expect(app.texts()).toContain("1 of 2");
+  await clearFind(app);
+  await app.type("id:document-find-input", "[x]");
+  expect(app.value("id:document-find-input")).toBe("[x]");
+  expect(app.texts()).toContain("1 of 2");
+  await clearFind(app);
+  await app.type("id:document-find-input", "missing");
+  expect(app.texts()).toContain("No results");
+  await app.keyboard.press("enter");
+  expect(app.texts()).toContain("No results");
+  await clearFind(app);
+  await app.type("id:document-find-input", "hi");
+  expect(app.value("id:document-find-input")).toBe("hi");
+  expect(app.texts()).toContain("1 of 3");
+  await app.press("id:switch-document");
+  expect(app.texts()).toContain("1 of 1");
+});
+
+test("EditorWorkspace：搜索即时使用编辑器中的未保存正文", async () => {
+  const app = await open("./EditorWorkspace.harness.tsx", {
+    width: 1000, height: 700, platform: "macos", host: { params: { locale: "en" } },
+  });
+  await app.paste("id:document-editor", { text: "unsaved needle " });
+  await app.keyboard.press("cmd+f");
+  await app.type("id:document-find-input", "needle");
+  expect(app.texts()).toContain("1 of 1");
+  await app.press("id:document-find-close");
+  await app.keyboard.press("backspace");
+  await app.keyboard.press("cmd+f");
+  expect(app.texts()).toContain("No results");
 });

@@ -177,5 +177,12 @@
   "info.tags": "Tags",
   "info.unknown": "Unknown",
   "info.noTags": "No tags",
-  "preview.copyCode": "Copy code"
+  "preview.copyCode": "Copy code",
+  "find.open": "Find in File…",
+  "find.placeholder": "Find in file",
+  "find.next": "Find Next",
+  "find.previous": "Find Previous",
+  "find.close": "Close Find",
+  "find.noResults": "No results",
+  "find.count": "{current} of {total}"
 }
