@@ -7,7 +7,7 @@
     </filter>
   </defs>
   <g filter="url(#shadow)">
-    <g transform="translate(100 100) scale(0.8046875)">
+    <g transform="translate(52 52) scale(0.8984375)">
       <g clip-path="url(#r)">
       <rect x="0" y="0" width="1024" height="1024" rx="234" ry="234" fill="#1C1A18"/>
       <line x1="240" y1="790" x2="784" y2="790" stroke="#7A9CC0" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
