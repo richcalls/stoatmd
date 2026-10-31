@@ -63,6 +63,8 @@ asc builds upload --app 6829230372 --ipa .nsh/testflight/StoatMD.ipa
 
 脚本复用上述公共 OAuth 配置，打包真机程序，编译无透明通道的 AppIcon 资源，加入回调 scheme、标准加密出口声明与 `PrivacyInfo.xcprivacy`，嵌入描述文件后逐层签名并校验，输出 `.nsh/testflight/StoatMD.ipa`。每次上传递增 `--build`；证书、描述文件和安装包保留在忽略目录。
 
+发布构建默认最低支持 iOS 16；`IPHONEOS_DEPLOYMENT_TARGET` 同时用于 Rust、C 依赖与安装包元数据，确保部署版本一致。
+
 隐私清单声明应用容器和用户所选文件的元数据访问（`C617.1`、`3B52.1`），以及计时用途（`35F9.1`）。笔记由用户授权同步到自己的云盘。正式 App Store 上架的隐私问卷与定价仍需单独设置。
 
 ## 验证状态

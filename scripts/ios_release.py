@@ -36,6 +36,7 @@ def prepare(app, env, work):
     # HTTPS/OAuth use standard encryption; the app has no proprietary cryptography.
     info["ITSAppUsesNonExemptEncryption"] = False
     info["LSRequiresIPhoneOS"] = True
+    info["MinimumOSVersion"] = env.get("IPHONEOS_DEPLOYMENT_TARGET", "16.0")
     info["UIDeviceFamily"] = [1]
     info["UISupportedInterfaceOrientations"] = ["UIInterfaceOrientationPortrait"]
     info.setdefault("UILaunchScreen", {})
@@ -75,6 +76,8 @@ def main():
     if entitlements.get("get-task-allow") or profile.get("ProvisionedDevices") or profile.get("ProvisionsAllDevices"):
         raise ValueError("An App Store distribution profile is required")
     env = build_environment()
+    # Rust and C build scripts must target the same iOS version.
+    env.setdefault("IPHONEOS_DEPLOYMENT_TARGET", "16.0")
     command = ["nsh", "package", "--target", "ios", "--out", str(out), "--icon", str(ROOT / "assets/ios/AppIcon.png")]
     if args.build is not None:
         command.extend(["--build", str(args.build)])
