@@ -55,8 +55,9 @@ npm run preview  # 预览构建产物
 | 安装 | `npm ci`（无需 sudo） |
 | 构建 | `npm run build` |
 | 输出目录 | `website/dist` |
-| Node | `22` |
-| Runner | `ubuntu-latest`（GitHub 托管） |
+| Node | runner 预装 `/usr/bin/node` v22（workflow 不跑 setup-node） |
+| Runner | `[self-hosted, linux, wsl2]`（组织账单异常期间；私有仓） |
+| Wrangler | 全局 4.x / `wrangler-action` 固定 `wranglerVersion: "4"` |
 
 静态配置文件随构建进入 `dist/`：
 

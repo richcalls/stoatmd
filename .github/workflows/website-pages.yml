@@ -22,14 +22,14 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "22"
   # 可用仓库 Variable `CLOUDFLARE_PAGES_PROJECT` 覆盖；未设置时默认 stoatmd-website
   PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT || 'stoatmd-website' }}
 
 jobs:
   build:
     name: 构建官网
-    runs-on: ubuntu-latest
+    # 组织账单异常期间改用 WSL2 自托管 runner（forecho）；仓库为私有，自托管安全
+    runs-on: [self-hosted, linux, wsl2]
     defaults:
       run:
         working-directory: website
@@ -37,12 +37,13 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: website/package-lock.json
+      - name: 确认 Node（runner 预装 v22，跳过 setup-node）
+        run: |
+          set -euo pipefail
+          command -v node
+          node -v
+          command -v npm
+          npm -v
 
       - name: 安装依赖
         run: npm ci
@@ -62,7 +63,8 @@ jobs:
     name: 发布到 Cloudflare Pages
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    # 组织账单异常期间改用 WSL2 自托管 runner（forecho）；仓库为私有，自托管安全
+    runs-on: [self-hosted, linux, wsl2]
     permissions:
       contents: read
       deployments: write
@@ -99,9 +101,11 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -uo pipefail
-          # 无 sudo：npx 拉取 wrangler。已存在时 create 会非零退出，视为成功继续部署。
+          # runner 已预装全局 wrangler 4.x；无 sudo、不拉 npx 包
+          command -v wrangler
+          wrangler -v
           echo "检查 / 创建 Pages 项目: ${PAGES_PROJECT}"
-          if npx --yes wrangler@4 pages project create "${PAGES_PROJECT}" --production-branch=main; then
+          if wrangler pages project create "${PAGES_PROJECT}" --production-branch=main; then
             echo "已创建项目 ${PAGES_PROJECT}"
           else
             echo "项目可能已存在（或 create 返回非零），继续尝试部署"
@@ -112,5 +116,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # 固定 v4，与 runner 预装一致；不依赖 sudo
+          wranglerVersion: "4"
           command: pages deploy website/dist --project-name=${{ env.PAGES_PROJECT }} --branch=main --commit-dirty=true
-          packageManager: npm
