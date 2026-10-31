@@ -9,7 +9,7 @@ export const ja: Messages = {
   'hero.title': 'あなたのノート。あなたの Drive。あなたのエージェント。',
   'hero.lead':
     'ローカル優先の Markdown ノートアプリ。Google Drive または Dropbox で同期し、あなたと AI エージェントが同じライブラリをどの端末からでも読み書きできます。',
-  'hero.cta': 'Buy once · unlock sync',
+  'hero.cta': 'Buy once · 同期',
   'hero.secondary': 'Mac 版をダウンロード',
   'hero.note': 'ローカル編集は常に無料。サブスクなし。iCloud なし。自前サーバーなし。',
   'why.title': 'なぜ Obsidian のままでないのか？',
@@ -27,7 +27,7 @@ export const ja: Messages = {
     '思想は近い：ネイティブで軽量、ソース + プレビュー、普通の .md。だが多くは Apple 生態系に閉じ、エージェントが<strong>リモートで</strong>同じライブラリへノートを推せないことが多い。',
   'cmp.stoat.label': '買い切り · あなたのクラウド',
   'cmp.stoat.body':
-    '<strong>Google Drive</strong> または <strong>Dropbox</strong> で同期。ローカルは永久無料。一度の購入で同期を解放——あなたと Personal Agent が同じフォルダへ、デスクトップでもスマホでもアーカイブできる。',
+    '<strong>Google Drive</strong> または <strong>Dropbox</strong> で同期。ローカルは永久無料。一度の購入で同期を開始——あなたと Personal Agent が同じフォルダへ、デスクトップでもスマホでもアーカイブできる。',
   'feat.title': 'エージェントが触れられるノートのために',
   'feat.sub':
     'ライブラリはあなたが所有するフォルダにある。同期はクラウドへの整合であり、文章の第二の居場所ではない。',
@@ -40,11 +40,11 @@ export const ja: Messages = {
   'feat.3.title': 'エージェントが同じ保管庫を読み書き',
   'feat.3.body':
     '典型フロー：Grok Bot に調査させ、ノートへアーカイブ。保管庫が Drive または Dropbox 上にあるため、リモートエージェントはローカル MCP なしで Markdown を推せる。',
-  'feat.4.title': '買い切り。ローカルは常に無料。',
+  'feat.4.title': '買い切り。ローカルは常に無料',
   'feat.4.body':
     'Mac での編集は無料。同期をオンにした瞬間に課金壁——一度の購入であり、ノートにサブスクを乗せる形ではない。',
   'price.title': '料金',
-  'price.sub': '同期のサブスクはなし。一度クラウド整合を解放——ファイルはあなたのまま。',
+  'price.sub': '同期のサブスクはなし。一度の購入でクラウド整合——ファイルはあなたのまま。',
   'price.free.tier': 'ローカル',
   'price.free.name': '永久無料',
   'price.free.unit': '常時',
@@ -76,9 +76,9 @@ export const ja: Messages = {
   'foot.lang.hint': '言語：上部バー',
   'foot.threads.credit':
     'ヒーローアニメーション：Kubai087 の <a href="https://github.com/kubai087/pro-threads" rel="noopener noreferrer">PRO Threads</a> · MIT ライセンス（セルフホスト）。',
-  'doc.title': 'StoatMD — Buy once · unlock sync',
+  'doc.title': 'StoatMD — Buy once · 同期',
   'doc.description':
-    'ローカル優先の Markdown ノート。Google Drive または Dropbox で同期。一度の購入で同期を解放し、あなたと AI エージェントが同じライブラリを共有。まず macOS。',
+    'ローカル優先の Markdown ノート。Google Drive または Dropbox で同期。一度の購入で同期し、あなたと AI エージェントが同じライブラリを共有。まず macOS。',
   'img.alt': 'StoatMD Mac アプリ — 暖色紙上のソースとプレビュー',
   'a11y.lang': '言語',
   'a11y.primaryNav': 'メインナビゲーション',

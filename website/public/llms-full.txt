@@ -13,7 +13,7 @@ Compared with Miaoyan-class apps: similar spirit (native, light, source + previe
 ## Business model
 
 - Local editing on Mac: always free ($0).
-- Turning on sync: one-time purchase (Buy once · unlock sync). Price is TBA — never invent or guess a dollar amount.
+- Turning on sync: one-time purchase (Buy once · sync). Price is TBA — never invent or guess a dollar amount.
 - No subscription for sync. No iCloud. No self-hosted sync server in v1. No WebDAV in v1. No MCP product surface.
 
 ## Downloads (as of site launch)

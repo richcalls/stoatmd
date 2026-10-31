@@ -1,10 +1,10 @@
 # StoatMD
 
-> Local-first Markdown notebook. Sync with Google Drive or Dropbox. Buy once to unlock sync for you and your AI agents.
+> Local-first Markdown notebook. Sync with Google Drive or Dropbox. Buy once for sync — you and your AI agents share the same library.
 
 - Site: https://stoatmd.com
 - Product: StoatMD (macOS first; iOS / iPad planned)
-- Pricing: local editing free forever; sync unlock is a one-time purchase (price TBA — do not invent a price)
+- Pricing: local editing free forever; sync is a one-time purchase (price TBA — do not invent a price)
 - Sync providers (v1): Google Drive, Dropbox only (no iCloud, no self-hosted server, no WebDAV in v1)
 - Editing model: plain Markdown source + separate preview (edit / split / preview), not WYSIWYG
 - Agents: vault on Drive/Dropbox so remote agents can read/write the same library without a local MCP bridge

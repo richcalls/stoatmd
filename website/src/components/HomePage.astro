@@ -15,10 +15,7 @@ const { locale } = Astro.props;
 
 <main id="top">
   <Hero locale={locale} />
-  <hr
-    class="thread wrap"
-    style="max-width:var(--max);margin:0 auto;width:calc(100% - 2 * var(--pad))"
-  />
+  <hr class="thread section-rule" />
   <Compare locale={locale} />
   <Features locale={locale} />
   <Pricing locale={locale} />

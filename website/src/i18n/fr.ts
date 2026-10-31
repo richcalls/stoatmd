@@ -9,7 +9,7 @@ export const fr: Messages = {
   'hero.title': 'Vos notes. Votre Drive. Vos agents.',
   'hero.lead':
     'Un carnet Markdown local-first. Synchronisez avec Google Drive ou Dropbox pour que vous — et vos agents IA — puissiez lire et écrire la même bibliothèque, sur tout appareil.',
-  'hero.cta': 'Buy once · unlock sync',
+  'hero.cta': 'Buy once · sync',
   'hero.secondary': 'Télécharger pour Mac',
   'hero.note': 'L’édition locale est toujours gratuite. Pas d’abonnement. Pas d’iCloud. Pas de serveur auto-hébergé.',
   'why.title': 'Pourquoi ne pas rester sur Obsidian ?',
@@ -27,7 +27,7 @@ export const fr: Messages = {
     'Esprit proche : natif, léger, source + aperçu, fichiers .md ordinaires. Mais souvent enfermé dans l’écosystème Apple — et en général un agent ne peut pas <strong>pousser à distance</strong> des notes dans la même bibliothèque.',
   'cmp.stoat.label': 'Achat unique · votre cloud',
   'cmp.stoat.body':
-    'Sync avec <strong>Google Drive</strong> ou <strong>Dropbox</strong>. Local gratuit pour toujours. Débloquez la sync avec un achat unique — pour que vous et votre Personal Agent archiviez dans le même dossier, depuis le bureau ou le téléphone.',
+    'Sync avec <strong>Google Drive</strong> ou <strong>Dropbox</strong>. Local gratuit pour toujours. Un achat unique active la sync — pour que vous et votre Personal Agent archiviez dans le même dossier, depuis le bureau ou le téléphone.',
   'feat.title': 'Conçu pour des notes que les agents peuvent toucher',
   'feat.sub':
     'La bibliothèque vit dans un dossier que vous possédez. La sync aligne vers votre cloud — ce n’est pas une seconde maison pour vos écrits.',
@@ -40,11 +40,11 @@ export const fr: Messages = {
   'feat.3.title': 'Les agents lisent et écrivent le même coffre',
   'feat.3.body':
     'Flux typique : demander à Grok Bot de rechercher, puis archiver dans vos notes. Comme le coffre est sur Drive ou Dropbox, un agent distant peut pousser du Markdown sans pont MCP local.',
-  'feat.4.title': 'Achat unique. Local toujours gratuit.',
+  'feat.4.title': 'Achat unique. Local toujours gratuit',
   'feat.4.body':
     'Éditer sur Mac ne coûte rien. Dès que vous activez la sync, le mur de paiement apparaît — un achat, pas un abonnement greffé à votre carnet.',
   'price.title': 'Tarifs',
-  'price.sub': 'Pas d’abonnement sync. Débloquez l’alignement cloud une fois — gardez vos fichiers.',
+  'price.sub': 'Pas d’abonnement sync. Un achat pour l’alignement cloud — gardez vos fichiers.',
   'price.free.tier': 'Local',
   'price.free.name': 'Gratuit pour toujours',
   'price.free.unit': 'toujours',
@@ -76,9 +76,9 @@ export const fr: Messages = {
   'foot.lang.hint': 'Langue : barre du haut',
   'foot.threads.credit':
     'Animation hero : <a href="https://github.com/kubai087/pro-threads" rel="noopener noreferrer">PRO Threads</a> par Kubai087 · licence MIT (auto-hébergé).',
-  'doc.title': 'StoatMD — Buy once · unlock sync',
+  'doc.title': 'StoatMD — Buy once · sync',
   'doc.description':
-    'Carnet Markdown local-first. Sync Google Drive ou Dropbox. Achat unique pour débloquer la sync pour vous et vos agents IA. macOS d’abord.',
+    'Carnet Markdown local-first. Sync Google Drive ou Dropbox. Achat unique pour la sync — vous et vos agents IA. macOS d’abord.',
   'img.alt': 'App StoatMD Mac — source et aperçu sur papier chaud',
   'a11y.lang': 'Langue',
   'a11y.primaryNav': 'Navigation principale',

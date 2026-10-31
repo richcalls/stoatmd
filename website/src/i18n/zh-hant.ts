@@ -9,7 +9,7 @@ export const zhHant: Messages = {
   'hero.title': '你的筆記。你的雲端。你的 Agent。',
   'hero.lead':
     '本機優先的 Markdown 筆記本。用 Google Drive 或 Dropbox 同步，讓你和 AI Agent 都能讀寫同一庫——桌面或手機。',
-  'hero.cta': 'Buy once · unlock sync',
+  'hero.cta': '買斷 · 同步',
   'hero.secondary': '下載 Mac 版',
   'hero.note': '本機編輯永遠免費。不做訂閱。不做 iCloud。不自建伺服器。',
   'why.title': '為什麼不繼續用 Obsidian？',
@@ -39,11 +39,11 @@ export const zhHant: Messages = {
   'feat.3.title': 'Agent 讀寫同一庫',
   'feat.3.body':
     '典型場景：讓 Grok Bot 整理資料，再彙總歸檔進筆記。庫在 Drive / Dropbox 上，遠端 Agent 就能推 Markdown，不必掛本機 MCP。',
-  'feat.4.title': '買斷制。本機永遠免費。',
+  'feat.4.title': '買斷制。本機永遠免費',
   'feat.4.body':
     'Mac 上編輯不收費。一點「開啟同步」就進付費牆——一次買斷，不為同步再綁訂閱。',
   'price.title': '定價',
-  'price.sub': '不為同步訂閱。一次解鎖雲端對齊——檔案仍是你的。',
+  'price.sub': '不為同步訂閱。一次買斷雲端對齊——檔案仍是你的。',
   'price.free.tier': '本機',
   'price.free.name': '永遠免費',
   'price.free.unit': '始終',
@@ -74,9 +74,9 @@ export const zhHant: Messages = {
   'foot.lang.hint': '語言：頂欄切換',
   'foot.threads.credit':
     '首屏動畫：<a href="https://github.com/kubai087/pro-threads" rel="noopener noreferrer">PRO Threads</a>（Kubai087）· MIT 授權（本站自託管）。',
-  'doc.title': 'StoatMD — Buy once · unlock sync',
+  'doc.title': 'StoatMD — 買斷 · 同步',
   'doc.description':
-    '本機優先的 Markdown 筆記本。用 Google Drive 或 Dropbox 同步。一次買斷解鎖同步，你和 AI Agent 共用同一庫。先做 macOS。',
+    '本機優先的 Markdown 筆記本。用 Google Drive 或 Dropbox 同步。一次買斷開啟同步，你和 AI Agent 共用同一庫。先做 macOS。',
   'img.alt': 'StoatMD Mac 應用 — 暖紙色上的原始碼與預覽',
   'a11y.lang': '語言',
   'a11y.primaryNav': '主導覽',

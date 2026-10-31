@@ -1,10 +1,10 @@
 /**
  * StoatMD Hero · 自托管 PRO Threads（ring · ocean · 30fps）
- * 参数对齐 docs/website-v1/threads-hero.js；prefers-reduced-motion 时降级为静态渐变。
+ * 参数贴合暖炭纸底 + 靛蓝纤维；prefers-reduced-motion 时降级为静态暖炭径向。
  * embed.js 由 BaseLayout 以 <script type="module" src="/vendor/pro-threads/embed.js"> 先行加载。
  */
 const SETTINGS =
-  'speed=0.35&spin=0.22&gain=0.8&glow=0.32&threshold=0.72&saturation=0.7&warm=0.4&parallax=0.35&threads=0.85&sheen=0.45&sparkle=0.25&quality=0.55';
+  'speed=0.32&spin=0.2&gain=0.92&glow=0.48&threshold=0.64&saturation=0.62&warm=0.48&parallax=0.42&threads=1&sheen=0.58&sparkle=0.18&quality=0.62';
 
 const VENDOR_SRC = '/vendor/pro-threads/';
 
