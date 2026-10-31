@@ -14,7 +14,7 @@ import {
   saveEditorFontSize,
 } from "./prefs";
 
-/** 阅读字体与行高用于预览；界面与编辑字号独立，源码保留等宽字体。 */
+/** 编辑与预览共用正文字体；界面、编辑与阅读字号独立。 */
 export const DEFAULT_FONT_FAMILY = "";
 export const DEFAULT_FONT_SIZE = 16;
 export const DEFAULT_UI_FONT_SIZE = 14;
@@ -79,8 +79,8 @@ export function applyEditorFontSize(next: number) {
   void saveEditorFontSize(String(value));
 }
 
-/** 预览实际使用的字体：用户选定优先，否则用本机可用的 Kami 衬线。 */
-export function previewFontFamily(): string {
+/** 文稿正文共用的字体：用户选定优先，否则用本机可用的 Kami 衬线。 */
+export function documentFontFamily(): string {
   const family = fontFamily();
   return family === "" ? kamiSerifFamily(systemFonts()) : family;
 }

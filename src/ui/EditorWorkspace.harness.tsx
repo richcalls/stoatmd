@@ -3,6 +3,7 @@ import { Button } from "nsh/base";
 import { applyRenderMode, restoreRenderMode } from "./documentAppearance";
 import { applyTheme, restoreTheme } from "./theme";
 import { EditorWorkspace } from "./EditorWorkspace";
+import { loadSystemFonts, restoreTypography } from "./typography";
 import { setLocalePref } from "./i18n";
 import { WindowBar, type ViewMode } from "./Toolbar";
 
@@ -48,4 +49,5 @@ function Harness() {
   );
 }
 
-void Promise.all([restoreRenderMode(), restoreTheme()]).then(() => mount(Harness));
+loadSystemFonts();
+void Promise.all([restoreRenderMode(), restoreTheme(), restoreTypography()]).then(() => mount(Harness));

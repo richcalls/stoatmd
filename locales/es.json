@@ -89,7 +89,7 @@
   "settings.renderMode.desc": "El color distingue títulos, citas, enlaces y código. El modo monocromo conserva tamaños, grosores y diseño. Se aplica al editor y a la vista previa.",
   "settings.theme": "Tema",
   "settings.theme.desc": "Solo colores, el diseño no cambia. Preajustes de los temas de Otty.",
-  "settings.font.desc": "Ajusta por separado los tamaños de interfaz, editor y lectura. Los cambios se guardan automáticamente.",
+  "settings.font.desc": "El editor y la vista previa comparten la fuente del texto. Ajusta por separado los tamaños de interfaz, editor y lectura. Los cambios se guardan automáticamente.",
   "settings.font.interfaceSize": "Tamaño de interfaz",
   "settings.font.editorSize": "Tamaño del editor",
   "settings.font.reading": "Lectura",
