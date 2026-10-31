@@ -49,6 +49,7 @@ test("文件树：搜索忽略折叠、平铺结果并带父文件夹名", async
   expect(app.shows("id:sidebar-search")).toBe(true);
 
   await app.type("id:sidebar-search", "不存在的笔记");
+  await app.waitUntil(() => app.shows("text:没有匹配的笔记"));
   expect(app.shows("text:没有匹配的笔记")).toBe(true);
 });
 
@@ -56,6 +57,19 @@ test("文件树：右键笔记会带路径触发文件菜单", async () => {
   const app = await open("./Sidebar.harness.tsx", options);
   await app.press("id:feed");
   await app.rightClick("label:计划");
+  expect(app.texts()).toContain("Projects/Stoat/计划.md");
+});
+
+test("文件树：正文命中补齐标题搜索遗漏，搜索完成后可打开折叠目录里的笔记", async () => {
+  const app = await open("./Sidebar.harness.tsx", options);
+  await app.press("id:feed");
+  await app.press("label:项目");
+  await app.type("id:sidebar-search", "读书笔记");
+  expect(app.shows("text:没有匹配的笔记")).toBe(false);
+  await app.waitUntil(() => app.shows("text:计划"));
+  expect(app.shows("text:今天")).toBe(true);
+  expect(app.shows("text:根级笔记")).toBe(false);
+  await app.press("text:计划");
   expect(app.texts()).toContain("Projects/Stoat/计划.md");
 });
 

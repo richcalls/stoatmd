@@ -187,5 +187,7 @@
   "find.previous": "前を検索",
   "find.close": "検索を閉じる",
   "find.noResults": "一致する結果なし",
-  "find.count": "{current} / {total}"
+  "find.count": "{current} / {total}",
+  "search.pending": "検索中…",
+  "search.failed": "検索に失敗しました。検索語を変更して再試行してください。"
 }

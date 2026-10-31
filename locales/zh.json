@@ -187,5 +187,7 @@
   "find.previous": "上一个匹配",
   "find.close": "关闭查找",
   "find.noResults": "无匹配结果",
-  "find.count": "{current} / {total}"
+  "find.count": "{current} / {total}",
+  "search.pending": "正在搜索…",
+  "search.failed": "搜索失败，请修改关键词重试"
 }

@@ -187,5 +187,7 @@
   "find.previous": "이전 찾기",
   "find.close": "찾기 닫기",
   "find.noResults": "검색 결과 없음",
-  "find.count": "{current} / {total}"
+  "find.count": "{current} / {total}",
+  "search.pending": "검색 중…",
+  "search.failed": "검색에 실패했습니다. 검색어를 수정하여 다시 시도하세요."
 }
