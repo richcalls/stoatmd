@@ -5,17 +5,18 @@
 字标字体：**Instrument Sans**（克制无衬线，非 Inter）。矢量源 + PNG；遵循 [impeccable](sand-workflow:impeccable)。
 
 > **App Icon 画布约定（遵循 Apple macOS App Icon 模板）：** 画布 **1024×1024**；内容网格 **824×824** 居中；四周透明边约 **100px**；圆角板 `rx≈234`（≈22.85%，与模板一致）。SVG 外层为 `translate(100 100) scale(824/1024)`，内层 `clipPath`/`rect` 使用 `rx=234`。  
+> **模板投影不可省：** 30% 黑、`stdDeviation=14`、`dy=8`（SVG `feDropShadow`，PNG 用等价的模糊黑 alpha）。投影会伸进透明边，导出 PNG 的 alpha 范围应约 **894×894**，与 Apple 系统 App（≈896×896）对齐；只有 824 主体、没有投影时，Dock 里会比系统 App 显小、发平。  
 > ~~「满幅 1024、无额外外边距」是错的~~（见 PR #40）——去掉 100px 边后，Dock 会明显大于系统其他 App。栅格 / 导出须保留官方边距，勿再做成满幅入库。
 
 > **入库范围（正海）：** 方向 **B · S 字交织**（`02-s-weave/`）已砍，不入库。  
 > 当前仅保留 **A · 织线白鼬** 与 **C · 敏捷剪影**（PNG + SVG），暂留再比，择一作主方向。
 
 > **接入状态（v2）：** 两套 Logo 各有浅色 / 暗色版本（`docs/brand/stoatmd-logo/app-icons/*.svg` → `assets/app-logos/{thread,thread-dark,agile,agile-dark}.png`）。  
-> 源 SVG 与 PNG 均按 Apple 模板：824 内容 + 100px 透明边 + `rx≈234`，Dock 视觉尺寸与系统其他 App 对齐。  
+> 源 SVG 与 PNG 均按 Apple 模板：824 内容 + 100px 透明边 + `rx≈234` + 模板投影，Dock 视觉尺寸与系统其他 App 对齐。  
 > 默认 **A · 织线白鼬**；设置 → 外观 → 应用图标可切到 **C · 敏捷剪影**，立即更新 macOS Dock / 窗口切换器图标并记住选择（`prefs.appLogo`），重启后恢复；图标随当前主题明暗自动选浅色 / 暗色版本。
 
 > **头像组（草案 · `04-head/`）：** 正海本地对比用的三套头像 App Icon——**A 冬白侧脸** / **B 棕白侧脸** / **D ¾棕白**。  
-> 无织线领；单色深底 `#1C1A17`（约 rgb 28,26,23）；不要正圆背景，须套 **macOS 圆角板 `rx≈234`**（四角透明），并保留 **100px** 官方透明边。运行时 id 为 `head-a` / `head-b` / `head-d`（`assets/app-logos/head-{a,b,d}{,-dark}.png`）；当前品牌仅暗色，light/dark 暂同图。  
+> 无织线领；单色深底 `#1C1A17`（约 rgb 28,26,23）；不要正圆背景，须套 **macOS 圆角板 `rx≈234`**（四角透明），保留 **100px** 官方透明边与**模板投影**。运行时 id 为 `head-a` / `head-b` / `head-d`（`assets/app-logos/head-{a,b,d}{,-dark}.png`）；当前品牌仅暗色，light/dark 暂同图。  
 > **保留**原 thread / agile 可选，默认仍为 thread。
 
 ---
@@ -52,7 +53,7 @@
 
 ## 头像组（`04-head/`）
 
-**概念：** 写实头像候选作 App Icon——侧脸 / ¾，深炭底，无织线领；已套 `rx≈234` 圆角遮罩并保留 Apple 100px 透明边；用于 Dock 真实观感对比（见 `board.png`）。
+**概念：** 写实头像候选作 App Icon——侧脸 / ¾，深炭底，无织线领；已套 `rx≈234` 圆角遮罩，保留 Apple 100px 透明边与模板投影；用于 Dock 真实观感对比（见 `board.png`）。
 
 | id | 文件前缀 | 说明 |
 |--|--|--|
