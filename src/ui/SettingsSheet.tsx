@@ -1,10 +1,10 @@
 import { uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
 import { Image, List, Scroll, Text, View, cleanup, effect, keymap, signal } from "nsh";
-import { Button, Input, Popover } from "nsh/base";
+import { Button, Input, Popover, Radio, RadioGroup } from "nsh/base";
 import { APP_LOGOS, applyAppLogo, appLogo, logoAsset } from "./appLogo";
 import { Icon, type IconName } from "./Icon";
 import { applyRenderMode, renderMode, type RenderMode } from "./documentAppearance";
-import { controlFocusStyle, controlHoverStyle, controlPressStyle, segmentStyle } from "./chrome";
+import { controlFocusStyle, controlHoverStyle, controlPressStyle } from "./chrome";
 import { localePref, setLocalePref, t, type LocalePref } from "./i18n";
 import { saveLocale } from "./prefs";
 import { storageBusy } from "../storage/state";
@@ -86,40 +86,51 @@ function localeName(id: LocalePref): string {
 function RenderModePicker() {
   const modes: RenderMode[] = ["color", "monochrome"];
   return (
-    <View
-      accessibilityLabel={t("settings.renderMode")}
-      style={{ flexDirection: "row", padding: 3, gap: 3, borderRadius: 8, backgroundColor: colors().searchBg }}
+    <RadioGroup
+      style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}
     >
       <Each of={modes}>
         {(row) => {
           const mode = row();
           const selected = () => renderMode() === mode;
           return (
-            <Button
+            <Radio
               testID={`render-mode-${mode}`}
               accessibilityLabel={t(`settings.renderMode.${mode}`)}
-              selected={selected()}
-              onPress={() => applyRenderMode(mode)}
+              checked={selected()}
+              onChange={() => applyRenderMode(mode)}
               style={{
-                flex: 1,
-                height: uiControlHeight(30),
-                borderRadius: 6,
+                width: LOGO_CARD_WIDTH,
+                height: uiControlHeight(64),
+                flexDirection: "row",
+                gap: 10,
+                paddingHorizontal: 10,
+                borderRadius: 9,
+                borderWidth: 1,
+                borderColor: selected() ? colors().accent : colors().thread,
+                backgroundColor: selected() ? colors().accentSoft : colors().list,
                 alignItems: "center",
-                justifyContent: "center",
-                ...segmentStyle(selected()),
               }}
               hoverStyle={controlHoverStyle()}
               focusStyle={controlFocusStyle()}
               activeStyle={controlPressStyle()}
             >
-              <Text style={{ fontSize: uiTextSize(13), fontWeight: selected() ? "600" : "500", color: selected() ? colors().ink : colors().ink2 }}>
+              <View style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Icon name={mode === "color" ? "palette" : "text-t"} color={mode === "color" ? colors().accent : colors().ink} size={26} />
+              </View>
+              <Text style={{ flex: 1, minWidth: 0, fontSize: uiTextSize(12.5), fontWeight: selected() ? "600" : "500", color: colors().ink }}>
                 {t(`settings.renderMode.${mode}`)}
               </Text>
-            </Button>
+              <View style={{ width: 13, flexShrink: 0 }}>
+                <If when={selected()}>
+                  <Icon name="check" color={colors().accent} size={13} />
+                </If>
+              </View>
+            </Radio>
           );
         }}
       </Each>
-    </View>
+    </RadioGroup>
   );
 }
 
