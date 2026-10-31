@@ -4,17 +4,19 @@
 色板对齐风格 B：暖纸 `#F7F3EB` · 主色 `#1C1A18` · 点缀 `#3D5A80`。  
 字标字体：**Instrument Sans**（克制无衬线，非 Inter）。矢量源 + PNG；遵循 [impeccable](sand-workflow:impeccable)。
 
-生成：`src/generate_v2.py`（CairoSVG 栅格）。
+> **App Icon 画布约定（正海反馈后修正）：** 满幅 **1024×1024**，圆角板 `rx=224`（与现有 SVG `clipPath` 一致），四角透明，**不要**额外外边距。  
+> ~~旧惯例「内容缩到 824×824 居中 + 四周 100px 透明边」是错的~~——外层 `translate(100 100) scale(0.8046875)` 会让 Dock 比系统其他 App 偏小；已从 `app-icons/*.svg` 与 `assets/app-logos/*.png` 去掉。  
+> 栅格 / 导出时内容须顶满圆角板；勿再套一层 100px 缩放入库。
 
 > **入库范围（正海）：** 方向 **B · S 字交织**（`02-s-weave/`）已砍，不入库。  
 > 当前仅保留 **A · 织线白鼬** 与 **C · 敏捷剪影**（PNG + SVG），暂留再比，择一作主方向。
 
 > **接入状态（v2）：** 两套 Logo 各有浅色 / 暗色版本（`docs/brand/stoatmd-logo/app-icons/*.svg` → `assets/app-logos/{thread,thread-dark,agile,agile-dark}.png`）。  
-> 图标内容缩到 824×824 居中，四周留 100px 透明边距，Dock 视觉尺寸与系统图标一致。  
+> 源 SVG 与 PNG 均为满幅圆角板，Dock 视觉尺寸与系统其他 App 对齐。  
 > 默认 **A · 织线白鼬**；设置 → 外观 → 应用图标可切到 **C · 敏捷剪影**，立即更新 macOS Dock / 窗口切换器图标并记住选择（`prefs.appLogo`），重启后恢复；图标随当前主题明暗自动选浅色 / 暗色版本。
 
 > **头像组（草案 · `04-head/`）：** 正海本地对比用的三套头像 App Icon——**A 冬白侧脸** / **B 棕白侧脸** / **D ¾棕白**。  
-> 无织线领；单色深底 `#1C1A17`（约 rgb 28,26,23）；不要圆背景。运行时 id 为 `head-a` / `head-b` / `head-d`（`assets/app-logos/head-{a,b,d}{,-dark}.png`）；当前品牌仅暗色，light/dark 暂同图，仍走 824 居中 + 100px 透明边。  
+> 无织线领；单色深底 `#1C1A17`（约 rgb 28,26,23）；不要正圆背景，须套 **macOS 圆角板 `rx=224`**（四角透明）。运行时 id 为 `head-a` / `head-b` / `head-d`（`assets/app-logos/head-{a,b,d}{,-dark}.png`）；当前品牌仅暗色，light/dark 暂同图，画布同样满幅圆角、无外边距。  
 > **保留**原 thread / agile 可选，默认仍为 thread。
 
 ---
@@ -51,7 +53,7 @@
 
 ## 头像组（`04-head/`）
 
-**概念：** 写实头像候选作 App Icon——侧脸 / ¾，深炭底，无织线领；用于 Dock 真实观感对比（见 `board.png`）。
+**概念：** 写实头像候选作 App Icon——侧脸 / ¾，深炭底，无织线领；已套 `rx=224` 圆角遮罩；用于 Dock 真实观感对比（见 `board.png`）。
 
 | id | 文件前缀 | 说明 |
 |--|--|--|
