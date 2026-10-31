@@ -237,4 +237,21 @@ test("Dropbox：删除把 not_found 视为成功", async () => {
   await provider.remove({ path: "a.md", id: "/StoatMD/a.md", rev: "1", mtimeMs: 0, size: 0 });
   await provider.remove({ path: "gone.md", id: "/StoatMD/gone.md", rev: "1", mtimeMs: 0, size: 0 });
   expect(calls.length).toBe(2);
+  expect(JSON.parse(calls[0]!.body).parent_rev).toBe("1");
+});
+
+
+test("Dropbox：二进制上传与下载保留全部字节", async () => {
+  const content = new Uint8Array([0, 255, 128, 13, 10]);
+  const provider = new DropboxProvider(tokens, async (input, init = {}) => {
+    const url = String(input);
+    if (url.endsWith("/files/download")) return new Response(content);
+    if (url.endsWith("/files/upload")) {
+      expect([...init.body as Uint8Array]).toEqual([...content]);
+      return json({ ".tag": "file", id: "id:binary", name: "image.png", rev: "1", size: 5, path_display: "/StoatMD/image.png" });
+    }
+    throw new Error(`unexpected ${url}`);
+  }, null);
+  const file = await provider.uploadBytes(root, "image.png", content, { existing: null });
+  expect([...await provider.downloadBytes(file)]).toEqual([...content]);
 });

@@ -139,16 +139,15 @@ test("设置：25 套 Otty 主题可选并持久化", async () => {
 test("同步：未连接展示两家网盘；缺客户端凭据时明确提示且不进入授权", async () => {
   const app = await open("./SettingsSheet.harness.tsx", desktop);
   await app.press("id:settings-tab-sync");
-  expect(app.texts()).toContain("开启同步");
+  expect(app.shows("id:storage-current-local")).toBe(true);
 
-  await app.press("id:sync-enable");
-  expect(app.shows("id:sync-provider-google")).toBe(true);
-  expect(app.shows("id:sync-provider-dropbox")).toBe(true);
+  expect(app.shows("id:storage-location-google")).toBe(true);
+  expect(app.shows("id:storage-location-dropbox")).toBe(true);
   expect(app.texts()).toContain("Google Drive");
 
-  await app.press("id:sync-provider-google");
+  await app.press("id:storage-location-google");
   await app.waitUntil(() => app.shows("id:sync-local-error"));
-  expect(app.texts().some((text) => text.includes("STOATMD_GOOGLE_CLIENT_ID"))).toBe(true);
+  expect(app.shows("id:storage-current-local")).toBe(true);
   expect(app.shows("id:sync-auth-cancel")).toBe(false);
 });
 
@@ -304,4 +303,16 @@ test("设置：启动时恢复上次选择的应用图标", async () => {
   });
   await app.waitUntil(() => app.texts().includes("agile"));
   expect(app.texts()).toContain("敏捷剪影");
+});
+
+
+test("存储：免费用户选择云盘显示 Pro 提示，本地位置继续选中", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", { ...desktop, storage: { "test.locked": "true" } });
+  await app.press("id:settings-tab-sync");
+  await app.press("id:storage-location-dropbox");
+  await app.waitFor("id:sync-paywall");
+  expect(app.shows("id:sync-auth-cancel")).toBe(false);
+  expect(app.shows("id:storage-current-local")).toBe(true);
+  await app.press("id:sync-paywall-ok");
+  expect(app.shows("id:storage-current-local")).toBe(true);
 });

@@ -41,6 +41,11 @@ export type SyncProvider = {
   readonly id: ProviderId;
   readonly account: string | null;
   listFiles(root: RemoteDir): Promise<RemoteFile[]>;
+  inventory(root: RemoteDir): Promise<{ files: RemoteFile[]; directories: string[] }>;
+  ensureDirectory(root: RemoteDir, path: string): Promise<void>;
+  downloadBytes(file: RemoteFile): Promise<Uint8Array>;
+  uploadBytes(root: RemoteDir, path: string, content: Uint8Array,
+    options: { existing: RemoteFile | null }): Promise<RemoteFile>;
   listFolders(root: RemoteDir, dir: RemoteDir): Promise<RemoteDir[]>;
   createFolder(root: RemoteDir, parent: RemoteDir, name: string): Promise<RemoteDir>;
   download(file: RemoteFile): Promise<string>;

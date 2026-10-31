@@ -3,6 +3,7 @@ import { Clipboard, Text, View, cleanup, effect, keymap, platform, signal } from
 import { AlertDialog, Button, Dialog, Input } from "nsh/base";
 import { Menu, Window } from "nsh/desktop";
 import { Vault, VaultDialog, type VaultEntryDto } from "stoatmd/native";
+import { readActiveStorage, storageBusy } from "../storage/state";
 import { syncRuntime } from "../sync/runtime";
 import { ArticleInspector, type InspectorTab } from "./ArticleInspector";
 import { articleModel, type OutlineEntry } from "./articleModel";
@@ -238,12 +239,13 @@ export function MacShell() {
   };
 
   const runSync = async () => {
+    if (storageBusy()) return;
     const v = vault();
     if (!v || !syncRuntime.isAttached()) return;
     if (syncRuntime.phase() === "conflict") return;
     await flushSave();
     const result = await syncRuntime.syncNow();
-    if (!result) return;
+    if (!result || storageBusy() || vault() !== v) return;
     if (result.conflicts.length > 0) syncConflictOpen.set(true);
     if (result.changedLocal.length > 0) {
       const cur = opened();
@@ -279,14 +281,14 @@ export function MacShell() {
     notes.set(next);
   };
 
-  const openVaultAt = async (root: string) => {
+  const openVaultAt = async (root: string, failOnError = false) => {
     await flushSave();
     try {
       const v = Vault.open(root);
       vault.set(v);
       vaultRoot.set(v.root);
       await saveRoot(v.root);
-      Window.setTitle(`StoatMD — ${v.root}`);
+      Window.setTitle(`StoatMD — ${syncRuntime.connection()?.remoteName || vaultNameFromRoot(v.root)}`);
       folderId.set("");
       selectedNoteId.set("");
       collapsed.set([]);
@@ -307,10 +309,13 @@ export function MacShell() {
       }, SYNC_START_DELAY_MS);
     } catch (err) {
       status.set(String(err));
+      if (failOnError) throw err;
     }
   };
 
   const pickAndOpen = async () => {
+    if (storageBusy()) return;
+    if (vaultRoot()) { openSettings("sync"); return; }
     try {
       const picked = await VaultDialog.pickFolder();
       if (picked) await openVaultAt(picked);
@@ -325,12 +330,14 @@ export function MacShell() {
   };
 
   const selectNote = (id: string) => {
+    if (storageBusy()) return;
     const v = vault();
     if (!v) return;
     void openNote(v, id);
   };
 
   const createNote = async () => {
+    if (storageBusy()) return;
     const v = vault();
     if (!v) return;
     await flushSave();
@@ -353,6 +360,7 @@ export function MacShell() {
   };
 
   const beginRename = (id: string) => {
+    if (storageBusy()) return;
     const path = normalizeVaultPath(id);
     renamePath.set(path);
     renameDraft.set(titleFromName(path.split("/").pop() ?? path));
@@ -367,6 +375,7 @@ export function MacShell() {
   };
 
   const confirmRename = async () => {
+    if (storageBusy()) return;
     const v = vault();
     const from = renamePath();
     if (!v || !from) return;
@@ -403,6 +412,7 @@ export function MacShell() {
   };
 
   const duplicateNote = async (v: Vault, id: string) => {
+    if (storageBusy()) return;
     await flushSave();
     try {
       const source = v.read(id);
@@ -422,6 +432,7 @@ export function MacShell() {
   };
 
   const trashNote = async (v: Vault, id: string) => {
+    if (storageBusy()) return;
     const path = normalizeVaultPath(id);
     const title =
       notes().find((n) => n.id === path)?.title ??
@@ -434,7 +445,7 @@ export function MacShell() {
         { id: "trash", label: t("context.trash"), role: "destructive" },
       ],
     });
-    if (action !== "trash") return;
+    if (action !== "trash" || storageBusy()) return;
     await flushSave();
     try {
       v.trash(path);
@@ -613,6 +624,7 @@ export function MacShell() {
   };
 
   const onDraftChange = (value: string) => {
+    if (storageBusy()) return;
     liveText = value;
     const cur = opened();
     if (!cur) return;
@@ -642,7 +654,9 @@ export function MacShell() {
     if (bootstrapped()) return;
     bootstrapped.set(true);
     void (async () => {
-      const saved = await loadSavedRoot();
+      await syncRuntime.load();
+      const active = await readActiveStorage();
+      const saved = active?.root ?? await loadSavedRoot();
       if (saved) {
         try {
           await openVaultAt(saved);
@@ -652,7 +666,7 @@ export function MacShell() {
       } else {
         syncRuntime.attach(null);
       }
-    })();
+    })().catch(err => status.set(String(err)));
   });
 
   // 应用菜单：文件 / 视图 / 编辑；语言切换后随 t() 重建
@@ -741,7 +755,7 @@ export function MacShell() {
   effect(() => {
     const id = setInterval(() => {
       const v = vault();
-      if (!v || conflictOpen() || syncRuntime.phase() === "syncing") return;
+      if (storageBusy() || !v || conflictOpen() || syncRuntime.phase() === "syncing") return;
       const changes = v.pollChanges();
       if (changes.length === 0) return;
       const now = Date.now();
@@ -813,7 +827,7 @@ export function MacShell() {
   };
 
   const noteTitle = () => (opened() ? titleFromName(fileName()) : "");
-  const vaultName = () => vaultNameFromRoot(vaultRoot());
+  const vaultName = () => syncRuntime.connection()?.remoteName || vaultNameFromRoot(vaultRoot());
   /** 目录与统计共用同一份（防抖后的）正文快照。 */
   const article = () => articleModel(previewDraft());
   const narrow = () => windowWidth() > 0 && windowWidth() < NARROW_OVERLAY;
@@ -961,7 +975,7 @@ export function MacShell() {
                     openSettings("sync");
                   }
                 }}
-                vaultRoot={vaultRoot()}
+                vaultRoot={syncRuntime.connection() ? null : vaultRoot()}
                 syncPhase={syncRuntime.phase()}
                 syncConflictCount={syncRuntime.conflicts().length}
               />
@@ -996,6 +1010,7 @@ export function MacShell() {
               <View style={{ flex: 1, minWidth: 0, flexDirection: "column" }}>
                 <If when={!!opened()}>
                   <EditorWorkspace
+                    readOnly={storageBusy()}
                     source={draft()}
                     preview={previewDraft()}
                     onChange={onDraftChange}
@@ -1208,6 +1223,13 @@ export function MacShell() {
         vaultRoot={vaultRoot()}
         onOpenVault={() => {
           void pickAndOpen();
+        }}
+        onBeforeMigration={async () => {
+          await flushSave();
+          if (opened()?.dirty) throw new Error(t("storage.error.unsaved"));
+        }}
+        onStorageActivated={async root => {
+          await openVaultAt(root, true);
         }}
         onSyncNow={() => {
           void runSync();

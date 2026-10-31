@@ -3,6 +3,10 @@ export function sha256Hex(text: string): string {
   return crypto.createHash("sha256").update(text, "utf8").digest("hex");
 }
 
+export function sha256Bytes(bytes: Uint8Array): string {
+  return crypto.createHash("sha256").update(bytes).digest("hex");
+}
+
 /** RFC 7636 code verifier：32 字节随机数的 base64url（无填充）。 */
 export function createCodeVerifier(): string {
   return base64Url(crypto.randomBytes(32));

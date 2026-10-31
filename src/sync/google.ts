@@ -7,7 +7,7 @@ import {
   type RemoteDir,
   type SyncProvider,
 } from "./provider";
-import { baseName, dirName, isMarkdownName, joinPath, normalizeSyncPath, usableName } from "./paths";
+import { baseName, dirName, isMarkdownName, joinPath, normalizeSyncPath, usableName, libraryPath } from "./paths";
 import type { TokenSession } from "./tokens";
 import type { ProviderId, RemoteFile } from "./types";
 
@@ -40,10 +40,19 @@ export class GoogleDriveProvider implements SyncProvider {
   }
 
   async listFiles(root: RemoteDir): Promise<RemoteFile[]> {
+    return (await this.inventory(root)).files.filter((file) => isMarkdownName(file.path));
+  }
+
+  async inventory(root: RemoteDir): Promise<{ files: RemoteFile[]; directories: string[] }> {
     const out: RemoteFile[] = [];
+    const directories: string[] = [];
     const seen = new Set<string>();
-    await this.walk(root, root.id, "", out, seen);
-    return out;
+    await this.walk(root, root.id, "", out, seen, directories);
+    return { files: out, directories };
+  }
+
+  async ensureDirectory(root: RemoteDir, path: string): Promise<void> {
+    await this.ensureFolderPath(root, path);
   }
 
   async listFolders(_root: RemoteDir, dir: RemoteDir): Promise<RemoteDir[]> {
@@ -74,12 +83,29 @@ export class GoogleDriveProvider implements SyncProvider {
     return this.text(url);
   }
 
+  async downloadBytes(file: RemoteFile): Promise<Uint8Array> {
+    const response = await this.request(
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}?alt=media`, {}, undefined);
+    if (!response.ok) throw providerStatusError(response.status, await response.text());
+    return new Uint8Array(await response.arrayBuffer());
+  }
+
   async upload(
     root: RemoteDir,
     path: string,
     content: string,
     options: { existing: RemoteFile | null },
   ): Promise<RemoteFile> {
+    return this.uploadContent(root, path, content, options);
+  }
+
+  async uploadBytes(root: RemoteDir, path: string, content: Uint8Array,
+    options: { existing: RemoteFile | null }): Promise<RemoteFile> {
+    return this.uploadContent(root, path, content, options);
+  }
+
+  private async uploadContent(root: RemoteDir, path: string, content: string | Uint8Array,
+    options: { existing: RemoteFile | null }): Promise<RemoteFile> {
     const existing = options.existing;
     if (existing) {
       const current = await this.json<GoogleItem>(
@@ -94,7 +120,7 @@ export class GoogleDriveProvider implements SyncProvider {
           `?uploadType=media&fields=${encodeURIComponent(FILE_FIELDS)}`,
         {
           method: "PATCH",
-          headers: { "Content-Type": "text/markdown; charset=utf-8" },
+          headers: { "Content-Type": typeof content === "string" ? "text/markdown; charset=utf-8" : "application/octet-stream" },
           body: content,
         },
       );
@@ -113,9 +139,18 @@ export class GoogleDriveProvider implements SyncProvider {
   }
 
   async remove(file: RemoteFile): Promise<void> {
+    const metadata = await this.request(
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}?fields=id,version,modifiedTime,size`, {}, undefined);
+    if (metadata.status === 404) return;
+    if (!metadata.ok) throw providerStatusError(metadata.status, await metadata.text());
+    const current = JSON.parse(await metadata.text()) as GoogleItem;
+    if (revOf(current) !== file.rev) throw new RemoteConflictError("remote file changed before delete", file.path);
+    const etag = metadata.headers.get("ETag");
+    // Preserve the source when Drive cannot supply a conditional deletion token.
+    if (!etag) throw new RemoteConflictError("conditional deletion unavailable", file.path);
     const response = await this.request(
       `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}?fields=id`,
-      { method: "PATCH", body: JSON.stringify({ trashed: true }) },
+      { method: "PATCH", headers: { "If-Match": etag }, body: JSON.stringify({ trashed: true }) },
       "application/json",
     );
     if (response.status === 404) return;
@@ -128,6 +163,7 @@ export class GoogleDriveProvider implements SyncProvider {
     prefix: string,
     out: RemoteFile[],
     seen: Set<string>,
+    directories: string[],
   ): Promise<void> {
     this.folderCache.set(prefix, folderId);
     for (const item of await this.children(folderId)) {
@@ -137,17 +173,16 @@ export class GoogleDriveProvider implements SyncProvider {
         }
         continue;
       }
+      const path = joinPath(prefix, item.name);
+      if (!libraryPath(path)) continue;
+      if (seen.has(path)) throw new SyncError("ambiguous", `duplicate remote path: ${path}`);
+      seen.add(path);
       if (item.mimeType === FOLDER_MIME) {
-        await this.walk(root, item.id, joinPath(prefix, item.name), out, seen);
+        directories.push(path);
+        await this.walk(root, item.id, path, out, seen, directories);
         continue;
       }
       if (item.mimeType.startsWith("application/vnd.google-apps.")) continue;
-      if (!isMarkdownName(item.name)) continue;
-      const path = joinPath(prefix, item.name);
-      if (seen.has(path)) {
-        throw new SyncError("ambiguous", `duplicate remote path: ${path}`);
-      }
-      seen.add(path);
       out.push(toRemote(path, item));
     }
   }
@@ -209,14 +244,24 @@ export class GoogleDriveProvider implements SyncProvider {
   private async createFile(
     parentId: string,
     name: string,
-    content: string,
+    content: string | Uint8Array,
   ): Promise<GoogleItem> {
     const boundary = `stoatmd-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const metadata = JSON.stringify({ name, parents: [parentId] });
-    const body =
+    const textBody =
       `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
       `--${boundary}\r\nContent-Type: text/markdown; charset=UTF-8\r\n\r\n${content}\r\n` +
       `--${boundary}--\r\n`;
+    let body: string | Uint8Array = textBody;
+    if (typeof content !== "string") {
+      const start = new TextEncoder().encode(
+        `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
+        `--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n`);
+      const end = new TextEncoder().encode(`\r\n--${boundary}--\r\n`);
+      const bytes = new Uint8Array(start.length + content.length + end.length);
+      bytes.set(start); bytes.set(content, start.length); bytes.set(end, start.length + content.length);
+      body = bytes;
+    }
     return this.json<GoogleItem>(
       `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart` +
         `&fields=${encodeURIComponent(FILE_FIELDS)}`,
