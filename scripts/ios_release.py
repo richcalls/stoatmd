@@ -37,6 +37,27 @@ def prepare(app, env, work):
     info["ITSAppUsesNonExemptEncryption"] = False
     info["LSRequiresIPhoneOS"] = True
     info["MinimumOSVersion"] = env.get("IPHONEOS_DEPLOYMENT_TARGET", "16.0")
+    info["UIRequiredDeviceCapabilities"] = ["arm64"]
+    developer = Path(env.get("DEVELOPER_DIR") or run("xcode-select", "-p", capture_output=True, text=True).stdout.strip())
+    if developer.suffix == ".app":
+        developer = developer / "Contents/Developer"
+    xcode = plistlib.loads((developer.parent / "version.plist").read_bytes())
+    platform = plistlib.loads((developer / "Platforms/iPhoneOS.platform/version.plist").read_bytes())
+    sdk_version = run("xcrun", "--sdk", "iphoneos", "--show-sdk-version", capture_output=True, text=True).stdout.strip()
+    sdk_build = run("xcrun", "--sdk", "iphoneos", "--show-sdk-build-version", capture_output=True, text=True).stdout.strip()
+    xcode_parts = (xcode["CFBundleShortVersionString"].split(".") + ["0", "0"])[:3]
+    xcode_number = f"{int(xcode_parts[0]):02d}{int(xcode_parts[1])}{int(xcode_parts[2])}"
+    info.update({
+        "DTPlatformName": "iphoneos",
+        "DTPlatformVersion": platform["CFBundleShortVersionString"],
+        "DTPlatformBuild": platform["ProductBuildVersion"],
+        "DTSDKName": "iphoneos" + sdk_version,
+        "DTSDKBuild": sdk_build,
+        "DTXcode": xcode_number,
+        "DTXcodeBuild": xcode["ProductBuildVersion"],
+        "DTCompiler": "com.apple.compilers.llvm.clang.1_0",
+        "BuildMachineOSBuild": run("sw_vers", "-buildVersion", capture_output=True, text=True).stdout.strip(),
+    })
     info["UIDeviceFamily"] = [1]
     info["UISupportedInterfaceOrientations"] = ["UIInterfaceOrientationPortrait"]
     info.setdefault("UILaunchScreen", {})
