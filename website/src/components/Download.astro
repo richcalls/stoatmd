@@ -1,32 +1,19 @@
 ---
-import type { Locale } from '../i18n';
-import { t } from '../i18n';
-
-interface Props {
-  locale: Locale;
-}
-
-const { locale } = Astro.props;
-const m = t(locale);
+import type { Locale } from "../i18n";
+import { PAPER } from "../i18n/paper";
+const { locale } = Astro.props as { locale: Locale };
+const p = PAPER[locale];
 ---
 
-<section class="sec" id="download" aria-labelledby="dl-title">
-  <div class="wrap">
-    <div class="sec-head">
-      <h2 id="dl-title">{m['dl.title']}</h2>
-      <p class="sub">{m['dl.sub']}</p>
-    </div>
-    <div class="dl-list">
-      <div class="dl-row is-soon">
-        <div class="plat">macOS</div>
-        <div class="status">{m['dl.mac']}</div>
-        <span class="chip">{m['dl.soon']}</span>
-      </div>
-      <div class="dl-row is-soon">
-        <div class="plat">iOS / iPad</div>
-        <div class="status">{m['dl.ios']}</div>
-        <span class="chip">{m['dl.planned']}</span>
-      </div>
-    </div>
+<section class="release wrap" id="download" aria-labelledby="release-title">
+  <div>
+    <h2 id="release-title">{p.release.title}</h2>
+    <p>{p.release.body}</p>
+    <p>{p.release.ios}</p>
+  </div>
+  <div class="release-status">
+    <span class="status-dot"></span>
+    {p.release.soon}
+    <span class="system-requirement">macOS 14+</span>
   </div>
 </section>

@@ -1,0 +1,122 @@
+---
+import { LOCALE_META, type Locale } from "../i18n";
+import { PAPER, type Note } from "../i18n/paper";
+import Icon from "./Icon.astro";
+const { locale } = Astro.props as { locale: Locale };
+const p = PAPER[locale];
+const date = new Intl.DateTimeFormat(LOCALE_META[locale].htmlLang, {
+  dateStyle: "long",
+  timeZone: "UTC",
+}).format(new Date(`${p.preview.date}T12:00:00Z`));
+function source(note: Note) {
+  return `# ${note.title}\n\n${note.intro}\n\n> ${note.quote}\n\n## ${note.heading}\n\n${note.tasks.map((task, i) => `- [${i === 0 ? "x" : " "}] ${task}`).join("\n")}\n\n${note.ending}`;
+}
+---
+
+<section class="product wrap" id="features" aria-label={p.preview.label}>
+  <div class="app-window" data-preview data-view="read">
+    <div class="app-toolbar">
+      <div class="traffic" aria-hidden="true">
+        <i></i>
+        <i></i>
+        <i></i>
+      </div>
+      <span class="app-filename" data-filename>
+        {p.preview.notes[0].title}.md
+      </span>
+      <div class="mode-switch" role="group" aria-label={p.preview.label}>
+        {(["source", "split", "read"] as const).map((mode, i) => (
+          <button
+            type="button"
+            data-mode={mode}
+            aria-label={p.preview.modes[i]}
+            title={p.preview.modes[i]}
+            aria-pressed={mode === "read"}
+            disabled
+          >
+            <Icon name={mode} size={17} />
+          </button>
+        ))}
+      </div>
+    </div>
+    <div class="app-body">
+      <aside class="app-sidebar" aria-label={p.preview.notebook}>
+        <div class="library">
+          <Icon name="read" size={18} />
+          <strong>{p.preview.notebook}</strong>
+        </div>
+        <div class="folder-label">
+          <Icon name="chevron" size={13} />
+          <Icon name="folder" size={15} />
+          {p.preview.folder}
+        </div>
+        <div class="note-list">
+          {p.preview.notes.map((note, i) => (
+            <button
+              class="note-button"
+              type="button"
+              data-note={i}
+              aria-pressed={i === 0}
+              title={note.title}
+              disabled
+            >
+              <Icon name="file" size={15} />
+              <span>{note.title}</span>
+            </button>
+          ))}
+        </div>
+        <div class="saved">
+          <Icon name="check" size={14} />
+          {p.preview.saved}
+        </div>
+      </aside>
+      <div class="document-area" aria-live="polite" aria-atomic="false">
+        {p.preview.notes.map((note, i) => (
+          <div class="note-panel" data-panel={i} hidden={i !== 0}>
+            <pre
+              class="source-view"
+              aria-label={p.preview.modes[0]}
+              tabindex="0"
+            >{source(note)}</pre>
+            <article class="reading-view" aria-label={p.preview.modes[2]}>
+              <div class="doc-meta">
+                <span>{p.preview.folder}</span>
+                <time datetime={p.preview.date}>{date}</time>
+              </div>
+              <h2>{note.title}</h2>
+              <p>{note.intro}</p>
+              <blockquote>{note.quote}</blockquote>
+              <h3>{note.heading}</h3>
+              <ul class="checklist">
+                {note.tasks.map((task, j) => (
+                  <li>
+                    <span
+                      class:list={["checkbox", { checked: j === 0 }]}
+                      aria-hidden="true"
+                    >
+                      {j === 0 && <Icon name="check" size={11} />}
+                    </span>
+                    {task}
+                  </li>
+                ))}
+              </ul>
+              <p class="doc-ending">{note.ending}</p>
+            </article>
+          </div>
+        ))}
+      </div>
+    </div>
+    <div class="app-status">
+      <span>Markdown / UTF-8</span>
+      <span data-view-label>{p.preview.modes[2]}</span>
+      <span>{p.preview.saved}</span>
+    </div>
+  </div>
+  <div class="preview-caption">
+    <p>{p.caption}</p>
+    <span>{p.preview.demo}</span>
+  </div>
+</section>
+<script>
+  import "../scripts/product-preview";
+</script>

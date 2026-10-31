@@ -8,7 +8,7 @@ export function getStaticPaths() {
 }
 
 const { lang } = Astro.params;
-if (!lang || !isLocale(lang) || lang === 'en') {
+if (!lang || !isLocale(lang)) {
   throw new Error(`无效语言路径: ${lang}`);
 }
 const locale = lang as Locale;
