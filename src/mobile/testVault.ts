@@ -41,4 +41,3 @@ export function memoryVault() {
   };
   return { vault, files, folders, writes, block() { let release!: () => void; gate = new Promise(resolve => { release = resolve; }); return release; }, fail(value: boolean) { failure = value; } };
 }
-
