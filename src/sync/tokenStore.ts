@@ -4,7 +4,7 @@ import type { TokenStore } from "./tokens";
 import type { ProviderId } from "./types";
 
 /**
- * macOS 登录钥匙串（原生 TokenVault）；读取/写入失败时退回会话内存储。
+ * macOS / iOS 系统钥匙串（原生 TokenVault）；读取/写入失败时退回会话内存储。
  * 文档要求 token 不进普通偏好，所以这里绝不写 Storage。
  */
 export class KeychainTokenStore implements TokenStore {

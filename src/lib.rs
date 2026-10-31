@@ -1,14 +1,22 @@
 //! StoatMD 原生桥：TSX 从 `stoatmd/native` 导入。
 //! Vault 重活在 `crates/stoatmd-core`；选文件夹与监视在本模块接通。
 
+#[cfg(not(target_os = "ios"))]
 use std::io::{Read, Write};
+#[cfg(not(target_os = "ios"))]
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
+#[cfg(not(target_os = "ios"))]
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+#[cfg(not(target_os = "ios"))]
 use std::time::{Duration, Instant};
 
 use nsh_core::prelude::*;
+mod mobile_files;
+#[cfg(target_os = "ios")]
+mod mobile_auth;
+use mobile_files::MobileFiles;
 mod settings_window;
 use settings_window::SettingsWindow;
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
@@ -19,6 +27,7 @@ use stoatmd_core::{Vault as CoreVault, VaultError};
 fn native(registry: &mut Registry) {
     registry
         .module::<StoatMeta>()
+        .module::<MobileFiles>()
         .module::<VaultDialog>()
         .module::<SystemFonts>()
         .module::<AppIcon>()
@@ -83,14 +92,21 @@ pub struct VaultDialog;
 impl VaultDialog {
     /// 弹出系统文件夹对话框；取消返回 `null`。
     pub async fn pick_folder() -> Result<Option<String>, String> {
-        blocking(|| {
-            rfd::FileDialog::new()
-                .set_title("Open Vault")
-                .pick_folder()
-                .map(|p| p.to_string_lossy().into_owned())
-        })
-        .await
-        .map_err(|e| e.to_string())
+        #[cfg(not(any(target_os = "ios", target_os = "android")))]
+        {
+            blocking(|| {
+                rfd::FileDialog::new()
+                    .set_title("Open Vault")
+                    .pick_folder()
+                    .map(|p| p.to_string_lossy().into_owned())
+            })
+            .await
+            .map_err(|e| e.to_string())
+        }
+        #[cfg(any(target_os = "ios", target_os = "android"))]
+        {
+            Err("Connect a cloud library on this platform".to_owned())
+        }
     }
 }
 
@@ -149,7 +165,7 @@ fn set_macos_app_icon(mtm: objc2::MainThreadMarker, bytes: &'static [u8]) {
     unsafe { app.setApplicationIconImage(Some(&image)) };
 }
 
-/// 同步连接配置（客户端凭据只来自开发者环境 / 本地配置，不写进应用包）。
+/// 同步连接配置（iOS 包含公共客户端 ID；桌面端读取开发者配置）。
 #[derive(Debug, Clone, PartialEq, JsObject)]
 pub struct SyncConfigDto {
     /// Google OAuth 桌面客户端 ID。
@@ -183,6 +199,19 @@ impl SyncConfig {
             .unwrap_or(serde_json::Value::Null);
         let mut config = config_from_json(&doc, &path);
         apply_env(&mut config);
+        #[cfg(target_os = "ios")]
+        {
+            // iOS is sold as a paid app. Its cloud connection is included.
+            config.purchase_required = false;
+            config.google_client_id = std::env::var("STOATMD_GOOGLE_IOS_CLIENT_ID").ok()
+                .or_else(|| option_env!("STOATMD_GOOGLE_IOS_CLIENT_ID").map(str::to_owned))
+                .unwrap_or_else(|| json_str(&doc, &["googleIosClientId"]));
+            config.google_client_secret.clear();
+            if config.dropbox_app_key.is_empty() {
+                config.dropbox_app_key = option_env!("STOATMD_DROPBOX_APP_KEY").unwrap_or("").to_owned();
+            }
+            config.dropbox_app_secret.clear();
+        }
         config
     }
 }
@@ -194,17 +223,21 @@ pub struct OAuthResultDto {
     pub code: String,
     /// 回传的 state（已校验）。
     pub state: String,
-    /// 实际使用的 loopback 回调地址。
+    /// 实际使用的回调地址（桌面 loopback / iOS URL scheme）。
     pub redirect_uri: String,
 }
 
+#[cfg(not(target_os = "ios"))]
 static OAUTH_CANCELLED: AtomicBool = AtomicBool::new(false);
+#[cfg(not(target_os = "ios"))]
 static OAUTH_RUNNING: AtomicBool = AtomicBool::new(false);
 /// 浏览器授权最多等 5 分钟。
+#[cfg(not(target_os = "ios"))]
 const OAUTH_TIMEOUT: Duration = Duration::from_secs(300);
+#[cfg(not(target_os = "ios"))]
 const OAUTH_PATH: &str = "/callback";
 
-/// 系统浏览器 + 本机 loopback 回调的 OAuth 授权（PKCE 由 TS 侧生成）。
+/// 系统 OAuth 授权（桌面 loopback / iOS ASWebAuthenticationSession，TS 生成 PKCE）。
 #[module]
 pub struct OAuth;
 
@@ -217,6 +250,12 @@ impl OAuth {
         state: String,
         port: Option<u32>,
     ) -> Result<OAuthResultDto, String> {
+        #[cfg(target_os = "ios")]
+        {
+            let _ = port;
+            return mobile_auth::authorize(url_template, state).await;
+        }
+        #[cfg(not(target_os = "ios"))]
         match blocking(move || run_oauth(&url_template, &state, port)).await {
             Ok(result) => result,
             Err(err) => Err(err.to_string()),
@@ -225,11 +264,14 @@ impl OAuth {
 
     /// 取消进行中的授权（用户点「取消」时调用）。
     pub fn cancel() {
+        #[cfg(not(target_os = "ios"))]
         OAUTH_CANCELLED.store(true, Ordering::SeqCst);
+        #[cfg(target_os = "ios")]
+        mobile_auth::cancel();
     }
 }
 
-/// OAuth 令牌：macOS 存登录钥匙串，其它平台回退到 0600 文件。
+/// OAuth tokens use the system keychain on macOS and iOS.
 #[module]
 pub struct TokenVault;
 
@@ -308,10 +350,43 @@ pub struct Vault {
 
 #[class]
 impl Vault {
+    /// Reopen an app-owned cloud cache after iOS relocates its container.
+    pub fn reopen_cache(previous_root: String) -> Result<Vault, String> {
+        let previous = Path::new(&previous_root);
+        let name = previous.file_name().and_then(|n| n.to_str()).ok_or("Invalid cache path")?;
+        if previous.parent().and_then(Path::file_name).and_then(|n| n.to_str()) != Some("libraries")
+            || !name.chars().all(|c| c.is_ascii_digit() || c == '-') || !name.contains('-') {
+            return Err("Invalid cache path".into());
+        }
+        Self::open(cache_base()?.join(name).display().to_string())
+    }
+
+    /// Durable mobile recovery journal, separate from the Markdown document.
+    pub fn save_draft(&self, json: String) -> Result<(), String> {
+        self.core.ensure_dir(".stoatmd").map_err(map_err)?;
+        self.core.write_bytes(".stoatmd/draft.json", json.as_bytes()).map_err(map_err)
+    }
+
+    /// Read the last interrupted mobile editing session.
+    pub fn read_draft(&self) -> Result<Option<String>, String> {
+        match self.core.read_bytes(".stoatmd/draft.json") {
+            Ok(bytes) => String::from_utf8(bytes).map(Some).map_err(|e| e.to_string()),
+            Err(VaultError::NotFound(_)) => Ok(None),
+            Err(err) => Err(map_err(err)),
+        }
+    }
+
+    /// Remove the recovery journal after saving or explicitly discarding edits.
+    pub fn clear_draft(&self) -> Result<(), String> {
+        match self.core.delete(".stoatmd/draft.json") {
+            Ok(()) | Err(VaultError::NotFound(_)) => Ok(()),
+            Err(err) => Err(map_err(err)),
+        }
+    }
+
     /// Fresh, app-owned offline cache; never reuses a user-selected folder.
     pub fn create_cache() -> Result<Vault, String> {
-        let base = dirs::data_local_dir().ok_or("application data directory unavailable")?
-            .join("com.stoatmd.app").join("libraries");
+        let base = cache_base()?;
         std::fs::create_dir_all(&base).map_err(|e| e.to_string())?;
         let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
             .map_err(|e| e.to_string())?.as_nanos();
@@ -582,6 +657,11 @@ fn support_dir() -> PathBuf {
     dirs::data_local_dir().unwrap_or_else(|| PathBuf::from(".")).join("StoatMD")
 }
 
+fn cache_base() -> Result<PathBuf, String> {
+    dirs::data_local_dir().map(|dir| dir.join("com.stoatmd.app").join("libraries"))
+        .ok_or_else(|| "Application data directory unavailable".to_owned())
+}
+
 fn config_file_path() -> PathBuf {
     std::env::var_os("STOATMD_CONFIG_PATH")
         .map(PathBuf::from)
@@ -658,14 +738,17 @@ fn apply_env(config: &mut SyncConfigDto) {
     }
 }
 
+#[cfg(not(target_os = "ios"))]
 struct OAuthRunGuard;
 
+#[cfg(not(target_os = "ios"))]
 impl Drop for OAuthRunGuard {
     fn drop(&mut self) {
         OAUTH_RUNNING.store(false, Ordering::SeqCst);
     }
 }
 
+#[cfg(not(target_os = "ios"))]
 fn run_oauth(
     url_template: &str,
     expected_state: &str,
@@ -717,6 +800,7 @@ fn run_oauth(
     Err("oauth_timeout".to_owned())
 }
 
+#[cfg(not(target_os = "ios"))]
 fn handle_oauth_callback(
     mut stream: TcpStream,
     expected_state: &str,
@@ -765,6 +849,7 @@ fn handle_oauth_callback(
     Some(Ok(code))
 }
 
+#[cfg(not(target_os = "ios"))]
 fn respond(mut stream: TcpStream, status: u16, body: &str) -> std::io::Result<()> {
     let reason = match status {
         200 => "OK",
@@ -780,6 +865,7 @@ fn respond(mut stream: TcpStream, status: u16, body: &str) -> std::io::Result<()
     stream.flush()
 }
 
+#[cfg(not(target_os = "ios"))]
 fn callback_page(ok: bool) -> &'static str {
     if ok {
         "<!doctype html><meta charset=\"utf-8\"><title>StoatMD</title><body style=\"font-family:-apple-system,system-ui,sans-serif;padding:48px;line-height:1.6\"><h2>授权完成</h2><p>请返回 StoatMD。</p><p>Authorization complete — you can close this tab and return to StoatMD.</p></body>"
@@ -846,6 +932,7 @@ fn parse_query(query: &str) -> std::collections::HashMap<String, String> {
     out
 }
 
+#[cfg(not(target_os = "ios"))]
 fn open_external(url: &str) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     let mut command = {
@@ -1001,13 +1088,13 @@ fn token_delete(provider: &str) -> Result<(), String> {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
 fn token_path(provider: &str) -> Result<PathBuf, String> {
     valid_provider(provider)?;
     Ok(support_dir().join("tokens").join(format!("{provider}.secret")))
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
 fn token_set(provider: &str, secret: &str) -> Result<(), String> {
     let path = token_path(provider)?;
     if let Some(parent) = path.parent() {
@@ -1023,7 +1110,7 @@ fn token_set(provider: &str, secret: &str) -> Result<(), String> {
     Ok(())
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
 fn token_get(provider: &str) -> Result<Option<String>, String> {
     let path = token_path(provider)?;
     match std::fs::read_to_string(&path) {
@@ -1033,7 +1120,7 @@ fn token_get(provider: &str) -> Result<Option<String>, String> {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
 fn token_delete(provider: &str) -> Result<(), String> {
     let path = token_path(provider)?;
     match std::fs::remove_file(&path) {
@@ -1102,4 +1189,28 @@ fn start_watcher(
     };
     let _ = watcher.watch(&root, RecursiveMode::Recursive);
     Some(watcher)
+}
+
+#[cfg(target_os = "ios")]
+fn token_set(provider: &str, secret: &str) -> Result<(), String> {
+    valid_provider(provider)?;
+    security_framework::passwords::set_generic_password("com.stoatmd.app.sync", provider, secret.as_bytes()).map_err(|e| e.to_string())
+}
+#[cfg(target_os = "ios")]
+fn token_get(provider: &str) -> Result<Option<String>, String> {
+    valid_provider(provider)?;
+    match security_framework::passwords::get_generic_password("com.stoatmd.app.sync", provider) {
+        Ok(bytes) => String::from_utf8(bytes).map(Some).map_err(|e| e.to_string()),
+        Err(err) if err.code() == -25300 => Ok(None),
+        Err(err) => Err(err.to_string()),
+    }
+}
+#[cfg(target_os = "ios")]
+fn token_delete(provider: &str) -> Result<(), String> {
+    valid_provider(provider)?;
+    match security_framework::passwords::delete_generic_password("com.stoatmd.app.sync", provider) {
+        Ok(()) => Ok(()),
+        Err(err) if err.code() == -25300 => Ok(()),
+        Err(err) => Err(err.to_string()),
+    }
 }

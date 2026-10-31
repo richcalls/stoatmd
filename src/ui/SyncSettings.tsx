@@ -15,6 +15,7 @@ import { uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
 
 export type SyncSettingsProps = {
   open?: boolean;
+  cloudOnly?: boolean;
   vaultRoot?: string | null;
   onOpenVault?: () => void;
   onBeforeMigration?: () => Promise<void>;
@@ -57,6 +58,7 @@ export function SyncSettings(props: SyncSettingsProps) {
     return conn && (!props.vaultRoot || conn.localRoot === props.vaultRoot) ? conn : null;
   };
   const currentKind = () => connected()?.provider ?? "local";
+  const locations = props.cloudOnly ? LOCATIONS.filter(kind => kind !== "local") : LOCATIONS;
   const locked = () => loadSyncConfig().purchaseRequired;
   const currentDir = () => stack()[stack().length - 1] ?? remoteRoot(provider() ?? "google");
   const currentLocation = (): Location => connected() ? connectionLocation(connected()!) : { kind: "local", root: props.vaultRoot ?? t("vault.none") };
@@ -108,6 +110,7 @@ export function SyncSettings(props: SyncSettingsProps) {
     localError.set(null);
     if (activeStorage()?.cleanup) { localError.set(t("storage.error.pendingCleanup")); return; }
     if (kind === "local") {
+      if (props.cloudOnly) return;
       const gen = ++generation;
       loading.set(true);
       try {
@@ -167,7 +170,7 @@ export function SyncSettings(props: SyncSettingsProps) {
   const detail = (text: string) => <Text style={{ fontSize: uiTextSize(12.5), lineHeight: uiLineHeight(19), color: colors().ink2 }}>{text}</Text>;
   const button = (id: string, text: string, onPress: () => void, primary = false, disabled = false) => (
     <Button testID={id} disabled={disabled} onPress={onPress}
-      style={{ height: uiControlHeight(30), paddingHorizontal: 12, borderRadius: 6, borderWidth: primary ? 0 : 1,
+      style={{ minHeight: props.cloudOnly ? 44 : uiControlHeight(30), paddingHorizontal: 12, borderRadius: 6, borderWidth: primary ? 0 : 1,
         borderColor: colors().thread, backgroundColor: primary ? colors().accent : colors().list,
         justifyContent: "center", alignItems: "center", opacity: disabled ? 0.45 : 1 }}
       hoverStyle={{ opacity: 0.8 }} activeStyle={{ opacity: 0.65 }}>
@@ -195,9 +198,9 @@ export function SyncSettings(props: SyncSettingsProps) {
     <View style={{ gap: 16 }}>
       <If when={stage() === "idle"}>
         {label(t("storage.title"))}
-        {detail(t("storage.description"))}
+        {detail(t(props.cloudOnly ? "mobile.connectHint" : "storage.description"))}
         <View testID="storage-locations" style={{ borderWidth: 1, borderColor: colors().thread, borderRadius: 9, overflow: "hidden" }}>
-          <Each of={LOCATIONS}>{(row) => {
+          <Each of={locations}>{(row) => {
             const kind = row();
             return (
               <Button testID={`storage-location-${kind}`} disabled={loading() || storageBusy() || currentKind() === kind}
@@ -209,7 +212,7 @@ export function SyncSettings(props: SyncSettingsProps) {
                 <Icon name={kind === "local" ? "folder" : "cloud"} size={20} color={currentKind() === kind ? colors().accent : colors().ink2} />
                 <View style={{ flex: 1, gap: 4 }}>
                   {label(locationName(kind))}
-                  <Text style={{ fontSize: uiTextSize(12), color: colors().ink3 }}>{t(kind === "local" ? "storage.localDescription" : "storage.cloudDescription")}</Text>
+                  <Text style={{ fontSize: uiTextSize(12), color: colors().ink3 }}>{t(props.cloudOnly ? "mobile.cloudIncluded" : kind === "local" ? "storage.localDescription" : "storage.cloudDescription")}</Text>
                 </View>
                 <If when={currentKind() === kind}>
                   <Text testID={`storage-current-${kind}`} style={{ fontSize: uiTextSize(12), color: colors().accent }}>{t("storage.inUse")} ✓</Text>
@@ -222,13 +225,13 @@ export function SyncSettings(props: SyncSettingsProps) {
           }}</Each>
         </View>
         <View style={{ gap: 8 }}>
-          {detail(locationPath(currentLocation()))}
+          {connected() || !props.cloudOnly ? detail(locationPath(currentLocation())) : null}
           <If when={!!connected()}>
             {detail(status())}
             {detail(t("storage.cacheDescription"))}
           </If>
           <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-            {button("storage-change-folder", t("storage.changeFolder"), () => void choose(currentKind()), false, loading())}
+            {connected() || !props.cloudOnly ? button("storage-change-folder", t("storage.changeFolder"), () => void choose(currentKind()), false, loading()) : null}
             <If when={!!connected()}>
               {button("sync-now", t("sync.syncNow"), () => props.onSyncNow?.(), false, locked() || syncRuntime.phase() === "syncing")}
               <If when={syncRuntime.conflicts().length > 0}>

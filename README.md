@@ -1,9 +1,9 @@
 # StoatMD
 
-本地优先 Markdown 笔记本（**多语言 · 出海**）。用 [nsh](https://nsh.dev)（Rust + TSX 混合）构建，**一期先做 macOS**。
+使用自有文件与云盘的 Markdown 笔记本（**多语言 · 出海**）。用 [nsh](https://nsh.dev)（Rust + TSX 混合）构建，**macOS + iOS**。
 
 - 定名 **StoatMD** · 域名 [stoatmd.com](https://stoatmd.com) · 曾用名 LoomMD
-- 自选文件夹，普通 `.md` 文件（Vault：open / list / read / write / create / rename / delete）
+- macOS 自选文件夹，iOS 连接云盘文件夹；笔记使用普通 `.md` 文件（Vault：open / list / read / write / create / rename / delete）
 - 两栏：左栏全库搜索（标题、路径与正文）+ 可折叠文件树（笔记嵌在文件夹下），右栏编辑 / 分栏 / 预览；正文搜索在后台执行，包含嵌套目录与当前未保存正文
 - 侧栏库名与下拉箭头共同展开笔记库菜单：显示当前库与路径，选择当前库回到根目录，通过「打开文件夹…」切换库；右侧铅笔新建笔记
 - 笔记右键菜单：打开、在 Finder 中显示、复制路径 / 相对路径、重命名、创建副本、移到废纸篓；文案随界面语言
@@ -13,8 +13,8 @@
 - 预览默认采用 [Kami](https://github.com/tw93/kami) 文章排版（衬线正文、克制留白）；配色内置 **25 套 [Otty](https://otty.sh) 主题**（默认 Paper，9 浅色 / 16 深色），设置 → 外观即切即换（归属见 `THIRD_PARTY_NOTICES.md`）
 - 设置使用独立的 macOS 原生窗口，支持系统红黄绿按钮、拖动、调整大小、全屏与窗口平铺；关闭设置后主窗口继续工作。
 - 设置 → 外观 → **文稿配色**：默认彩色，标题、引用、链接与代码随主题着色；单色保留字号、字重与排版层级。源码与预览即时切换，偏好在重启后恢复。
-- 本地 / Dropbox / Google Drive 三选一；切换时迁移并校验笔记、附件与文件夹，原数据默认保留
-- 本机永远免费；开启同步走**买断**付费墙（不做订阅制，不绑 iCloud）
+- macOS 提供本地 / Dropbox / Google Drive，iOS 提供 Dropbox / Google Drive；切换时迁移并校验笔记、附件与文件夹，原数据默认保留
+- macOS 本机免费、云盘同步买断；iOS 付费应用包含云盘同步（不做订阅制，不绑 iCloud）
 - **不做 MCP**
 
 ## StoatMD 适合谁
@@ -36,7 +36,7 @@ StoatMD **不做所见即所得**，而是保留纯 Markdown 源码编辑与独�
 - Obsidian 官方同步要订阅，且难交给远程 AI / Agent
 - GitHub 同步在手机上很难用；GitHub + iCloud 会让 `.git` 膨胀
 - StoatMD 用你自己的 **Google Drive / Dropbox** 多端同步；笔记对 Personal Agent / 远程 AI 可读写归档
-- 本机永远免费；开启同步走**买断**付费墙（不做订阅制）
+- macOS 本机免费、云盘同步买断；iOS 付费应用包含云盘同步（不做订阅制）
 
 ### 和妙言一类产品相比
 
@@ -55,6 +55,7 @@ StoatMD **不做所见即所得**，而是保留纯 Markdown 源码编辑与独�
 - [技术设计 v1](docs/技术设计-v1.md)
 - [UI v1 设计说明](docs/ui-v1/DESIGN-NOTES.md)（风格 B · 织线）
 - [UI v2 内嵌阅读画布方案](docs/ui-v2/README.md)（交互设计稿与 Qoder 实现说明）
+- [iOS v0.1 交互设计稿](docs/ios-v1/README.md)（笔记库、源码编辑、阅读与存储设置）
 - [Logo 方向草案](docs/brand/stoatmd-logo/NOTES.md)（默认 A 织线白鼬 · C 敏捷剪影可在设置 → 外观切换 · 浅/暗两版随主题）
 - [官网设计稿 website-v1](docs/website-v1/DESIGN-NOTES.md) · [正式静态站](website/README.md)（Astro · Cloudflare Pages）
 - [Mac 一期实现计划](docs/superpowers/plans/2026-10-29-stoatmd-mac-v1.md)
@@ -63,6 +64,7 @@ StoatMD **不做所见即所得**，而是保留纯 Markdown 源码编辑与独�
 
 ```
 App.tsx                 # nsh 入口
+src/mobile/             # iPhone 原生文库、编辑 / 阅读、设置与自动保存
 src/ui/                 # TSX：Mac 两栏壳（文件树 + 编辑/预览）+ Vault 接线
 src/sync/               # 同步引擎、OAuth PKCE、Google Drive / Dropbox Provider
 src/storage/            # 单一存储记录、校验迁移、离线缓存、清理重试
@@ -112,9 +114,20 @@ nsh run --target macos
 
 Linux 可做类型/编译冒烟：`nsh check`；有 GTK 4.14+ 时可 `nsh run`（非 AppKit，仅作开发参考）。
 
+## 在 iPhone 模拟器运行
+
+需要完整 Xcode、iOS Simulator 和 rustup。在 Apple Silicon Mac 上执行：
+
+```sh
+rustup target add aarch64-apple-ios-sim
+python3 scripts/ios.py run
+```
+
+iOS 为付费应用，首次启动连接 **Google Drive / Dropbox**，选择远程文件夹并下载笔记库。设备存储承担离线缓存，联网后继续同步；独立本地库和额外 Pro 付费墙已移除。核心读写包含搜索、文件夹、源码输入与键盘工具、阅读目录、重命名 / 副本 / 移动、回收站、系统文件导入导出和主题 / 语言 / 字号。自动保存使用原子写入与持久草稿。系统授权与钥匙串已接入代码，真实账号联调需要配置公共客户端 ID，详见 [iOS 实现状态](docs/ios-v1/README.md)。
+
 ## 云盘同步（开发者配置）
 
-云盘支持 **Google Drive / Dropbox**。一个笔记库同一时间使用一个存储位置。选择云盘后，应用管理离线缓存，原本地目录解除绑定；缓存负责离线编辑。OAuth 令牌在 macOS 使用钥匙串（`TokenVault`），与 `Storage` 中的存储记录分离。
+云盘支持 **Google Drive / Dropbox**。一个笔记库同一时间使用一个存储位置。选择云盘后，应用管理离线缓存，原本地目录解除绑定；缓存负责离线编辑。OAuth 令牌在 macOS / iOS 使用系统钥匙串（`TokenVault`），与 `Storage` 中的存储记录分离。
 
 开发者需自备 OAuth 客户端，二选一：环境变量，或 `~/Library/Application Support/StoatMD/sync.json`（可用 `STOATMD_CONFIG_PATH` 改路径）。
 
@@ -122,6 +135,8 @@ Linux 可做类型/编译冒烟：`nsh check`；有 GTK 4.14+ 时可 `nsh run`�
 |--------|----------|-----------|
 | Google Drive | `STOATMD_GOOGLE_CLIENT_ID` / `STOATMD_GOOGLE_CLIENT_SECRET` | 应用类型选「桌面应用」；启用 Drive API；回环 `http://127.0.0.1/callback`（端口随机） |
 | Dropbox | `STOATMD_DROPBOX_APP_KEY` / `STOATMD_DROPBOX_APP_SECRET` | Scoped app，勾选 `files.content.read/write`、`files.metadata.read/write`；回调 `http://127.0.0.1:53682/callback`（端口可用 `STOATMD_DROPBOX_REDIRECT_PORT` 改，必须与后台一致） |
+
+iOS 使用 `STOATMD_GOOGLE_IOS_CLIENT_ID`（iOS 客户端）和现有 `STOATMD_DROPBOX_APP_KEY`。`scripts/ios.py` 自动读取 Mac 配置中的 `googleIosClientId`、`dropboxAppKey`，将公共标识传入构建。平台回调和调试宿主配置见 [iOS 实现状态](docs/ios-v1/README.md)。
 
 ```json
 {
@@ -134,7 +149,7 @@ Linux 可做类型/编译冒烟：`nsh check`；有 GTK 4.14+ 时可 `nsh run`�
 }
 ```
 
-`purchaseRequired` 默认 `true`，免费状态开放本地。`STOATMD_PURCHASE_REQUIRED=0` / 上例 `purchaseRequired: false` 用于开发测试 Pro；当前购买流程和真实权益校验仍待接入。受限状态暂停云盘同步与写入，允许重新授权原账号并迁回本地，包含离线修改及远程独有文件。
+macOS 的 `purchaseRequired` 默认 `true`，免费状态开放本地。`STOATMD_PURCHASE_REQUIRED=0` / 上例 `purchaseRequired: false` 用于开发测试 Pro；macOS 购买流程和真实权益校验仍待接入。iOS 的应用购买已包含云盘访问，运行时统一关闭额外付费墙。受限状态暂停云盘同步与写入，允许重新授权原账号并迁回本地，包含离线修改及远程独有文件。
 
 当前存储根、云盘连接与待清理任务统一保存在 `Storage` 的 `storage.active` 记录中。迁移校验完成后一次提交该记录；旧版本 `sync.connection` 仅用于兼容读取。配置变量参见 [.env.example](.env.example)，nsh 启动前需要显式导出环境变量。完整规则见 [存储与迁移](docs/product/SYNC.md)。
 
@@ -152,3 +167,7 @@ Linux 可做类型/编译冒烟：`nsh check`；有 GTK 4.14+ 时可 `nsh run`�
 - [x] Phase 4：Google Drive / Dropbox 同步（OAuth PKCE、选/建远程库、锚点增量、冲突逐文件弹选、自动推送与定时拉取）
 
 - [x] 存储迁移：本地 / Dropbox / Google Drive 三选一，笔记与二进制附件校验，默认保留原数据，清理任务持久化
+
+- [x] iPhone 核心读写：原生导航、文库搜索、源码输入、阅读目录、设置、自动保存、草稿恢复与冲突副本
+- [x] iOS 云盘入口与平台桥接：付费应用直接连接 Google Drive / Dropbox、系统 OAuth、钥匙串和离线缓存
+- [ ] iOS 真实云盘账号授权与同步端到端验收

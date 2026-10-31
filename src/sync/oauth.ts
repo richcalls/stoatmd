@@ -82,7 +82,7 @@ function meta(provider: ProviderId): ProviderOAuth {
   return provider === "google" ? GOOGLE : DROPBOX;
 }
 
-/** 授权页地址；`redirect_uri` 留给原生层替换成实际 loopback 端口。 */
+/** 授权页地址；原生层填入桌面回环地址或 iOS 应用回调。 */
 export function buildAuthorizeUrl(
   provider: ProviderId,
   config: SyncConfigDto,
