@@ -1,10 +1,13 @@
 import { Text, View, host, mount, signal } from "nsh";
+import { Button } from "nsh/base";
+import { applyRenderMode, restoreRenderMode } from "./documentAppearance";
+import { applyTheme, restoreTheme } from "./theme";
 import { EditorWorkspace } from "./EditorWorkspace";
 import { setLocalePref } from "./i18n";
 import { WindowBar, type ViewMode } from "./Toolbar";
 
 /** 供 EditorWorkspace 组件测试挂载的最小入口。 */
-const NOTE = "# hi\n\n```ts\nconst a = 1;\n```\n\nhi HI\n中文😀 中文😀\n[x] [x]";
+const NOTE = "# hi\n\n```ts\nconst a = 1;\n```\n\nhi HI\n中文😀 中文😀\n[x] [x]\n\n正文 plain text\n\n> 引用 quote\n\n[链接 link](https://example.com) 与 `inline_code`";
 
 function Harness() {
   if (host.params.locale === "en") setLocalePref("en");
@@ -38,8 +41,11 @@ function Harness() {
         preview.set("hi in another file");
       }}><Text>Switch document</Text></View>
       <Text testID="mode-value">{mode()}</Text>
+      <Button testID="render-color" onPress={() => applyRenderMode("color")}><Text>Color</Text></Button>
+      <Button testID="render-monochrome" onPress={() => applyRenderMode("monochrome")}><Text>Monochrome</Text></Button>
+      <Button testID="theme-nord" onPress={() => applyTheme("nord")}><Text>Nord</Text></Button>
     </View>
   );
 }
 
-mount(Harness);
+void Promise.all([restoreRenderMode(), restoreTheme()]).then(() => mount(Harness));

@@ -5,8 +5,9 @@ import { credentialsFor, loadSyncConfig } from "../sync/config";
 import { SyncError, type RemoteDir } from "../sync/provider";
 import { providerLabelKey, remoteRoot, syncRuntime } from "../sync/runtime";
 import type { ProviderId } from "../sync/types";
-import { connectionLocation, keepRemainingOriginals, migrateStorage, prepareMigration, retryCleanup, storageMigration as migration } from "../storage/runtime";
+import { connectionLocation, storageMigration as migration } from "../storage/runtime";
 import { activeStorage, storageBusy, type Location } from "../storage/state";
+import { settingsStorage } from "./settingsStorage";
 import { Icon } from "./Icon";
 import { intlTag, locale, t } from "./i18n";
 import { colors, statusColor } from "./theme";
@@ -65,7 +66,7 @@ export function SyncSettings(props: SyncSettingsProps) {
     if (props.open === false && !storageBusy()) {
       generation++;
       stage.set("idle");
-      migration.phase.set("idle");
+      void settingsStorage.cancel();
       loading.set(false);
       void syncRuntime.cancelConnect();
     }
@@ -74,7 +75,7 @@ export function SyncSettings(props: SyncSettingsProps) {
   const cancel = async () => {
     generation++;
     stage.set("idle");
-    migration.phase.set("idle");
+    await settingsStorage.cancel();
     localError.set(null);
     loading.set(false);
     await syncRuntime.cancelConnect();
@@ -96,9 +97,9 @@ export function SyncSettings(props: SyncSettingsProps) {
     localError.set(null);
     loading.set(true);
     try {
-      await prepareMigration(props.vaultRoot ?? null, location, () => gen === generation);
+      await settingsStorage.prepare(props.vaultRoot ?? null, location, () => gen === generation);
       if (gen === generation) stage.set("migration");
-      else migration.phase.set("idle");
+      else await settingsStorage.cancel();
     } catch (err) { if (gen === generation) localError.set(errorText(err)); }
     finally { if (gen === generation) loading.set(false); }
   };
@@ -155,14 +156,12 @@ export function SyncSettings(props: SyncSettingsProps) {
     if (!props.onBeforeMigration || !props.onStorageActivated) {
       localError.set(t("storage.error.failed")); return;
     }
-    await migrateStorage(props.vaultRoot ?? null, props.onBeforeMigration, props.onStorageActivated);
+    await settingsStorage.migrate(props.vaultRoot ?? null, props.onBeforeMigration, props.onStorageActivated);
   };
   const cleanup = async () => {
     if (storageBusy()) return;
-    storageBusy.set(true);
-    try { await syncRuntime.pause(); await retryCleanup(); }
+    try { await settingsStorage.retryCleanup(); }
     catch (err) { localError.set(errorText(err)); }
-    finally { migration.phase.set("succeeded"); storageBusy.set(false); }
   };
   const label = (text: string) => <Text style={{ fontSize: uiTextSize(14), fontWeight: "600", color: colors().ink }}>{text}</Text>;
   const detail = (text: string) => <Text style={{ fontSize: uiTextSize(12.5), lineHeight: uiLineHeight(19), color: colors().ink2 }}>{text}</Text>;
@@ -333,7 +332,7 @@ export function SyncSettings(props: SyncSettingsProps) {
           {detail(t("storage.cleanupWarning"))}
           <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
             {button("storage-cleanup-retry", t("storage.retryCleanup"), () => void cleanup())}
-            {button("storage-cleanup-keep", t("storage.keepRemaining"), () => void keepRemainingOriginals())}
+            {button("storage-cleanup-keep", t("storage.keepRemaining"), () => void settingsStorage.keepRemainingOriginals())}
           </View>
         </View>
       </If>

@@ -15,7 +15,8 @@ import { librarySearch } from "./librarySearch";
 import { t } from "./i18n";
 import { loadSavedRoot, saveRoot } from "./prefs";
 import { scrollEditorToLine, scrollPreviewToIndex } from "./scrollSync";
-import { SettingsSheet, type SettingsTab } from "./SettingsSheet";
+import type { SettingsTab } from "./SettingsSheet";
+import { createSettingsWindow } from "./settingsWindow";
 import { Sidebar } from "./Sidebar";
 import { colors, statusColor } from "./theme";
 import { chromeColors, controlFocusStyle, controlHoverStyle, controlPressStyle } from "./chrome";
@@ -35,9 +36,6 @@ import {
   type OpenedNote,
 } from "./vaultModel";
 
-Window.setTitle("StoatMD");
-Window.setTitleBar("hidden", WINDOW_BAR_HEIGHT);
-
 const AUTOSAVE_MS = 700;
 const PREVIEW_MS = 250;
 const POLL_MS = 1500;
@@ -53,6 +51,8 @@ const NARROW_OVERLAY = 920;
 
 /** Mac 两栏壳：左栏文件树 + 内嵌画布（编辑/预览） + 可收起文章栏。 */
 export function MacShell() {
+  Window.setTitle("StoatMD");
+  Window.setTitleBar("hidden", WINDOW_BAR_HEIGHT);
   const sidebarMode = signal<SidebarMode>("expanded");
   const mode = signal<ViewMode>("split");
   const findRequest = signal<FindRequest>({ id: 0, action: "open" });
@@ -78,8 +78,6 @@ export function MacShell() {
   const previewDraft = signal("");
   const status = signal("");
   const bootstrapped = signal(false);
-  const settingsOpen = signal(false);
-  const settingsTab = signal<SettingsTab>("appearance");
   const conflictOpen = signal(false);
   const syncConflictOpen = signal(false);
   /** 正在重命名的笔记（null 时弹窗关闭）。 */
@@ -648,12 +646,20 @@ export function MacShell() {
     sidebarMode.update((current) => (current === "expanded" ? "hidden" : "expanded"));
   };
 
-  const openSettings = (tab: SettingsTab) => {
-    settingsTab.set(tab);
-    settingsOpen.set(true);
-  };
+  const settingsWindow = createSettingsWindow({
+    vaultRoot,
+    onBeforeMigration: async () => {
+      await flushSave();
+      if (opened()?.dirty) throw new Error(t("storage.error.unsaved"));
+    },
+    onStorageActivated: async root => { await openVaultAt(root, true); },
+    onOpenVault: () => { Window.orderFront(); void pickAndOpen(); },
+    onSyncNow: () => { void runSync(); },
+    onManageConflicts: () => { Window.orderFront(); syncConflictOpen.set(true); },
+  });
+  const openSettings = (tab: SettingsTab) => settingsWindow.open(tab);
 
-  const searchEnabled = () => !!opened() && !settingsOpen() && renamePath() === null
+  const searchEnabled = () => !!opened() && renamePath() === null
     && !conflictOpen() && !syncConflictOpen();
   const requestFind = (action: FindAction) => {
     if (searchEnabled()) findRequest.update((request) => ({ id: request.id + 1, action }));
@@ -859,7 +865,7 @@ export function MacShell() {
   // 文章栏打开时 Escape 收起；有弹窗时不抢占，留给弹窗自己处理
   effect(() => {
     if (!inspectorOpen()) return;
-    if (settingsOpen() || renamePath() !== null || conflictOpen() || syncConflictOpen()) return;
+    if (renamePath() !== null || conflictOpen() || syncConflictOpen()) return;
     const off = keymap.bind("escape", () => inspectorOpen.set(false));
     cleanup(off);
   });
@@ -1235,30 +1241,6 @@ export function MacShell() {
           </View>
         </Dialog>
       </If>
-
-      <SettingsSheet
-        open={settingsOpen()}
-        tab={settingsTab()}
-        onTab={(tab) => settingsTab.set(tab)}
-        onClose={() => settingsOpen.set(false)}
-        windowWidth={windowWidth()}
-        windowHeight={windowHeight()}
-        vaultRoot={vaultRoot()}
-        onOpenVault={() => {
-          void pickAndOpen();
-        }}
-        onBeforeMigration={async () => {
-          await flushSave();
-          if (opened()?.dirty) throw new Error(t("storage.error.unsaved"));
-        }}
-        onStorageActivated={async root => {
-          await openVaultAt(root, true);
-        }}
-        onSyncNow={() => {
-          void runSync();
-        }}
-        onManageConflicts={() => syncConflictOpen.set(true)}
-      />
 
       <ConflictDialog
         open={syncConflictOpen()}

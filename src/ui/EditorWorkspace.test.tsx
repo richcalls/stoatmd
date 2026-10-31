@@ -1,4 +1,5 @@
 import { expect, open, test, type App } from "nsh/test";
+import { themePreset } from "./theme";
 
 async function clearFind(app: App) {
   // Delete the shortcut's selected query first: the native clear() driver
@@ -8,6 +9,55 @@ async function clearFind(app: App) {
   await app.clear("id:document-find-input");
   expect(app.value("id:document-find-input")).toBe("");
 }
+
+test("文稿配色：预览即时切换并保留正文、字号、链接下划线和代码复制", async () => {
+  const app = await open("./EditorWorkspace.harness.tsx", { width: 1000, height: 900 });
+  await app.press("id:mode-preview");
+  const style = (text: string) => app.spanStyle(`id:pane-preview >> text:${text} >> nth=0`);
+  const paper = themePreset("paper").palette;
+  const rgba = (hex: string) => `${hex.toLowerCase()}ff`;
+  const headingSize = style("hi").fontSize;
+  expect(style("hi").color).toBe(rgba(paper.accent));
+  expect(style("引用 quote").color).toBe(rgba(paper.quote));
+  expect(style("inline_code").color).toBe(rgba(paper.syntaxBold));
+  expect(style("链接 link").color).toBe(rgba(paper.accent));
+  expect(style("正文 plain text").color).toBe(rgba(paper.ink));
+
+  await app.press("id:render-monochrome");
+  for (const text of ["hi", "引用 quote", "inline_code", "链接 link", "正文 plain text", "const a = 1;", "1;"]) {
+    expect({ text, color: style(text).color }).toEqual({ text, color: rgba(paper.ink) });
+  }
+  expect(style("hi").fontSize).toBe(headingSize);
+  expect(style("链接 link").underline).toBe(true);
+  await app.press("label:Copy code");
+  await app.waitUntil(() => app.clipboard() === "const a = 1;");
+
+  await app.press("id:theme-nord");
+  const nord = themePreset("nord").palette;
+  expect(style("hi").color).toBe(rgba(nord.ink));
+  await app.press("id:render-color");
+  expect(style("hi").color).toBe(rgba(nord.accent));
+  expect(style("引用 quote").color).toBe(rgba(nord.quote));
+});
+
+test("文稿配色：源码切换清除高亮并在恢复彩色后重新着色", async () => {
+  const app = await open("./EditorWorkspace.harness.tsx", { width: 1000, height: 900 });
+  const style = (text: string) => app.spanStyle(`id:document-editor >> text:${text}`);
+  const paper = themePreset("paper").palette;
+  const rgba = (hex: string) => `${hex.toLowerCase()}ff`;
+  expect(style("# hi").color).toBe(rgba(paper.accent));
+  await app.press("id:render-monochrome");
+  await app.waitUntil(() => style("# hi").color === rgba(paper.ink));
+  for (const text of ["# hi", "> 引用 quote", "[链接 link]", "`inline_code`", "const a = 1;"]) {
+    expect({ text, color: style(text).color }).toEqual({ text, color: rgba(paper.ink) });
+  }
+  await app.press("id:render-color");
+  expect(style("# hi").color).toBe(rgba(paper.accent));
+  await app.press("id:theme-nord");
+  const nord = themePreset("nord").palette;
+  expect(style("# hi").color).toBe(rgba(nord.accent));
+  expect(style("> 引用 quote").color).toBe(rgba(nord.quote));
+});
 
 test("EditorWorkspace：三种模式切换应真正改变面板", async () => {
   const app = await open("./EditorWorkspace.harness.tsx", { width: 1000, height: 700 });

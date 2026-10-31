@@ -9,6 +9,8 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use nsh_core::prelude::*;
+mod settings_window;
+use settings_window::SettingsWindow;
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use stoatmd_core::{Vault as CoreVault, VaultError};
 
@@ -20,6 +22,7 @@ fn native(registry: &mut Registry) {
         .module::<VaultDialog>()
         .module::<SystemFonts>()
         .module::<AppIcon>()
+        .module::<SettingsWindow>()
         .module::<SyncConfig>()
         .module::<OAuth>()
         .module::<TokenVault>()

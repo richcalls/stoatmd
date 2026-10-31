@@ -1,15 +1,12 @@
 import { uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
-import { Image, List, PanResponder, Scroll, Text, View, cleanup, effect, keymap, signal } from "nsh";
+import { Image, List, Scroll, Text, View, cleanup, effect, keymap, signal } from "nsh";
 import { Button, Input, Popover } from "nsh/base";
 import { APP_LOGOS, applyAppLogo, appLogo, logoAsset } from "./appLogo";
 import { Icon, type IconName } from "./Icon";
+import { applyRenderMode, renderMode, type RenderMode } from "./documentAppearance";
+import { controlFocusStyle, controlHoverStyle, controlPressStyle, segmentStyle } from "./chrome";
 import { localePref, setLocalePref, t, type LocalePref } from "./i18n";
 import { saveLocale } from "./prefs";
-import {
-  moveSettingsWindowFrame,
-  rememberSettingsWindowFrame,
-  settingsWindowFrame,
-} from "./settingsWindow";
 import { storageBusy } from "../storage/state";
 import { SyncSettings } from "./SyncSettings";
 import { THEMES, applyTheme, colors, themeId, type ThemePreset } from "./theme";
@@ -48,9 +45,6 @@ type Props = {
   tab: SettingsTab;
   onTab: (tab: SettingsTab) => void;
   onClose: () => void;
-  /** 主窗口内容区尺寸：浮窗据此限宽限高，并把记忆的位置夹在可见范围内。 */
-  windowWidth: number;
-  windowHeight: number;
   vaultRoot?: string | null;
   onOpenVault?: () => void;
   onBeforeMigration?: () => Promise<void>;
@@ -78,25 +72,55 @@ const LOCALES: { id: LocalePref; label: string; key?: string }[] = [
   { id: "es", label: "Español" },
 ];
 
-const WINDOW_BAR_HEIGHT = 40;
-const PANEL_WIDTH = 680;
-const PANEL_HEIGHT = 560;
-const PANEL_MARGIN = 16;
-/** 浮窗最上沿停在主窗口红绿灯下方，避免挡住关闭主窗口的出口。 */
-const PANEL_TOP = 44;
 const SETTINGS_SIDEBAR_WIDTH = 188;
 const CONTENT_MAX_WIDTH = 760;
 const THEME_CARD_WIDTH = 168;
 const LOGO_CARD_WIDTH = 168;
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
-}
-
 function localeName(id: LocalePref): string {
   const item = LOCALES.find((row) => row.id === id);
   if (!item) return String(id);
   return item.key ? t(item.key) : item.label;
+}
+
+function RenderModePicker() {
+  const modes: RenderMode[] = ["color", "monochrome"];
+  return (
+    <View
+      accessibilityLabel={t("settings.renderMode")}
+      style={{ flexDirection: "row", padding: 3, gap: 3, borderRadius: 8, backgroundColor: colors().searchBg }}
+    >
+      <Each of={modes}>
+        {(row) => {
+          const mode = row();
+          const selected = () => renderMode() === mode;
+          return (
+            <Button
+              testID={`render-mode-${mode}`}
+              accessibilityLabel={t(`settings.renderMode.${mode}`)}
+              selected={selected()}
+              onPress={() => applyRenderMode(mode)}
+              style={{
+                flex: 1,
+                height: uiControlHeight(30),
+                borderRadius: 6,
+                alignItems: "center",
+                justifyContent: "center",
+                ...segmentStyle(selected()),
+              }}
+              hoverStyle={controlHoverStyle()}
+              focusStyle={controlFocusStyle()}
+              activeStyle={controlPressStyle()}
+            >
+              <Text style={{ fontSize: uiTextSize(13), fontWeight: selected() ? "600" : "500", color: selected() ? colors().ink : colors().ink2 }}>
+                {t(`settings.renderMode.${mode}`)}
+              </Text>
+            </Button>
+          );
+        }}
+      </Each>
+    </View>
+  );
 }
 
 function ThemeCard(props: { item: ThemePreset }) {
@@ -541,11 +565,10 @@ function LocalePicker() {
   );
 }
 
-/** 设置浮窗：主窗口内的小窗，可拖标题栏移动，位置写入偏好；关闭只收起。 */
+/** 独立设置窗口的内容；标题栏、窗口按钮与调整大小由 AppKit 管理。 */
 export function SettingsSheet(props: Props) {
   const close = () => {
     if (storageBusy()) return;
-    rememberSettingsWindowFrame();
     props.onClose();
   };
   const formatLineHeight = () => String(Number(fontLineHeight().toFixed(2)));
@@ -564,161 +587,13 @@ export function SettingsSheet(props: Props) {
     });
   });
 
-  const panelWidth = () =>
-    Math.min(PANEL_WIDTH, Math.max(320, props.windowWidth - PANEL_MARGIN * 2));
-  const panelHeight = () =>
-    Math.min(
-      PANEL_HEIGHT,
-      Math.max(300, props.windowHeight - PANEL_TOP - PANEL_MARGIN),
-    );
-  const maxLeft = () =>
-    Math.max(PANEL_MARGIN, props.windowWidth - panelWidth() - PANEL_MARGIN);
-  const maxTop = () =>
-    Math.max(PANEL_TOP, props.windowHeight - panelHeight() - PANEL_MARGIN);
-  const ready = () => props.windowWidth > 0 && props.windowHeight > 0;
-
-  /** 没拖过就居中；拖过则还原并夹在当前窗口内。 */
-  const position = () => {
-    const saved = settingsWindowFrame();
-    const centeredLeft = (props.windowWidth - panelWidth()) / 2;
-    const centeredTop = PANEL_TOP + (props.windowHeight - PANEL_TOP - panelHeight()) / 2;
-    return {
-      left: Math.round(
-        saved
-          ? clamp(saved.x, PANEL_MARGIN, maxLeft())
-          : clamp(centeredLeft, PANEL_MARGIN, maxLeft()),
-      ),
-      top: Math.round(
-        saved
-          ? clamp(saved.y, PANEL_TOP, maxTop())
-          : clamp(centeredTop, PANEL_TOP, maxTop()),
-      ),
-    };
-  };
-
-  let dragFrom: { left: number; top: number } | null = null;
-  const dragging = signal(false);
-  const pan = PanResponder.create({
-    onStartShouldSetPanResponder: () => false,
-    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) + Math.abs(g.dy) > 2,
-    onPanResponderGrant: () => {
-      dragFrom = position();
-      dragging.set(true);
-    },
-    onPanResponderMove: (_e, g) => {
-      if (!dragFrom) return;
-      moveSettingsWindowFrame(
-        clamp(dragFrom.left + g.dx, PANEL_MARGIN, maxLeft()),
-        clamp(dragFrom.top + g.dy, PANEL_TOP, maxTop()),
-      );
-    },
-    onPanResponderRelease: () => {
-      dragFrom = null;
-      dragging.set(false);
-      rememberSettingsWindowFrame();
-    },
-    onPanResponderTerminate: () => {
-      dragFrom = null;
-      dragging.set(false);
-      rememberSettingsWindowFrame();
-    },
-  });
-
   return (
     <If when={props.open}>
       <View
         testID="settings-window"
         accessibilityLabel={t("settings.title")}
-        style={{
-          position: "absolute",
-          left: position().left,
-          top: position().top,
-          width: panelWidth(),
-          height: panelHeight(),
-          opacity: ready() ? 1 : 0,
-          zIndex: 20,
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: colors().thread,
-          backgroundColor: colors().paper,
-          overflow: "hidden",
-          flexDirection: "column",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.30), 0 4px 14px rgba(0, 0, 0, 0.18)",
-        }}
+        style={{ flex: 1, flexDirection: "row", minHeight: 0, backgroundColor: colors().paper }}
       >
-        {/* 设置即时保存；标题居中，左上角关闭，标题栏可拖动。 */}
-        <View
-          testID="settings-window-bar"
-          {...pan.panHandlers}
-          style={{
-            height: WINDOW_BAR_HEIGHT,
-            flexShrink: 0,
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: colors().sidebar,
-            borderBottomWidth: 1,
-            borderBottomColor: colors().thread,
-            cursor: dragging() ? "grabbing" : "default",
-          }}
-        >
-          <View style={{ width: 64, flexShrink: 0, paddingLeft: 12 }}>
-            <Button
-              testID="settings-close"
-              disabled={storageBusy()}
-              disabledStyle={{ opacity: 0.4 }}
-              accessibilityLabel={t("settings.close")}
-              tooltip={<Text style={{ fontSize: uiTextSize(12) }}>{t("settings.close")}</Text>}
-              onPress={close}
-              style={{
-                width: 20,
-                height: 20,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "transparent",
-              }}
-              activeStyle={{ opacity: 0.6 }}
-            >
-              <View
-                style={{
-                  width: 13,
-                  height: 13,
-                  borderRadius: 7,
-                  borderWidth: 1,
-                  borderColor: "rgba(0, 0, 0, 0.16)",
-                  backgroundColor: "#FF5F57",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 9,
-                    lineHeight: 10,
-                    fontWeight: "700",
-                    color: "rgba(80, 0, 0, 0.68)",
-                  }}
-                >
-                  ×
-                </Text>
-              </View>
-            </Button>
-          </View>
-          <Text
-            style={{
-              flex: 1,
-              textAlign: "center",
-              fontSize: uiTextSize(13),
-              fontWeight: "600",
-              letterSpacing: 0.1,
-              color: colors().ink,
-            }}
-          >
-            {t("settings.title")}
-          </Text>
-          <View style={{ width: 64, flexShrink: 0 }} />
-        </View>
-
-        <View style={{ flex: 1, flexDirection: "row", minHeight: 0 }}>
         <View
           style={{
             width: SETTINGS_SIDEBAR_WIDTH,
@@ -779,6 +654,15 @@ export function SettingsSheet(props: Props) {
           <View style={{ gap: 22, width: "100%", maxWidth: CONTENT_MAX_WIDTH }}>
             <If when={props.tab === "appearance"}>
               <View style={{ gap: 22 }}>
+                <View style={{ gap: 8 }}>
+                  <Text style={{ fontSize: uiTextSize(14), fontWeight: "600", color: colors().ink }}>
+                    {t("settings.renderMode")}
+                  </Text>
+                  <RenderModePicker />
+                  <Text style={{ fontSize: uiTextSize(12.5), color: colors().ink2, lineHeight: uiLineHeight(18) }}>
+                    {t("settings.renderMode.desc")}
+                  </Text>
+                </View>
                 <View style={{ gap: 4 }}>
                   <Text
                     style={{
@@ -1016,7 +900,6 @@ export function SettingsSheet(props: Props) {
             </If>
           </View>
         </Scroll>
-      </View>
       </View>
     </If>
   );

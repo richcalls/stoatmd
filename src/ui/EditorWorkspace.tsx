@@ -1,8 +1,9 @@
 import { List, View, batch, cleanup, effect, keymap, signal, type YNode } from "nsh";
-import { Editor, ResizablePanel, ResizablePanelGroup, TextView, type EditorDecoration, type EditorRef, type EditorSearchResult } from "nsh/base";
+import { Editor, ResizablePanel, ResizablePanelGroup, TextView, type EditorDecoration, type EditorRef, type EditorSearchResult, type TextViewStyles } from "nsh/base";
 import { FindBar } from "./FindBar";
 import { findShortcuts, type FindRequest } from "./findShortcuts";
 import { markdownDecorations } from "./markdownDecorations";
+import { displayBlock, documentColors, renderMode, type RenderMode } from "./documentAppearance";
 import { t } from "./i18n";
 import { kamiMonoFamily, kamiTypeScale } from "./kami";
 import {
@@ -49,11 +50,12 @@ const editorTextStyles = () => ({
 });
 
 /** 预览排版：Kami 文章样式（衬线、500 字重、引用无底色），字号随设置缩放。 */
-const previewTextStyles = () => {
+const previewTextStyles = (): TextViewStyles => {
   const size = fontSize();
   const lh = lineHeightPx(size);
   const scale = kamiTypeScale(size);
   const mono = kamiMonoFamily(systemFonts());
+  const ink = documentColors();
   return {
     root: {
       color: colors().ink,
@@ -62,7 +64,7 @@ const previewTextStyles = () => {
       fontFamily: previewFontFamily(),
       letterSpacing: 0.3,
     },
-    heading: { fontWeight: 500, color: colors().ink },
+    heading: { fontWeight: 500, color: ink.heading },
     heading1: {
       fontSize: scale.h1,
       lineHeight: Math.round(scale.h1 * 1.2),
@@ -75,7 +77,7 @@ const previewTextStyles = () => {
     heading3: {
       fontSize: scale.h3,
       lineHeight: Math.round(scale.h3 * 1.3),
-      color: colors().ink2,
+      color: ink.heading,
     },
     heading4: {
       fontSize: scale.h4,
@@ -88,11 +90,11 @@ const previewTextStyles = () => {
     heading6: {
       fontSize: scale.h6,
       lineHeight: Math.round(scale.h6 * 1.4),
-      color: colors().ink2,
+      color: ink.heading,
     },
-    // Kami：引用是缩进的橄榄色正文，不加底色、不加侧边线
+    // 引用保留 Kami 的缩进排版，文字颜色跟随文稿配色。
     blockquote: {
-      color: colors().ink2,
+      color: ink.quote,
       fontSize: size,
       lineHeight: lh,
       backgroundColor: "transparent",
@@ -101,7 +103,7 @@ const previewTextStyles = () => {
       paddingRight: 16,
     },
     code: {
-      color: colors().syntaxBold,
+      color: ink.code,
       backgroundColor: colors().codeBg,
       fontFamily: mono,
       fontSize: scale.code,
@@ -119,11 +121,11 @@ const previewTextStyles = () => {
       fontFamily: mono,
       fontSize: scale.code,
       lineHeight: Math.round(scale.code * 1.5),
-      color: colors().ink,
+      color: ink.code,
     },
     strong: { fontWeight: 500 },
-    link: { color: colors().accent },
-    listMarker: { color: colors().accent },
+    link: { color: ink.link, textDecorationLine: "underline" },
+    listMarker: { color: ink.marker },
     tableHead: { backgroundColor: "transparent" },
     tableHeaderCell: {
       color: colors().ink2,
@@ -273,15 +275,31 @@ export function EditorWorkspace(props: Props) {
     if (index !== undefined) scrollPreviewToIndex(index);
   };
 
-  // 语法装饰按（正文, 主题）记忆：输入时只扫一遍，主题不变不重复构造
-  let decorationCache: { text: string; preset: ThemePreset; value: EditorDecoration[] } | null = null;
+  // 语法装饰按（正文, 主题, 配色模式）记忆，切换配色时即时刷新。
+  let decorationCache: { text: string; preset: ThemePreset; mode: RenderMode; value: EditorDecoration[] } | null = null;
+  let refreshMarker = false;
   const decorations = (text: string) => {
     const preset = themePreset();
-    if (decorationCache && decorationCache.text === text && decorationCache.preset === preset) {
+    const mode = renderMode();
+    if (decorationCache && decorationCache.text === text && decorationCache.preset === preset && decorationCache.mode === mode) {
       return decorationCache.value;
     }
-    const value = markdownDecorations(text, preset.palette);
-    decorationCache = { text, preset, value };
+    if (decorationCache && (decorationCache.preset !== preset || decorationCache.mode !== mode)) {
+      refreshMarker = !refreshMarker;
+    }
+    const value = markdownDecorations(text, preset.palette, mode);
+    // nsh 0.3 的行缓存只比较装饰索引，颜色变化会沿用旧 span。
+    // 交替插入无样式的范围，使索引变化并刷新文字，同时保留光标与滚动位置。
+    if (refreshMarker && text.length > 0) {
+      const lines = text.split("\n");
+      value.unshift({
+        range: {
+          start: { line: 0, column: 0 },
+          end: { line: lines.length - 1, column: lines[lines.length - 1].length },
+        },
+      });
+    }
+    decorationCache = { text, preset, mode, value };
     return value;
   };
   const editorPane = () => (
@@ -313,6 +331,7 @@ export function EditorWorkspace(props: Props) {
             findQuery.set(query);
           }}
           language="markdown"
+          highlighting={renderMode() === "color"}
           softWrap
           lineNumbers={false}
           fontSize={editorFontSize()}
@@ -411,7 +430,7 @@ export function EditorWorkspace(props: Props) {
                 }}
               >
                 <TextView
-                  document={{ blocks: [block()] }}
+                  document={{ blocks: [displayBlock(block(), renderMode())] }}
                   selectable
                   links="open"
                   codeBlockActions={[{ id: "copy", label: t("preview.copyCode") }]}
