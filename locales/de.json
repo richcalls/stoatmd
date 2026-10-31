@@ -141,6 +141,7 @@
   "menu.settings": "Einstellungen…",
   "menu.quit": "Beenden",
   "vault.open": "Ordner öffnen…",
+  "vault.menu": "Bibliotheksmenü: {name}",
   "vault.section": "Lokale Bibliothek",
   "vault.none": "Kein Ordner ausgewählt",
   "vault.rootFolder": "Stammverzeichnis",
@@ -220,5 +221,14 @@
   "storage.error.sourceChanged": "Quelldateien wurden während der Migration geändert. Wiederhole den Vorgang für die neuesten Inhalte.",
   "storage.error.unsaved": "Speichere die aktuelle Notiz oder löse ihren Konflikt vor der Migration.",
   "storage.error.account": "Melde dich erneut mit dem Cloudkonto des ursprünglichen Speicherorts an.",
-  "storage.error.destinationChanged": "Zieldateien wurden während der Migration geändert. Bitte erneut versuchen."
+  "storage.error.destinationChanged": "Zieldateien wurden während der Migration geändert. Bitte erneut versuchen.",
+  "find.open": "In Datei suchen…",
+  "find.placeholder": "In Datei suchen",
+  "find.next": "Weitersuchen",
+  "find.previous": "Vorherigen Treffer suchen",
+  "find.close": "Suche schließen",
+  "find.noResults": "Keine Treffer",
+  "find.count": "{current} von {total}",
+  "search.pending": "Suche läuft…",
+  "search.failed": "Suche fehlgeschlagen. Suchbegriff ändern und erneut versuchen."
 }

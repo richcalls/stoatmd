@@ -173,6 +173,31 @@ impl Vault {
         Ok(out)
     }
 
+    /// 全库正文搜索：字面量、忽略大小写与 Unicode 组合形式，每篇笔记返回一次。
+    pub fn search_content(&self, query: &str) -> Result<Vec<String>, VaultError> {
+        let query = nfc(query.trim()).to_lowercase();
+        if query.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut matches = Vec::new();
+        for entry in self.list_recursive("")? {
+            if entry.is_dir {
+                continue;
+            }
+            match self.read(&entry.path) {
+                Ok(file) => {
+                    if nfc(&file.content).to_lowercase().contains(&query) {
+                        matches.push(entry.path);
+                    }
+                }
+                // 扫描期间被删除的文件交给下一次目录刷新处理。
+                Err(VaultError::NotFound(_)) => continue,
+                Err(err) => return Err(VaultError::Io(format!("{}: {err}", entry.path))),
+            }
+        }
+        Ok(matches)
+    }
+
     fn collect_dir(
         &self,
         dir: &Path,
@@ -555,6 +580,61 @@ mod tests {
         std::os::unix::fs::symlink(outside.path().join("outside.bin"), dir.path().join("linked.bin")).unwrap();
         assert!(matches!(vault.inventory(), Err(VaultError::InvalidPath(_))));
         assert!(vault.read_bytes("linked.bin").is_err());
+    }
+
+    #[test]
+    fn content_search_finds_all_five_reading_notes_across_folders() {
+        let (_dir, vault) = temp_vault();
+        fs::create_dir(vault.root().join("炒股")).unwrap();
+        let paths = [
+            "EM 读书笔记.md",
+            "YTC 价格行为交易者.md",
+            "最懂输的人才能成为赢家_精炼版.md",
+            "期权 101 学习笔记.md",
+            "炒股/《笑傲牛熊》读书笔记.md",
+        ];
+        for path in paths {
+            vault.create(path, "#读书笔记\n更多读书笔记").unwrap();
+        }
+        vault.create("标题有读书笔记.md", "其他内容").unwrap();
+        vault.create("other.md", "其他内容").unwrap();
+        let mut hits = vault.search_content("读书笔记").unwrap();
+        hits.sort();
+        let mut expected = paths.map(str::to_owned).to_vec();
+        expected.sort();
+        assert_eq!(hits, expected);
+    }
+
+    #[test]
+    fn content_search_handles_literal_unicode_edits_renames_and_deletes() {
+        let (_dir, vault) = temp_vault();
+        vault.create("a.markdown", "NEEDLE [x] Cafe\u{301} 😀").unwrap();
+        for query in [" needle ", "[x]", "CAFÉ", "😀"] {
+            assert_eq!(vault.search_content(query).unwrap(), ["a.markdown"]);
+        }
+        assert!(vault.search_content(" ").unwrap().is_empty());
+        assert!(vault.search_content(".*").unwrap().is_empty());
+        vault.write("a.markdown", "updated", None).unwrap();
+        assert!(vault.search_content("needle").unwrap().is_empty());
+        vault.rename("a.markdown", "b.md").unwrap();
+        assert_eq!(vault.search_content("updated").unwrap(), ["b.md"]);
+        vault.delete("b.md").unwrap();
+        assert!(vault.search_content("updated").unwrap().is_empty());
+    }
+
+    #[test]
+    fn content_search_obeys_vault_exclusions_and_reports_read_errors() {
+        let (_dir, vault) = temp_vault();
+        for dir in [".obsidian", "node_modules"] {
+            fs::create_dir(vault.root().join(dir)).unwrap();
+            fs::write(vault.root().join(dir).join("a.md"), "needle").unwrap();
+        }
+        fs::write(vault.root().join(".hidden.md"), "needle").unwrap();
+        fs::write(vault.root().join("a.txt"), "needle").unwrap();
+        assert!(vault.search_content("needle").unwrap().is_empty());
+        fs::write(vault.root().join("bad.md"), [0xff]).unwrap();
+        let err = vault.search_content("needle").unwrap_err().to_string();
+        assert!(err.contains("bad.md"));
     }
 
     #[test]

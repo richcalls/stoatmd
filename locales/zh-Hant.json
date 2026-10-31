@@ -141,6 +141,7 @@
   "menu.settings": "設定…",
   "menu.quit": "結束",
   "vault.open": "開啟資料夾…",
+  "vault.menu": "筆記庫選單：{name}",
   "vault.section": "本機資料庫",
   "vault.none": "尚未選擇資料夾",
   "vault.rootFolder": "根目錄",
@@ -220,5 +221,14 @@
   "storage.error.sourceChanged": "遷移期間原檔案發生變更，請重試以包含最新內容。",
   "storage.error.unsaved": "請先儲存目前筆記或處理儲存衝突，再遷移筆記庫。",
   "storage.error.account": "請使用原儲存位置綁定的雲端帳號重新授權。",
-  "storage.error.destinationChanged": "遷移期間目標檔案發生變更，請重試。"
+  "storage.error.destinationChanged": "遷移期間目標檔案發生變更，請重試。",
+  "find.open": "在檔案中尋找…",
+  "find.placeholder": "在檔案中尋找",
+  "find.next": "下一個符合項目",
+  "find.previous": "上一個符合項目",
+  "find.close": "關閉尋找",
+  "find.noResults": "沒有符合的結果",
+  "find.count": "{current} / {total}",
+  "search.pending": "正在搜尋…",
+  "search.failed": "搜尋失敗，請修改關鍵字重試"
 }

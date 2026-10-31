@@ -141,6 +141,7 @@
   "menu.settings": "设置…",
   "menu.quit": "退出",
   "vault.open": "打开文件夹…",
+  "vault.menu": "笔记库菜单：{name}",
   "vault.section": "本地库",
   "vault.none": "尚未选择文件夹",
   "vault.rootFolder": "根目录",
@@ -220,5 +221,14 @@
   "storage.error.sourceChanged": "迁移期间原文件发生变化，请重试以包含最新内容。",
   "storage.error.unsaved": "请先保存当前笔记或处理保存冲突，再迁移笔记库。",
   "storage.error.account": "请使用原存储位置绑定的云盘账号重新授权。",
-  "storage.error.destinationChanged": "迁移期间目标文件发生变化，请重试。"
+  "storage.error.destinationChanged": "迁移期间目标文件发生变化，请重试。",
+  "find.open": "在文件中查找…",
+  "find.placeholder": "在文件中查找",
+  "find.next": "下一个匹配",
+  "find.previous": "上一个匹配",
+  "find.close": "关闭查找",
+  "find.noResults": "无匹配结果",
+  "find.count": "{current} / {total}",
+  "search.pending": "正在搜索…",
+  "search.failed": "搜索失败，请修改关键词重试"
 }

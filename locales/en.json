@@ -141,6 +141,7 @@
   "menu.settings": "Settings…",
   "menu.quit": "Quit",
   "vault.open": "Open Folder…",
+  "vault.menu": "Vault menu: {name}",
   "vault.section": "Local vault",
   "vault.none": "No folder selected",
   "vault.rootFolder": "Root",
@@ -220,5 +221,14 @@
   "storage.error.sourceChanged": "Source files changed during migration. Retry to include the latest files.",
   "storage.error.unsaved": "Save the current note or resolve its conflict before migrating.",
   "storage.error.account": "Reconnect using the cloud account linked to the original storage location.",
-  "storage.error.destinationChanged": "Destination files changed during migration. Please retry."
+  "storage.error.destinationChanged": "Destination files changed during migration. Please retry.",
+  "find.open": "Find in File…",
+  "find.placeholder": "Find in file",
+  "find.next": "Find Next",
+  "find.previous": "Find Previous",
+  "find.close": "Close Find",
+  "find.noResults": "No results",
+  "find.count": "{current} of {total}",
+  "search.pending": "Searching…",
+  "search.failed": "Search failed. Edit the query to retry."
 }

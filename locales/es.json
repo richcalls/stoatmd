@@ -141,6 +141,7 @@
   "menu.settings": "Ajustes…",
   "menu.quit": "Salir",
   "vault.open": "Abrir carpeta…",
+  "vault.menu": "Menú de biblioteca: {name}",
   "vault.section": "Biblioteca local",
   "vault.none": "Ninguna carpeta seleccionada",
   "vault.rootFolder": "Raíz",
@@ -220,5 +221,14 @@
   "storage.error.sourceChanged": "Los archivos de origen cambiaron durante la migración. Reintenta para incluir los cambios recientes.",
   "storage.error.unsaved": "Guarda la nota actual o resuelve su conflicto antes de migrar.",
   "storage.error.account": "Vuelve a autorizar con la cuenta de nube vinculada a la ubicación original.",
-  "storage.error.destinationChanged": "Los archivos de destino cambiaron durante la migración. Vuelve a intentarlo."
+  "storage.error.destinationChanged": "Los archivos de destino cambiaron durante la migración. Vuelve a intentarlo.",
+  "find.open": "Buscar en el archivo…",
+  "find.placeholder": "Buscar en el archivo",
+  "find.next": "Buscar siguiente",
+  "find.previous": "Buscar anterior",
+  "find.close": "Cerrar búsqueda",
+  "find.noResults": "Sin resultados",
+  "find.count": "{current} de {total}",
+  "search.pending": "Buscando…",
+  "search.failed": "Error de búsqueda. Cambia la consulta para reintentar."
 }

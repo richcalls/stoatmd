@@ -73,6 +73,8 @@ export function libraryRows(
   collapsed: string[],
   query: string,
   rootName = "",
+  contentMatches: readonly string[] = [],
+  currentNote?: { path: string; content: string },
 ): LibraryRow[] {
   const folderMap = new Map<string, FolderNode>();
   for (const f of folders) folderMap.set(normalizeVaultPath(f.id), f);
@@ -80,11 +82,20 @@ export function libraryRows(
     folderMap.set("", { id: "", name: "", path: "", depth: 0 });
   }
 
-  const q = query.trim().toLowerCase();
+  const q = query.trim().normalize("NFC").toLowerCase();
   if (q) {
+    const matches = new Set(contentMatches.map(normalizeVaultPath));
+    // 当前编辑正文优先，搜索随预览更新，覆盖自动保存前的增删。
+    if (currentNote) {
+      const path = normalizeVaultPath(currentNote.path);
+      matches.delete(path);
+      if (currentNote.content.normalize("NFC").toLowerCase().includes(q)) matches.add(path);
+    }
     return notes
       .filter(
-        (n) => n.title.toLowerCase().includes(q) || n.path.toLowerCase().includes(q),
+        (n) => n.title.normalize("NFC").toLowerCase().includes(q)
+          || n.path.normalize("NFC").toLowerCase().includes(q)
+          || matches.has(normalizeVaultPath(n.id)),
       )
       .map((n) => ({
         kind: "note" as const,

@@ -1,6 +1,7 @@
 import { Text, View, mount, signal } from "nsh";
 import type { SyncPhase } from "../sync/runtime";
 import { Sidebar } from "./Sidebar";
+import { librarySearch } from "./librarySearch";
 import type { FolderNode, NoteItem } from "./vaultModel";
 
 const FOLDERS: FolderNode[] = [
@@ -21,10 +22,16 @@ function Harness() {
   const notes = signal<NoteItem[]>([]);
   const collapsed = signal<string[]>([]);
   const query = signal("");
+  const search = librarySearch(() => ({
+    searchContent: async (q: string) => notes().filter((n) =>
+      n.id !== "root.md" && "#读书笔记".includes(q),
+    ).map((n) => n.id),
+  }), query, notes);
   const selected = signal("");
   const folder = signal("");
   const syncOpen = signal(false);
   const newNote = signal(false);
+  const vaultOpen = signal(false);
   const menuNote = signal("");
   const phase = signal<SyncPhase>("off");
   const conflicts = signal(0);
@@ -38,6 +45,9 @@ function Harness() {
           folderId={folder()}
           collapsed={collapsed()}
           query={query()}
+          contentMatches={search.matches()}
+          searchPending={search.pending()}
+          searchError={search.error()}
           onQuery={(q) => query.set(q)}
           onSelectNote={(id) => selected.set(id)}
           onSelectFolder={(id) => folder.set(id)}
@@ -47,7 +57,7 @@ function Harness() {
             )
           }
           onNoteMenu={(id) => menuNote.set(id)}
-          onOpenVault={() => {}}
+          onOpenVault={() => vaultOpen.set(true)}
           onNewNote={() => newNote.set(true)}
           onSync={() => syncOpen.set(true)}
           vaultRoot="/notes/我的库"
@@ -78,6 +88,7 @@ function Harness() {
       <Text testID="folder-value">{folder()}</Text>
       <Text testID="sync-value">{syncOpen() ? "sync-open" : "sync-closed"}</Text>
       <Text testID="new-value">{newNote() ? "new-open" : "new-closed"}</Text>
+      <Text testID="vault-value">{vaultOpen() ? "vault-open" : "vault-closed"}</Text>
       <Text testID="menu-value">{menuNote()}</Text>
     </View>
   );

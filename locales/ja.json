@@ -141,6 +141,7 @@
   "menu.settings": "設定…",
   "menu.quit": "終了",
   "vault.open": "フォルダを開く…",
+  "vault.menu": "ライブラリメニュー：{name}",
   "vault.section": "ローカルライブラリ",
   "vault.none": "フォルダが選択されていません",
   "vault.rootFolder": "ルート",
@@ -220,5 +221,14 @@
   "storage.error.sourceChanged": "移行中に元のファイルが変更されました。最新の内容を含めて再試行してください。",
   "storage.error.unsaved": "現在のノートを保存するか競合を解決してから、ライブラリを移行してください。",
   "storage.error.account": "元の保存先に接続したクラウドアカウントで再認証してください。",
-  "storage.error.destinationChanged": "移行中に移行先のファイルが変更されました。再試行してください。"
+  "storage.error.destinationChanged": "移行中に移行先のファイルが変更されました。再試行してください。",
+  "find.open": "ファイル内を検索…",
+  "find.placeholder": "ファイル内を検索",
+  "find.next": "次を検索",
+  "find.previous": "前を検索",
+  "find.close": "検索を閉じる",
+  "find.noResults": "一致する結果なし",
+  "find.count": "{current} / {total}",
+  "search.pending": "検索中…",
+  "search.failed": "検索に失敗しました。検索語を変更して再試行してください。"
 }

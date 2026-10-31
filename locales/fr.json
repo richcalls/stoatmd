@@ -141,6 +141,7 @@
   "menu.settings": "Réglages…",
   "menu.quit": "Quitter",
   "vault.open": "Ouvrir un dossier…",
+  "vault.menu": "Menu de bibliothèque : {name}",
   "vault.section": "Bibliothèque locale",
   "vault.none": "Aucun dossier sélectionné",
   "vault.rootFolder": "Racine",
@@ -220,5 +221,14 @@
   "storage.error.sourceChanged": "Les fichiers sources ont changé pendant la migration. Réessayez pour inclure les dernières modifications.",
   "storage.error.unsaved": "Enregistrez la note actuelle ou résolvez son conflit avant la migration.",
   "storage.error.account": "Reconnectez le compte cloud associé à l’emplacement initial.",
-  "storage.error.destinationChanged": "Les fichiers de destination ont changé pendant la migration. Réessayez."
+  "storage.error.destinationChanged": "Les fichiers de destination ont changé pendant la migration. Réessayez.",
+  "find.open": "Rechercher dans le fichier…",
+  "find.placeholder": "Rechercher dans le fichier",
+  "find.next": "Résultat suivant",
+  "find.previous": "Résultat précédent",
+  "find.close": "Fermer la recherche",
+  "find.noResults": "Aucun résultat",
+  "find.count": "{current} sur {total}",
+  "search.pending": "Recherche en cours…",
+  "search.failed": "La recherche a échoué. Modifiez la requête pour réessayer."
 }

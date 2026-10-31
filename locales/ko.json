@@ -141,6 +141,7 @@
   "menu.settings": "설정…",
   "menu.quit": "종료",
   "vault.open": "폴더 열기…",
+  "vault.menu": "보관함 메뉴: {name}",
   "vault.section": "로컬 보관함",
   "vault.none": "선택한 폴더가 없습니다",
   "vault.rootFolder": "루트",
@@ -220,5 +221,14 @@
   "storage.error.sourceChanged": "이전 중 원본 파일이 변경되었습니다. 최신 내용을 포함하려면 다시 시도하세요.",
   "storage.error.unsaved": "현재 노트를 저장하거나 충돌을 해결한 후 라이브러리를 이전하세요.",
   "storage.error.account": "원래 저장 위치에 연결된 클라우드 계정으로 다시 인증하세요.",
-  "storage.error.destinationChanged": "이전 중 대상 파일이 변경되었습니다. 다시 시도하세요."
+  "storage.error.destinationChanged": "이전 중 대상 파일이 변경되었습니다. 다시 시도하세요.",
+  "find.open": "파일에서 찾기…",
+  "find.placeholder": "파일에서 찾기",
+  "find.next": "다음 찾기",
+  "find.previous": "이전 찾기",
+  "find.close": "찾기 닫기",
+  "find.noResults": "검색 결과 없음",
+  "find.count": "{current} / {total}",
+  "search.pending": "검색 중…",
+  "search.failed": "검색에 실패했습니다. 검색어를 수정하여 다시 시도하세요."
 }

@@ -375,6 +375,14 @@ impl Vault {
             .map_err(map_err)
     }
 
+    /// 在后台线程搜索全库正文，返回匹配的库内路径。
+    pub async fn search_content(this: Instance<Self>, query: String) -> Result<Vec<String>, String> {
+        let core = this.with(|vault| vault.core.clone());
+        blocking(move || core.search_content(&query).map_err(map_err))
+            .await
+            .map_err(|err| err.to_string())?
+    }
+
     /// 读取 `.md`。
     pub fn read(&self, path: String) -> Result<VaultFileDto, String> {
         self.core

@@ -1,5 +1,7 @@
-import { List, View, batch, effect, signal } from "nsh";
-import { Editor, ResizablePanel, ResizablePanelGroup, TextView, type EditorDecoration } from "nsh/base";
+import { List, View, batch, cleanup, effect, keymap, signal, type YNode } from "nsh";
+import { Editor, ResizablePanel, ResizablePanelGroup, TextView, type EditorDecoration, type EditorRef, type EditorSearchResult } from "nsh/base";
+import { FindBar } from "./FindBar";
+import { findShortcuts, type FindRequest } from "./findShortcuts";
 import { markdownDecorations } from "./markdownDecorations";
 import { t } from "./i18n";
 import { kamiMonoFamily, kamiTypeScale } from "./kami";
@@ -34,6 +36,10 @@ type Props = {
   preview: string;
   onChange: (value: string) => void;
   mode: ViewMode;
+  documentId?: string;
+  findRequest?: FindRequest;
+  searchEnabled?: boolean;
+  onRevealEditor: () => void;
   /** 阅读模式视口顶部块（目录滚动高亮用）。 */
   onVisibleBlock?: (index: number) => void;
 };
@@ -132,6 +138,105 @@ const previewTextStyles = () => {
 
 /** 右栏：Editor / List 预览；工具条由 MacShell 提供。 */
 export function EditorWorkspace(props: Props) {
+  const findOpen = signal(false);
+  const findQuery = signal("");
+  const findResult = signal<EditorSearchResult>({ count: 0, current: null });
+  const findFocused = signal(false);
+  let editor: EditorRef | null = null;
+  let findInput: YNode | null = null;
+  let findGeneration = 0;
+  let selectPending = false;
+  const shortcuts = findShortcuts();
+  const focusFind = () => {
+    findInput?.focus();
+    findInput?.setSelection(0, findQuery().length);
+  };
+  const openFind = () => {
+    if (props.searchEnabled === false) return;
+    const generation = ++findGeneration;
+    const selected = editor?.selectedText();
+    if (props.mode === "preview") props.onRevealEditor();
+    if (!findOpen()) selectPending = true;
+    findOpen.set(true);
+    focusFind();
+    if (selected) void selected.then((text) => {
+      if (generation !== findGeneration || !findOpen()) return;
+      if (text && !/[\r\n]/.test(text)) {
+        selectPending = text !== findQuery();
+        findQuery.set(text);
+      }
+      focusFind();
+    }).catch(() => {});
+  };
+  const closeFind = () => {
+    findGeneration += 1;
+    findOpen.set(false);
+    findFocused.set(false);
+    findInput = null;
+    editor?.focus();
+  };
+  const moveMatch = (forward: boolean) => {
+    if (props.searchEnabled === false) return;
+    if (!findOpen() || props.mode === "preview") {
+      openFind();
+      return;
+    }
+    editor?.run(forward ? "findNext" : "findPrevious");
+  };
+  const onSearchChange = (result: EditorSearchResult) => {
+    findResult.set(result);
+    // A new query highlights every match; select and reveal the nearest one as well.
+    if (selectPending) {
+      selectPending = false;
+      if (findOpen() && result.count > 0 && result.current == null) editor?.run("findNext");
+    }
+  };
+  keymap.bind(shortcuts.open, openFind, { when: "always" });
+  keymap.bind(shortcuts.next, () => moveMatch(true), { when: "always" });
+  keymap.bind(shortcuts.previous, () => moveMatch(false), { when: "always" });
+  effect(() => {
+    if (!findOpen() || props.searchEnabled === false) return;
+    const off = keymap.bind("escape", closeFind, { when: "always" });
+    cleanup(off);
+  });
+  effect(() => {
+    if (!findOpen() || !findFocused() || props.searchEnabled === false) return;
+    const off = keymap.bind({
+      enter: () => moveMatch(true),
+      "shift+enter": () => moveMatch(false),
+    }, { when: "always" });
+    cleanup(off);
+  });
+  let lastRequest = 0;
+  effect(() => {
+    const request = props.findRequest;
+    if (!request || request.id === lastRequest) return;
+    lastRequest = request.id;
+    if (request.action === "open") openFind();
+    else moveMatch(request.action === "next");
+  });
+  let documentId = props.documentId;
+  effect(() => {
+    if (documentId === props.documentId) return;
+    documentId = props.documentId;
+    findGeneration += 1;
+    selectPending = findOpen();
+  });
+  let lastSource = props.source;
+  effect(() => {
+    const source = props.source;
+    if (source === lastSource) return;
+    lastSource = source;
+    if (!findOpen() || !editor) return;
+    const ref = editor;
+    const generation = ++findGeneration;
+    selectPending = true;
+    // nsh 0.3 updates matches on a controlled value change, but only reports
+    // the new count after a selection command. Read after the value commits.
+    void ref.selections().then((selections) => {
+      if (generation === findGeneration && editor === ref && findOpen()) ref.setSelections(selections);
+    }).catch(() => {});
+  });
   // 预览数据走信号：换文时更新 List 的 each，而不是重建整个节点（重建会把滚动位置丢回顶部）
   const initial = previewModel(props.preview);
   const previewBlocks = signal(initial.blocks);
@@ -188,12 +293,25 @@ export function EditorWorkspace(props: Props) {
     >
       <View style={{ flex: 1, paddingTop: 12 }} onLayout={(b) => setEditorViewHeight(b.size.height)}>
         <Editor
-          ref={attachEditor}
+          ref={(ref) => {
+            editor = ref;
+            selectPending = findOpen();
+            attachEditor(ref);
+          }}
+          testID="document-editor"
           value={props.source}
           readOnly={props.readOnly}
           onChange={props.onChange}
           onFocus={() => markEditorFocus(true)}
           onBlur={() => markEditorFocus(false)}
+          search={findOpen() ? { query: findQuery() } : null}
+          onSearchChange={onSearchChange}
+          onFindWithSelection={(query) => {
+            openFind();
+            findGeneration += 1;
+            selectPending = query !== findQuery();
+            findQuery.set(query);
+          }}
           language="markdown"
           softWrap
           lineNumbers={false}
@@ -229,6 +347,27 @@ export function EditorWorkspace(props: Props) {
           styles={editorTextStyles()}
         />
       </View>
+      <If when={findOpen()}>
+        <View
+          pointerEvents="box-none"
+          style={{ position: "absolute", top: 10, left: 10, right: 10, zIndex: 10, alignItems: "flex-end" }}
+        >
+          <FindBar
+            query={findQuery()}
+            result={findResult()}
+            inputRef={(node) => { findInput = node; }}
+            onQuery={(query) => {
+              findGeneration += 1;
+              selectPending = query !== findQuery();
+              findQuery.set(query);
+            }}
+            onFocus={(focused) => findFocused.set(focused)}
+            onNext={() => moveMatch(true)}
+            onPrevious={() => moveMatch(false)}
+            onClose={closeFind}
+          />
+        </View>
+      </If>
     </View>
   );
 
