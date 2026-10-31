@@ -61,7 +61,7 @@ python3 scripts/ios_release.py \
 asc builds upload --app 6829230372 --ipa .nsh/testflight/StoatMD.ipa
 ```
 
-脚本复用上述公共 OAuth 配置，打包真机程序，编译无透明通道的 AppIcon 资源，加入回调 scheme、标准加密出口声明与 `PrivacyInfo.xcprivacy`，嵌入描述文件后逐层签名并校验，输出 `.nsh/testflight/StoatMD.ipa`。每次上传递增 `--build`；证书、描述文件和安装包保留在忽略目录。
+脚本要求 Google iOS Client ID 与 Dropbox App Key 均已配置，缺少任一项会在编译前报错。脚本复用上述公共 OAuth 配置，打包真机程序，编译无透明通道的 AppIcon 资源，加入回调 scheme、标准加密出口声明与 `PrivacyInfo.xcprivacy`，嵌入描述文件后逐层签名并校验，输出 `.nsh/testflight/StoatMD.ipa`。每次上传递增 `--build`；证书、描述文件和安装包保留在忽略目录。
 
 发布构建默认最低支持 iOS 16；`IPHONEOS_DEPLOYMENT_TARGET` 同时用于 Rust、C 依赖与安装包元数据，确保部署版本一致。
 

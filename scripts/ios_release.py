@@ -13,11 +13,22 @@ from ios import build_environment
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def validate_oauth(env):
+    required = ("STOATMD_GOOGLE_IOS_CLIENT_ID", "STOATMD_DROPBOX_APP_KEY")
+    missing = [key for key in required if not env.get(key, "").strip()]
+    if missing:
+        raise ValueError("Configure both cloud providers before packaging: " + ", ".join(missing))
+    google = env["STOATMD_GOOGLE_IOS_CLIENT_ID"]
+    if not google.endswith(".apps.googleusercontent.com"):
+        raise ValueError("Invalid Google iOS client ID")
+
+
 def run(*args, **kwargs):
     return subprocess.run([str(arg) for arg in args], check=True, **kwargs)
 
 
 def prepare(app, env, work):
+    validate_oauth(env)
     plist_path = app / "Info.plist"
     info = plistlib.loads(plist_path.read_bytes())
     schemes = []
@@ -30,8 +41,6 @@ def prepare(app, env, work):
     dropbox = env.get("STOATMD_DROPBOX_APP_KEY", "")
     if dropbox:
         schemes.append("db-" + dropbox)
-    if not schemes:
-        raise ValueError("Configure at least one public iOS OAuth client before packaging")
     info["CFBundleURLTypes"] = [{"CFBundleTypeRole": "Editor", "CFBundleURLSchemes": schemes}]
     # HTTPS/OAuth use standard encryption; the app has no proprietary cryptography.
     info["ITSAppUsesNonExemptEncryption"] = False
@@ -97,6 +106,7 @@ def main():
     if entitlements.get("get-task-allow") or profile.get("ProvisionedDevices") or profile.get("ProvisionsAllDevices"):
         raise ValueError("An App Store distribution profile is required")
     env = build_environment()
+    validate_oauth(env)
     # Rust and C build scripts must target the same iOS version.
     env.setdefault("IPHONEOS_DEPLOYMENT_TARGET", "16.0")
     command = ["nsh", "package", "--target", "ios", "--out", str(out), "--icon", str(ROOT / "assets/ios/AppIcon.png")]
