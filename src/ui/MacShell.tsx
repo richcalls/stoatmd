@@ -3,7 +3,7 @@ import { Clipboard, Text, View, cleanup, effect, keymap, platform, signal } from
 import { AlertDialog, Button, Dialog, Input } from "nsh/base";
 import { Menu, Window } from "nsh/desktop";
 import { Vault, VaultDialog, type VaultEntryDto } from "stoatmd/native";
-import { readActiveStorage, storageBusy } from "../storage/state";
+import { activeStorage, readActiveStorage, storageBusy } from "../storage/state";
 import { syncRuntime } from "../sync/runtime";
 import { ArticleInspector, type InspectorTab } from "./ArticleInspector";
 import { articleModel, type OutlineEntry } from "./articleModel";
@@ -319,7 +319,7 @@ export function MacShell() {
 
   const pickAndOpen = async () => {
     if (storageBusy()) return;
-    if (vaultRoot()) { openSettings("sync"); return; }
+    if (vaultRoot() || activeStorage()) { openSettings("sync"); return; }
     try {
       const picked = await VaultDialog.pickFolder();
       if (picked) await openVaultAt(picked);
