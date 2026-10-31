@@ -141,6 +141,7 @@
   "menu.settings": "設定…",
   "menu.quit": "終了",
   "vault.open": "フォルダを開く…",
+  "vault.menu": "ライブラリメニュー：{name}",
   "vault.section": "ローカルライブラリ",
   "vault.none": "フォルダが選択されていません",
   "vault.rootFolder": "ルート",

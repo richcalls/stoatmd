@@ -141,6 +141,7 @@
   "menu.settings": "Ajustes…",
   "menu.quit": "Salir",
   "vault.open": "Abrir carpeta…",
+  "vault.menu": "Menú de biblioteca: {name}",
   "vault.section": "Biblioteca local",
   "vault.none": "Ninguna carpeta seleccionada",
   "vault.rootFolder": "Raíz",

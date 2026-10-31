@@ -141,6 +141,7 @@
   "menu.settings": "Settings…",
   "menu.quit": "Quit",
   "vault.open": "Open Folder…",
+  "vault.menu": "Vault menu: {name}",
   "vault.section": "Local vault",
   "vault.none": "No folder selected",
   "vault.rootFolder": "Root",

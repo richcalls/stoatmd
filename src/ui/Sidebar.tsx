@@ -1,6 +1,6 @@
 import { uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
 import { List, Text, View, signal } from "nsh";
-import { Button, Input } from "nsh/base";
+import { Button, Input, Menu, MenuItem, MenuSeparator } from "nsh/base";
 import type { SyncPhase } from "../sync/runtime";
 import { Icon, type IconName } from "./Icon";
 import { t } from "./i18n";
@@ -51,6 +51,7 @@ const headerButtonStyle = {
 /** 左栏：库标题、搜索、紧凑文件树与底部同步状态。 */
 export function Sidebar(props: Props) {
   const searchFocused = signal(false);
+  const vaultMenuOpen = signal(false);
   const rootLabel = (): string => vaultNameFromRoot(props.vaultRoot) || t("vault.rootFolder");
 
   const rows = () =>
@@ -94,40 +95,77 @@ export function Sidebar(props: Props) {
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 0, height: uiControlHeight(30) }}>
-          <Button
-            hoverStyle={controlHoverStyle()}
-            focusStyle={controlFocusStyle()}
-            activeStyle={controlPressStyle()}
-            accessibilityLabel={rootLabel()}
-            onPress={() => props.onSelectFolder("")}
-            style={{
-              minWidth: 0,
-              flexShrink: 1,
-              height: 26,
-              paddingHorizontal: 5,
-              borderRadius: 5,
-              justifyContent: "center",
+          <Menu
+            open={vaultMenuOpen()}
+            onOpenChange={(open) => vaultMenuOpen.set(open)}
+            placement="bottom"
+            align="start"
+            offset={6}
+            style={{ minWidth: 0, flexShrink: 1 }}
+            popupStyle={{
+              width: 260,
+              padding: 5,
+              gap: 3,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: colors().thread,
+              backgroundColor: colors().editor,
+              boxShadow: chromeColors().panelShadow,
             }}
+            trigger={
+              <View
+                role="button"
+                testID="sidebar-vault-menu"
+                accessibilityLabel={t("vault.menu", { name: rootLabel() })}
+                accessibilityState={{ expanded: vaultMenuOpen() }}
+                tooltip={<Text style={{ fontSize: uiTextSize(12) }}>{t("vault.menu", { name: rootLabel() })}</Text>}
+                hoverStyle={controlHoverStyle()}
+                focusStyle={controlFocusStyle()}
+                activeStyle={controlPressStyle()}
+                style={{
+                  minWidth: 0,
+                  height: uiControlHeight(26),
+                  paddingHorizontal: 5,
+                  gap: 8,
+                  borderRadius: 5,
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: uiTextSize(12), fontWeight: "600", color: colors().ink2 }}>
+                  {rootLabel()}
+                </Text>
+                <Icon name="caret-down" color={colors().ink3} size={9} />
+              </View>
+            }
           >
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: uiTextSize(12), fontWeight: "600", color: colors().ink2 }}
+            <MenuItem
+              testID="sidebar-vault-root"
+              onSelect={() => props.onSelectFolder("")}
+              hoverStyle={controlHoverStyle()}
+              focusStyle={controlFocusStyle()}
+              activeStyle={controlPressStyle()}
+              style={{ padding: 8, gap: 8, borderRadius: 4, flexDirection: "row", alignItems: "center" }}
             >
-              {rootLabel()}
-            </Text>
-          </Button>
-          <Button
-            testID="sidebar-open"
-            accessibilityLabel={t("vault.open")}
-            tooltip={<Text style={{ fontSize: uiTextSize(12) }}>{t("vault.open")}</Text>}
-            onPress={props.onOpenVault}
-            style={headerButtonStyle}
-            hoverStyle={controlHoverStyle()}
-            focusStyle={controlFocusStyle()}
-            activeStyle={controlPressStyle()}
-          >
-            <Icon name="caret-down" color={colors().ink3} size={9} />
-          </Button>
+              <Icon name="folder" color={colors().ink2} size={14} />
+              <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+                <Text numberOfLines={1} style={{ fontSize: uiTextSize(12), fontWeight: "600", color: colors().ink }}>{rootLabel()}</Text>
+                <Text numberOfLines={2} style={{ fontSize: uiTextSize(11), color: colors().ink3 }}>{props.vaultRoot ?? t("vault.none")}</Text>
+              </View>
+              <Icon name="check" color={colors().ink2} size={12} />
+            </MenuItem>
+            <MenuSeparator style={{ height: 1, marginVertical: 3, backgroundColor: colors().thread }} />
+            <MenuItem
+              testID="sidebar-open"
+              onSelect={props.onOpenVault}
+              hoverStyle={controlHoverStyle()}
+              focusStyle={controlFocusStyle()}
+              activeStyle={controlPressStyle()}
+              style={{ height: uiControlHeight(30), paddingHorizontal: 8, borderRadius: 4, justifyContent: "center" }}
+            >
+              <Text style={{ fontSize: uiTextSize(12), color: colors().ink }}>{t("vault.open")}</Text>
+            </MenuItem>
+          </Menu>
           <View style={{ flex: 1 }} />
           <Button
             testID="sidebar-new"
