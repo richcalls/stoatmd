@@ -43,6 +43,7 @@
   "sync.manageConflicts": "處理衝突",
   "sync.firstSync": "首次同步中…",
   "sync.error.network": "網路不可用。本機照常可用，恢復後會自動重試。",
+  "sync.error.connectNetwork": "暫時無法連線雲端硬碟服務，請檢查網路後重新連線。",
   "sync.error.auth": "授權已失效，請重新連線雲端硬碟。",
   "sync.error.config": "缺少雲端硬碟用戶端設定。請先補齊開發者設定再試。",
   "sync.error.configHint": "需要設定：",

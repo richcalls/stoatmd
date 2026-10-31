@@ -43,6 +43,7 @@
   "sync.manageConflicts": "競合を解決",
   "sync.firstSync": "初回同期中…",
   "sync.error.network": "ネットワークに接続できません。ローカル編集は続けられ、復帰後に自動で再試行します。",
+  "sync.error.connectNetwork": "クラウドサービスに接続できませんでした。ネットワークを確認して、もう一度接続してください。",
   "sync.error.auth": "認証の有効期限が切れました。クラウドドライブに再接続してください。",
   "sync.error.config": "クラウドのクライアント認証情報がありません。先に開発者設定を完了してください。",
   "sync.error.configHint": "設定が必要：",

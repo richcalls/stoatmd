@@ -69,6 +69,9 @@ asc builds upload --app 6829230372 --ipa .nsh/testflight/StoatMD.ipa
 
 ## 验证状态
 
+- 发布包通过 `nsh.json` 的 `capabilities.network.http` 授予 Google / Dropbox 的 HTTPS 令牌和文件 API 访问权限。系统浏览器授权成功后，App 使用这些权限交换令牌并同步文件；开发宿主的网络权限更宽，验收需包含实际打包运行。
+- 已在 iOS 26.2 模拟器打包运行验证：旧权限配置使两家令牌请求均报 `is not granted`；补齐配置后，使用虚构凭据的请求均收到服务端预期的 `invalid_client` 响应。此项验证覆盖发布运行时的网络通路；真实账号完整连接与同步仍按下方联调清单验收。
+- 应用 Rust 回归直接读取发布清单，使用运行时的权限检查器覆盖令牌、账号、目录、读取、上传、修改和删除请求，并验证 HTTPS 与目标域名限制。
 - `nsh check` 和 `cargo check --target aarch64-apple-ios-sim` 通过。
 - Rust 核心测试 19 项通过；应用回归 187 项通过，覆盖云盘首屏和旧本地记录限制、自动保存、草稿恢复、冲突、文件操作与桌面既有功能。
 - iPhone 17 Pro Max / iOS 26.2 原生界面回归 3 项通过：中文编辑与搜索、阅读目录、重命名与副本；主题 / 语言 / 字号的重启恢复；移动、回收、恢复与永久删除。

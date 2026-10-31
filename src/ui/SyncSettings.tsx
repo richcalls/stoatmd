@@ -35,9 +35,10 @@ export function formatSyncMoment(ms: number): string {
 }
 const locationName = (kind: Location["kind"]) => kind === "local" ? t("storage.local") : t(providerLabelKey(kind));
 const locationPath = (location: Location) => location.kind === "local" ? location.root : location.remote.path || "/";
-function errorText(err: unknown): string {
+function errorText(err: unknown, connecting = false): string {
   const message = err instanceof Error ? err.message : String(err);
   if (message.startsWith("storage.")) return t(message);
+  if (connecting && err instanceof SyncError && err.kind === "network") return t("sync.error.connectNetwork");
   if (err instanceof SyncError) return t(`sync.error.${err.kind === "network" || err.kind === "auth" || err.kind === "config" ? err.kind : "generic"}`);
   return `${t("storage.error.failed")} ${message}`;
 }
@@ -139,7 +140,7 @@ export function SyncSettings(props: SyncSettingsProps) {
       stage.set("folders");
       await loadFolders(root);
     } catch (err) {
-      if (gen === generation) { stage.set("idle"); localError.set(errorText(err)); }
+      if (gen === generation) { stage.set("idle"); localError.set(errorText(err, true)); }
     }
   };
   const useFolder = async (dir: RemoteDir) => {

@@ -569,6 +569,39 @@ mod sync_tests {
     use std::path::Path;
 
     #[test]
+    fn packaged_app_allows_cloud_oauth_and_file_requests() {
+        use nsh_core::access::{Access, Capabilities};
+        let manifest: serde_json::Value = serde_json::from_str(include_str!("../nsh.json")).unwrap();
+        let access = Access {
+            declared: Capabilities::from_json(&manifest["capabilities"]).unwrap(),
+            granted: None,
+        };
+        for (method, url) in [
+            ("POST", "https://oauth2.googleapis.com/token"),
+            ("GET", "https://www.googleapis.com/drive/v3/about?fields=user"),
+            ("GET", "https://www.googleapis.com/drive/v3/files"),
+            ("POST", "https://www.googleapis.com/drive/v3/files"),
+            ("PATCH", "https://www.googleapis.com/drive/v3/files/file-id"),
+            ("DELETE", "https://www.googleapis.com/drive/v3/files/file-id"),
+            ("POST", "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart"),
+            ("PATCH", "https://www.googleapis.com/upload/drive/v3/files/file-id?uploadType=media"),
+            ("POST", "https://api.dropboxapi.com/oauth2/token"),
+            ("POST", "https://api.dropboxapi.com/2/users/get_current_account"),
+            ("POST", "https://api.dropboxapi.com/2/files/list_folder"),
+            ("POST", "https://api.dropboxapi.com/2/files/list_folder/continue"),
+            ("POST", "https://api.dropboxapi.com/2/files/create_folder_v2"),
+            ("POST", "https://api.dropboxapi.com/2/files/get_metadata"),
+            ("POST", "https://api.dropboxapi.com/2/files/delete_v2"),
+            ("POST", "https://content.dropboxapi.com/2/files/download"),
+            ("POST", "https://content.dropboxapi.com/2/files/upload"),
+        ] {
+            assert!(access.allows_http(method, url), "blocked cloud request: {method} {url}");
+        }
+        assert!(!access.allows_http("POST", "https://example.com/token"));
+        assert!(!access.allows_http("POST", "http://oauth2.googleapis.com/token"));
+    }
+
+    #[test]
     fn oauth_redirect_is_percent_encoded_into_template() {
         let redirect = "http://127.0.0.1:53682/callback";
         let encoded = percent_encode(redirect);

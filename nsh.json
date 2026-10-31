@@ -5,6 +5,14 @@
   "build": 1,
   "rust": ".",
   "capabilities": {
+    "network": {
+      "http": [
+        { "host": "oauth2.googleapis.com", "schemes": ["https"], "methods": ["POST"], "paths": ["/token"] },
+        { "host": "www.googleapis.com", "schemes": ["https"], "methods": ["GET", "POST", "PATCH", "DELETE"], "pathPrefixes": ["/drive/v3/", "/upload/drive/v3/"] },
+        { "host": "api.dropboxapi.com", "schemes": ["https"], "methods": ["POST"], "paths": ["/oauth2/token"], "pathPrefixes": ["/2/"] },
+        { "host": "content.dropboxapi.com", "schemes": ["https"], "methods": ["POST"], "pathPrefixes": ["/2/files/"] }
+      ]
+    },
     "host": [
       "settings"
     ],
