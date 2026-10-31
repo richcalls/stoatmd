@@ -265,7 +265,11 @@ test("设置：应用图标默认织线白鼬，可切换到敏捷剪影并持�
   const app = await open("./SettingsSheet.harness.tsx", desktop);
   expect(app.shows("id:logo-thread")).toBe(true);
   expect(app.shows("id:logo-agile")).toBe(true);
+  expect(app.shows("id:logo-head-a")).toBe(true);
+  expect(app.shows("id:logo-head-b")).toBe(true);
+  expect(app.shows("id:logo-head-d")).toBe(true);
   expect(app.texts()).toContain("织线白鼬");
+  expect(app.texts()).toContain("冬白侧脸");
   expect(app.texts()).toContain("默认");
   expect(app.texts()).toContain("thread");
 
@@ -275,6 +279,10 @@ test("设置：应用图标默认织线白鼬，可切换到敏捷剪影并持�
   await app.press("id:logo-agile");
   await app.waitUntil(() => app.storage()["prefs.appLogo"] === "agile");
   expect(app.texts()).toContain("agile");
+
+  await app.press("id:logo-head-d");
+  await app.waitUntil(() => app.storage()["prefs.appLogo"] === "head-d");
+  expect(app.texts()).toContain("head-d");
 });
 
 test("设置：启动时恢复上次选择的应用图标", async () => {
