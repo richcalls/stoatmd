@@ -41,6 +41,7 @@ export type SyncPhase =
   | "off"
   | "authorizing"
   | "syncing"
+  | "paused"
   | "synced"
   | "conflict"
   | "offline"
@@ -100,6 +101,10 @@ export class SyncRuntime {
   readonly conflicts = signal<ConflictItem[]>([]);
   readonly progress = signal<{ done: number; total: number }>({ done: 0, total: 0 });
 
+  /** 用户在全量同步中按下暂停；动作之间检查，恢复后从原位置继续。 */
+  private readonly paused = signal(false);
+  private resumeWaiter: (() => void) | null = null;
+
   private vault: Vault | null = null;
   private stored: SyncConnection | null = null;
   private base: BaseState = emptyBase();
@@ -141,6 +146,28 @@ export class SyncRuntime {
   /** Drain a running sync before taking the migration snapshot. */
   async pause(): Promise<void> {
     await Promise.all([this.running, this.resolving?.catch(() => {})]);
+  }
+
+  /** 全量同步中暂停：当前文件处理完后停在动作之间，库仍可浏览与编辑。 */
+  pauseSync(): void {
+    if (this.phase() !== "syncing" || this.paused()) return;
+    this.paused.set(true);
+    this.phase.set("paused");
+  }
+
+  /** 继续被用户暂停的同步。 */
+  resumeSync(): void {
+    if (!this.paused()) return;
+    this.paused.set(false);
+    if (this.phase() === "paused") this.phase.set("syncing");
+    const waiter = this.resumeWaiter;
+    this.resumeWaiter = null;
+    waiter?.();
+  }
+
+  private async checkpoint(): Promise<void> {
+    if (!this.paused()) return;
+    await new Promise<void>(resolve => { this.resumeWaiter = resolve; });
   }
 
   async providerFor(provider: ProviderId, expectedAccount?: string | null): Promise<SyncProvider> {
@@ -511,6 +538,7 @@ export class SyncRuntime {
       };
 
       for (const action of plan.uploads) {
+        await this.checkpoint();
         const content = new Uint8Array(vault.readBytes(action.path));
         const mtimeMs = vault.mtime(action.path);
         const remoteFile = remoteFiles.find((r) => r.path === action.path) ?? null;
@@ -529,6 +557,7 @@ export class SyncRuntime {
       }
 
       for (const action of plan.downloads) {
+        await this.checkpoint();
         assertLocalUnchanged(vault, action.path, action.local);
         const content = await remote.downloadBytes(action.remote);
         assertLocalUnchanged(vault, action.path, action.local);
@@ -546,6 +575,7 @@ export class SyncRuntime {
       }
 
       for (const action of plan.localDeletes) {
+        await this.checkpoint();
         assertLocalUnchanged(vault, action.path, {
           path: action.path,
           mtimeMs: action.base.localMtimeMs,
@@ -565,6 +595,7 @@ export class SyncRuntime {
           (await remote.inventory(root)).files.map((file) => [file.path, file] as const),
         );
         for (const action of plan.remoteDeletes) {
+          await this.checkpoint();
           const current = fresh.get(action.path);
           if (current && current.rev !== action.base.remoteRev) {
             throw new RemoteConflictError("remote file changed before delete", action.path);
@@ -583,6 +614,7 @@ export class SyncRuntime {
       }
 
       for (const action of plan.adopts) {
+        await this.checkpoint();
         this.setBase(action.path, {
           remoteId: action.remote.id,
           remoteRev: action.remote.rev,
@@ -594,6 +626,7 @@ export class SyncRuntime {
       }
 
       for (const path of plan.forgets) {
+        await this.checkpoint();
         delete this.base.entries[path];
         await tick();
       }

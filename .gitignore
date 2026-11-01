@@ -1,3 +1,7 @@
 .nsh/
 target/
 node_modules/
+
+# generated QA screenshots and Python caches
+screenshots/
+scripts/__pycache__/
