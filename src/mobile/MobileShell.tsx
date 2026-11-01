@@ -1,4 +1,4 @@
-import { Keyboard, List, Scroll, Text, View, cleanup, computed, keyboardFrame, platform, safeAreaInsets, signal, type JSX, type YNode } from "nsh";
+import { Keyboard, List, Scroll, Text, View, cleanup, computed, effect, keyboardFrame, platform, safeAreaInsets, signal, type JSX, type YNode } from "nsh";
 import { Button, Dialog, Input, NavPage, NavStack, TextView, createNavStack } from "nsh/base";
 import { InputAccessoryView } from "nsh/mobile";
 import { MobileFiles, Vault } from "stoatmd/native";
@@ -85,6 +85,22 @@ function RowDivider(props: { inset?: number }) {
   return <View style={{ height: 1, marginLeft: props.inset ?? 16, backgroundColor: mobileColors().thread }} />;
 }
 
+/** 笔记摘要：去掉 Markdown 记号，取第一行有内容的文字。 */
+function noteSnippet(content: string): string {
+  const line = content.normalize("NFC")
+    .replace(/^---[\s\S]*?---\s*/, "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/[`*_~>]/g, "")
+    .replace(/^\s*[-+]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "")
+    .split("\n")
+    .map(text => text.trim())
+    .find(Boolean) ?? "";
+  return line.length > 90 ? `${line.slice(0, 90)}…` : line;
+}
+
 function SettingsRow(props: { id?: string; icon?: IconName; iconBg?: string; title: string; detail?: string; value?: string; onPress?: () => void; disabled?: boolean; last?: boolean }) {
   const c = mobileColors();
   const row = <View style={{ minHeight: 44, paddingHorizontal: 16, paddingVertical: 7, flexDirection: "row", alignItems: "center", gap: 12,
@@ -114,17 +130,18 @@ function SettingsGroup(props: { children?: JSX.Element }) {
 }
 
 /** 面板里的操作行：与设置行同一套尺寸。 */
-function PanelRow(props: { id?: string; icon: IconName; title: string; detail?: string; destructive?: boolean; disabled?: boolean; selected?: boolean; last?: boolean; onPress: () => void }) {
+function PanelRow(props: { id?: string; icon: IconName; title: string; detail?: string; destructive?: boolean; accent?: boolean; disabled?: boolean; selected?: boolean; last?: boolean; onPress: () => void }) {
   const c = mobileColors();
+  const danger = "#FF3B30";
   return <View>
     <Button testID={props.id} disabled={props.disabled} onPress={props.onPress}
       style={{ minHeight: 44, paddingHorizontal: 16, paddingVertical: 7, flexDirection: "row", alignItems: "center", gap: 12,
         backgroundColor: c.list, opacity: props.disabled ? 0.45 : 1 }}>
-      <View style={{ width: 29, height: 29, borderRadius: 7, borderCurve: "continuous", alignItems: "center", justifyContent: "center",
-        backgroundColor: props.destructive ? "#FF3B30" : c.accent }}>
-        <Icon name={props.icon} color="#FFFFFF" size={17} />
+      <View style={{ width: 29, height: 29, borderRadius: 14.5, borderCurve: "continuous", alignItems: "center", justifyContent: "center",
+        backgroundColor: props.destructive ? (mobileIsDark() ? "rgba(255, 69, 58, 0.20)" : "rgba(255, 59, 48, 0.12)") : props.accent ? c.accentSoft : c.searchBg }}>
+        <Icon name={props.icon} color={props.destructive ? danger : props.accent ? c.accent : c.ink2} size={16} />
       </View>
-      <Text style={{ flex: 1, fontSize: 17, color: props.destructive ? "#FF3B30" : c.ink }}>{props.title}</Text>
+      <Text style={{ flex: 1, fontSize: 17, color: props.destructive ? danger : c.ink }}>{props.title}</Text>
       {props.detail ? <Text numberOfLines={1} style={{ maxWidth: 170, textAlign: "right", fontSize: 15, color: c.ink3 }}>{props.detail}</Text> : null}
       {props.selected ? <Icon name="check" color={c.accent} size={18} /> : null}
     </Button>
@@ -132,14 +149,15 @@ function PanelRow(props: { id?: string; icon: IconName; title: string; detail?: 
   </View>;
 }
 
-/** 面板的主操作：系统蓝底白字。 */
+/** 面板的主操作：分组卡片里的蓝色文字行，和系统表单一致。 */
 function PrimaryButton(props: { id?: string; label: string; disabled?: boolean; onPress: () => void }) {
   const c = mobileColors();
-  return <Button testID={props.id} disabled={props.disabled} onPress={props.onPress}
-    style={{ height: 46, borderRadius: 12, borderCurve: "continuous", alignItems: "center", justifyContent: "center",
-      backgroundColor: c.accent, opacity: props.disabled ? 0.4 : 1 }}>
-    <Text style={{ fontSize: 17, fontWeight: 600, color: c.accentInk }}>{props.label}</Text>
-  </Button>;
+  return <SettingsGroup>
+    <Button testID={props.id} disabled={props.disabled} onPress={props.onPress}
+      style={{ height: 48, alignItems: "center", justifyContent: "center", backgroundColor: c.list, opacity: props.disabled ? 0.4 : 1 }}>
+      <Text style={{ fontSize: 17, fontWeight: 400, color: c.accent }}>{props.label}</Text>
+    </Button>
+  </SettingsGroup>;
 }
 
 /** 同步 accessory：同步中可暂停，暂停可继续，失败可重试；只出现在库页。 */
@@ -262,6 +280,8 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   const busy = () => operationBusy() || storageBusy();
   const editing = signal(true);
   const tab = signal<Tab>(props.initialTab ?? "recent");
+  // 大标题滚出屏幕后，用系统导航栏的小标题接住，和原生大标题收起一致。
+  const libraryTitleCollapsed = signal(false);
   const selectedFolder = signal("");
   const bottom = safeAreaInsets();
   const running = async (action: () => Promise<unknown>) => {
@@ -396,7 +416,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   return <View style={{ flex: 1, backgroundColor: mobileColors().paper }}>
     <NavStack state={nav} testID="mobile-navigation" style={{ flex: 1 }}>
       {(route) => route.kind === "library" ? <NavPage testID="mobile-library-page"
-        headerVisible={ios} title={ios ? t("mobile.library") : undefined}
+        headerVisible={ios} title={ios ? (libraryTitleCollapsed() ? (tab() === "favorites" ? t("mobile.favorites") : t("mobile.library")) : "") : undefined}
         header={ios ? undefined : <LibraryNav connected={props.connected} statusVisible={!!syncStatus(syncRuntime.phase(), syncRuntime.progress(), syncRuntime.error())} onSettings={() => { Keyboard.dismiss(); show("settings"); }}
           onSync={() => { void sync().catch(err => lib.error.set(String(err))); }}
           onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
@@ -405,11 +425,12 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
         headerRight={ios ? <Button testID="mobile-new-note" accessibilityLabel={t("note.new")} disabled={busy()}
           onPress={() => newNote(selectedFolder())} style={{ width: 1, height: 1, opacity: 0 }}><Text> </Text></Button> : undefined}
         {...(ios ? { ios: { headerRightSystemItem: "compose" as const } } : {})}
-        statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }} style={{ backgroundColor: mobileColors().paper }}>
+        statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }} style={{ backgroundColor: ios ? mobileColors().list : mobileColors().paper }}>
         <LibraryPage library={lib} connected={props.connected} busy={busy()} ios={ios}
           onOpen={openNote} onSync={sync} onSettings={() => show("settings")}
           tab={tab} onTab={next => tab.set(next)} folder={selectedFolder} onFolder={path => selectedFolder.set(path)}
           onNewNote={newNote} onNewFolder={() => { selectedFolder.set(""); input.set(""); show("folder"); }}
+          onTitleCollapsed={collapsed => libraryTitleCollapsed.set(collapsed)}
           error={errorBanner()} conflict={conflictBanner()} />
       </NavPage> : <NavPage testID="mobile-document-page" headerVisible={ios}
         title={ios ? docTitle() : undefined} headerBackVisible={ios} headerTransparent={false}
@@ -427,8 +448,8 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
             testID="mobile-source" readonly={busy()} value={lib.note()?.content ?? ""} multiline autoCorrect={false} autoCapitalize="none"
             placeholder={t("mobile.writeHint")} onChange={lib.edit} onSelectionChange={range => { selected = range; }}
             ios={{ inputAccessoryViewID: "markdown-tools", keyboardAppearance: mobileIsDark() ? "dark" : "light" }}
-            style={{ flex: 1, paddingTop: ios ? 12 : 66 + bottom().top, paddingHorizontal: 18, paddingBottom: 8, color: mobileColors().ink, backgroundColor: mobileColors().editor,
-              fontFamily: "monospace", fontSize: editorFontSize(), lineHeight: Math.round(editorFontSize() * 1.75) }} /> :
+            style={{ flex: 1, paddingTop: ios ? 14 : 66 + bottom().top, paddingHorizontal: 20, paddingBottom: 14, color: mobileColors().ink, backgroundColor: mobileColors().editor,
+              fontSize: editorFontSize() + 2, lineHeight: Math.round((editorFontSize() + 2) * 1.7), letterSpacing: 0.1 }} /> :
             <View style={{ flex: 1 }}>
               <List ref={node => { reader = node; }} testID="mobile-preview" each={model().blocks} estimatedItemSize={model().estimatedItemSize}
                 contentStyle={{ paddingHorizontal: 24, paddingTop: ios ? 10 : 70 + bottom().top, paddingBottom: 104 + bottom().bottom }} style={{ flex: 1, backgroundColor: mobileColors().preview }}>
@@ -502,16 +523,13 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
               </SettingsGroup>
             </View> : panel() === "move" ? <SettingsGroup>
               {moveFolders().map((folder, index) =>
-                <PanelRow id={`mobile-move-to-${folder.path || "root"}`} icon="folder" title={folder.path || folder.name}
+                <PanelRow id={`mobile-move-to-${folder.path || "root"}`} icon="folder" accent title={folder.path || folder.name}
                   selected={selectedFolder() === folder.path}
                   disabled={busy()} last={index === moveFolders().length - 1}
                   onPress={() => { void running(async () => { if (await lib.move(folder.path)) closePanel(); }); }} />)}
             </SettingsGroup> : panel() === "trash" ? <View style={{ gap: 20 }}>
-              {!lib.recycled().length ? <View style={{ paddingTop: 96, alignItems: "center", gap: 12 }}>
-                <View style={{ width: 52, height: 52, borderRadius: 16, borderCurve: "continuous", alignItems: "center", justifyContent: "center",
-                  backgroundColor: mobileColors().list, borderWidth: 0.5, borderColor: mobileColors().thread }}>
-                  <Icon name="x" color={mobileColors().ink3} size={22} />
-                </View>
+              {!lib.recycled().length ? <View style={{ paddingTop: 96, alignItems: "center", gap: 14 }}>
+                <Icon name="clock" color={mobileColors().ink3} size={40} />
                 <Text style={{ fontSize: 15, color: mobileColors().ink2 }}>{t("mobile.trashEmpty")}</Text>
               </View> : null}
               {lib.recycled().map(item => <View style={{ gap: 8 }}>
@@ -568,7 +586,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
                 <PanelRow id="mobile-export" icon="cloud" title={t("mobile.export")} disabled={busy()} last onPress={exportFile} />
               </SettingsGroup>
               <SettingsGroup>
-                <PanelRow id="mobile-recycle" icon="x" title={t("mobile.recycle")} destructive disabled={busy()} onPress={() => { void running(async () => { if (await lib.recycle()) { await dismissPanel(); nav.pop(); } }); }} />
+                <PanelRow id="mobile-recycle" icon="x" title={t("mobile.recycle")} destructive last disabled={busy()} onPress={() => { void running(async () => { if (await lib.recycle()) { await dismissPanel(); nav.pop(); } }); }} />
               </SettingsGroup>
               <Text style={{ textAlign: "center", fontSize: 13, color: mobileColors().ink3 }}>{t("info.chars")}: {articleModel(lib.note()?.content ?? "").stats.chars}</Text>
             </View> : null}
@@ -594,16 +612,18 @@ function FloatingTabBar(props: { tab: () => Tab; onTab: (next: Tab) => void }) {
   const bottom = safeAreaInsets();
   return <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0, alignItems: "center",
     paddingBottom: Math.max(8, bottom().bottom - 12) }}>
-    <View style={{ width: 276, height: 53, flexDirection: "row", alignItems: "stretch", overflow: "hidden", ...glassStyle(26.5) }}>
+    <View style={{ width: 288, height: 56, flexDirection: "row", alignItems: "stretch", overflow: "hidden", ...glassStyle(28) }}>
       {TAB_ITEMS.map(item => {
         const active = props.tab() === item.id;
         return <Button testID={`mobile-tab-${item.id}`} accessibilityLabel={t(item.key)}
           onPress={() => { Keyboard.dismiss(); props.onTab(item.id); }}
           style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <View style={{ alignItems: "center", gap: 2, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 16, borderCurve: "continuous",
-            backgroundColor: active ? (mobileIsDark() ? "rgba(255, 255, 255, 0.10)" : "rgba(0, 0, 0, 0.05)") : "transparent" }}>
-            <Icon name={item.icon} color={active ? c.accent : c.ink3} size={22} />
-            <Text style={{ fontSize: 10, fontWeight: 500, letterSpacing: 0, color: active ? c.accent : c.ink3 }}>{t(item.key)}</Text>
+          <View style={{ alignItems: "center", gap: 1 }}>
+            <View style={{ width: 50, height: 28, borderRadius: 14, borderCurve: "continuous", alignItems: "center", justifyContent: "center",
+              backgroundColor: active ? c.accentSoft : "transparent" }}>
+              <Icon name={item.icon} color={active ? c.accent : c.ink2} size={21} />
+            </View>
+            <Text style={{ fontSize: 10.5, fontWeight: active ? 600 : 500, letterSpacing: 0, color: active ? c.accent : c.ink2 }}>{t(item.key)}</Text>
           </View>
         </Button>;
       })}
@@ -634,6 +654,7 @@ function LibraryPage(props: {
   onFolder: (path: string) => void;
   onNewNote: (folder: string) => void;
   onNewFolder: () => void;
+  onTitleCollapsed: (collapsed: boolean) => void;
   error?: JSX.Element;
   conflict?: JSX.Element;
 }) {
@@ -643,6 +664,7 @@ function LibraryPage(props: {
   const query = signal("");
   const expanded = signal<Set<string>>(new Set());
   const pulling = signal(false);
+  const titleCollapsed = signal(false);
   const search = librarySearch(() => lib.vault, query, lib.entries);
   const allNotes = () => lib.entries().filter(e => !e.isDir && /\.(md|markdown)$/i.test(e.name))
     .map(e => ({ path: e.path, title: titleFromName(e.name.normalize("NFC")), mtimeMs: e.mtimeMs }))
@@ -680,6 +702,24 @@ function LibraryPage(props: {
   };
   const notPulling = () => pulling();
   const statusVisible = () => !pulling() && !!syncStatus(syncRuntime.phase(), syncRuntime.progress(), syncRuntime.error());
+  const snippets = signal<Record<string, string>>({});
+  const loadingSnippets = new Set<string>();
+  const snippetFor = (path: string) => snippets()[path] ?? "";
+  effect(() => {
+    const notes = q() ? results() : allNotes().slice(0, 40);
+    for (const note of notes) {
+      if (note.path in snippets() || loadingSnippets.has(note.path)) continue;
+      loadingSnippets.add(note.path);
+      void Promise.resolve(lib.vault.read(note.path))
+        .then(file => snippets.update(current => ({ ...current, [note.path]: noteSnippet(file.content) })))
+        .catch(() => {})
+        .finally(() => loadingSnippets.delete(note.path));
+    }
+  });
+  const libraryTitle = () => props.tab() === "favorites" ? t("mobile.favorites") : t("mobile.library");
+  const librarySubtitle = () => props.tab() === "all" && props.connected
+    ? `${t(providerLabelKey(syncRuntime.connection()?.provider ?? "google"))} · ${syncRuntime.connection()?.remoteName || "StoatMD"}`
+    : "";
   const searchField = () => <View style={{ height: 36, marginBottom: 10, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", gap: 7,
     borderRadius: 10, borderCurve: "continuous", backgroundColor: c.searchBg }}>
     <Icon name="magnifying-glass" color={c.ink3} size={16} />
@@ -692,16 +732,26 @@ function LibraryPage(props: {
     </Button> : null}
   </View>;
 
-  return <View style={{ flex: 1, backgroundColor: c.paper }}>
+  return <View style={{ flex: 1, backgroundColor: props.ios ? c.list : c.paper }}>
     <View style={{ flex: 1 }}>
-      <Scroll testID="mobile-library-list" style={{ flex: 1 }} onRefresh={refresh} refreshing={pulling()}
+      <Scroll testID="mobile-library-list" style={{ flex: 1, backgroundColor: props.ios ? c.list : undefined }} onRefresh={refresh} refreshing={pulling()}
+        onScroll={event => {
+          const collapsed = event.offset.y > 40;
+          if (collapsed === titleCollapsed()) return;
+          titleCollapsed.set(collapsed);
+          props.onTitleCollapsed(collapsed);
+        }}
         refreshIndicator={{ height: 52 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
-        contentStyle={{ paddingTop: props.ios ? 8 : (statusVisible() ? 100 : 58) + bottom().top, paddingHorizontal: 16, paddingBottom: props.ios ? 100 + bottom().bottom : 108 + bottom().bottom }}>
+        contentStyle={{ paddingTop: props.ios ? 6 : (statusVisible() ? 100 : 58) + bottom().top, paddingHorizontal: props.ios ? 0 : 16, paddingBottom: props.ios ? 104 + bottom().bottom : 108 + bottom().bottom }}>
         {!props.ios && notPulling() ? <PullIndicator percent={percent()} /> : null}
-        {props.ios && statusVisible() ? <View style={{ marginBottom: 8 }}><SyncAccessory onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
+        {props.ios ? <View style={{ paddingHorizontal: 16 }}>
+          <Text style={{ fontSize: 34, fontWeight: 700, letterSpacing: 0.2, lineHeight: 41, color: c.ink }}>{libraryTitle()}</Text>
+          {librarySubtitle() ? <Text numberOfLines={1} style={{ marginTop: 1, fontSize: 13, color: c.ink3 }}>{librarySubtitle()}</Text> : null}
+          <View style={{ marginTop: 12 }}>{searchField()}</View>
+        </View> : null}
+        {props.ios && statusVisible() ? <View style={{ marginHorizontal: 16, marginBottom: 8 }}><SyncAccessory onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
           onRetry={() => { void props.onSync().catch(err => lib.error.set(String(err))); }} /></View> : null}
-        {props.ios ? searchField() : null}
-        {q() ? <Text testID="mobile-search-meta" style={{ paddingHorizontal: 4, paddingBottom: 4, fontSize: 12, fontWeight: 500, color: c.ink3 }}>{t("mobile.searchResult", { n: results().length })}</Text> : null}
+        {q() ? <Text testID="mobile-search-meta" style={{ paddingHorizontal: props.ios ? 16 : 4, paddingTop: props.ios ? 4 : 0, paddingBottom: props.ios ? 6 : 4, fontSize: 12, fontWeight: 500, color: c.ink3 }}>{t("mobile.searchResult", { n: results().length })}</Text> : null}
         {props.ios ? null : <View style={{ flexDirection: "row", marginBottom: 2, borderBottomWidth: 0.5, borderBottomColor: c.thread, paddingHorizontal: 2 }}>
           {([["recent", "mobile.recent"], ["all", "mobile.all"], ["favorites", "mobile.favorites"]] as const).map(([id, key]) => {
             const active = props.tab() === id;
@@ -716,58 +766,62 @@ function LibraryPage(props: {
       {props.conflict}
 
       {q() ? <View>
-        <View style={props.ios ? { borderRadius: 12, borderCurve: "continuous", overflow: "hidden", backgroundColor: c.list } : undefined}>
-          {results().map(note => noteRow(note, props.onOpen, props.ios))}
+        <View>
+          {results().map((note, index) => noteRow(note, snippetFor(note.path), props.onOpen, props.ios, index === results().length - 1))}
         </View>
         {!results().length && !search.pending() ? <Text style={{ paddingVertical: 40, textAlign: "center", color: c.ink3, fontSize: 15 }}>{t("search.empty")}</Text> : null}
         {search.pending() ? <Text style={{ paddingVertical: 20, textAlign: "center", color: c.ink3 }}>{t("mobile.searching")}</Text> : null}
       </View> : props.tab() === "recent" ? <View>
-        <View style={{ paddingTop: 16, paddingBottom: 6 }}>
+        <View style={{ paddingTop: props.ios ? 6 : 16, paddingBottom: 6, paddingHorizontal: props.ios ? 16 : 0 }}>
           <Text style={{ fontSize: 13, fontWeight: 400, color: c.ink2 }}>{t("mobile.recentGroup")}</Text>
         </View>
-        <View style={props.ios ? { borderRadius: 12, borderCurve: "continuous", overflow: "hidden", backgroundColor: c.list } : undefined}>
-          {allNotes().slice(0, 40).map(note => noteRow(note, props.onOpen, props.ios))}
+        <View>
+          {allNotes().slice(0, 40).map((note, index) => noteRow(note, snippetFor(note.path), props.onOpen, props.ios, index === Math.min(allNotes().length, 40) - 1))}
         </View>
         {!allNotes().length ? emptyNotes() : null}
-      </View> : props.tab() === "all" ? <View style={{ paddingTop: 6 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 4, paddingBottom: 6 }}>
+      </View> : props.tab() === "all" ? <View style={{ paddingTop: props.ios ? 2 : 6 }}>
+        {props.ios ? null : <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 4, paddingBottom: 6 }}>
           <Text style={{ fontSize: 12.5, fontWeight: 500, color: c.ink2 }}>{props.connected ? t(providerLabelKey(syncRuntime.connection()?.provider ?? "google")) : t("mobile.library")}</Text>
           <Text style={{ color: c.ink3, opacity: 0.7 }}>/</Text>
           <Text style={{ fontSize: 12.5, fontWeight: 600, color: c.ink }}>{syncRuntime.connection()?.remoteName || "StoatMD"}</Text>
-        </View>
-        <View style={props.ios ? { borderRadius: 12, borderCurve: "continuous", overflow: "hidden", backgroundColor: c.list } : undefined}>
-        {tree().map(row => row.kind === "folder" ? <Button testID={`mobile-folder-${row.path}`} disabled={props.busy}
+        </View>}
+        <View>
+        {tree().map((row, index) => <View>
+        {row.kind === "folder" ? <Button testID={`mobile-folder-${row.path}`} disabled={props.busy}
           onPress={() => { Keyboard.dismiss(); toggleFolder(row.path); }}
-          style={{ minHeight: props.ios ? 48 : 40, paddingHorizontal: props.ios ? 12 : undefined, paddingLeft: row.depth * 18 + (props.ios ? 12 : 0), paddingRight: 10, flexDirection: "row", alignItems: "center", gap: 8,
-            backgroundColor: props.ios ? c.list : "transparent", borderBottomWidth: props.ios ? 0.5 : 0, borderBottomColor: c.thread }}>
+          style={{ minHeight: props.ios ? 48 : 40, paddingHorizontal: props.ios ? 16 : undefined, paddingLeft: row.depth * 18 + (props.ios ? 16 : 0), paddingRight: 16, flexDirection: "row", alignItems: "center", gap: 8,
+            backgroundColor: props.ios ? c.list : "transparent", borderBottomWidth: props.ios ? 0 : 0.5, borderBottomColor: c.thread }}>
           <View style={{ width: 22, height: 22, alignItems: "center", justifyContent: "center" }}>
             <Icon name={row.expanded ? "caret-down" : "caret-right"} color={c.ink3} size={14} />
           </View>
           <View style={{ width: 26, height: 26, borderRadius: 7, alignItems: "center", justifyContent: "center", backgroundColor: c.accentSoft }}>
             <Icon name="folder" color={c.accent} size={14} />
           </View>
-          <Text numberOfLines={1} style={{ flex: 1, fontSize: 16, fontWeight: 500, letterSpacing: 0, color: c.ink }}>{row.name}</Text>
+          <Text numberOfLines={1} style={{ flex: 1, fontSize: props.ios ? 17 : 16, fontWeight: props.ios ? 400 : 500, letterSpacing: 0, color: c.ink }}>{row.name}</Text>
           <Text style={{ fontSize: 15, color: c.ink3 }}>{row.count}</Text>
         </Button> : <Button testID={`mobile-note-${row.path}`} disabled={props.busy}
           onPress={() => { Keyboard.dismiss(); props.onOpen(row.path); }}
-          style={{ minHeight: props.ios ? 48 : 40, paddingHorizontal: props.ios ? 12 : undefined, paddingLeft: row.depth * 18 + (props.ios ? 12 : 0), paddingRight: 10, flexDirection: "row", alignItems: "center", gap: 8,
-            backgroundColor: props.ios ? c.list : "transparent", borderBottomWidth: props.ios ? 0.5 : 0, borderBottomColor: c.thread }}>
+          style={{ minHeight: props.ios ? 48 : 40, paddingHorizontal: props.ios ? 16 : undefined, paddingLeft: row.depth * 18 + (props.ios ? 16 : 0), paddingRight: 16, flexDirection: "row", alignItems: "center", gap: 8,
+            backgroundColor: props.ios ? c.list : "transparent", borderBottomWidth: props.ios ? 0 : 0.5, borderBottomColor: c.thread }}>
           <View style={{ width: 22, height: 22 }} />
           <View style={{ width: 26, height: 26, borderRadius: 7, alignItems: "center", justifyContent: "center", backgroundColor: c.searchBg }}>
             <Icon name="file-text" color={c.ink2} size={14} />
           </View>
           <Text numberOfLines={1} style={{ flex: 1, fontFamily: props.ios ? undefined : "monospace", fontSize: props.ios ? 17 : 13, fontWeight: 400, color: c.ink }}>{props.ios ? row.title : row.name}</Text>
           <Text style={{ fontSize: props.ios ? 15 : 11.5, color: c.ink3 }}>{formatWhen(row.mtimeMs, locale())}</Text>
-        </Button>)}
+        </Button>}
+        {props.ios && index < tree().length - 1 ? <RowDivider inset={16 + row.depth * 18 + 56} /> : null}
+        </View>)}
         </View>
+        {props.ios ? <RowDivider inset={16} /> : null}
         {props.ios ? <Button testID="mobile-new-folder" accessibilityLabel={t("mobile.newFolder")} disabled={props.busy} onPress={props.onNewFolder}
-          style={{ marginTop: 14, minHeight: 44, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 10,
-            backgroundColor: c.list, borderRadius: 12, borderCurve: "continuous", opacity: props.busy ? 0.45 : 1 }}>
+          style={{ minHeight: 46, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 10,
+            backgroundColor: c.list, opacity: props.busy ? 0.45 : 1 }}>
           <Icon name="folder-plus" color={c.accent} size={18} />
           <Text style={{ fontSize: 17, color: c.accent }}>{t("mobile.newFolder")}</Text>
         </Button> : null}
       </View> : <View>
-        <View testID="mobile-favorites-soon" style={{ marginTop: 2, marginBottom: 4, paddingVertical: 10, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 14,
+        <View testID="mobile-favorites-soon" style={{ marginTop: 2, marginBottom: 4, marginHorizontal: props.ios ? 16 : 0, paddingVertical: 10, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 14,
           backgroundColor: c.list, borderWidth: 0.5, borderColor: c.thread }}>
           <View style={{ height: 22, paddingHorizontal: 9, borderRadius: 999, alignItems: "center", justifyContent: "center", backgroundColor: c.accentSoft }}>
             <Text style={{ fontSize: 11, fontWeight: 600, color: c.accent }}>{t("mobile.favoritesSoon")}</Text>
@@ -775,14 +829,9 @@ function LibraryPage(props: {
           <Text style={{ flex: 1, fontSize: 12.5, fontWeight: 500, lineHeight: 17, color: c.ink2 }}>{t("mobile.favoritesHint")}</Text>
         </View>
         <View style={{ minHeight: 260, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 28, paddingVertical: 24 }}>
-          <View style={{ width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: c.list, borderWidth: 0.5, borderColor: c.thread }}>
-            <Icon name="star" color={c.accent} size={24} />
-          </View>
+          <Icon name="star" color={c.ink3} size={40} />
           <Text style={{ marginTop: 6, fontSize: 17, fontWeight: 600, letterSpacing: -0.35, color: c.ink }}>{t("mobile.favoritesEmpty")}</Text>
           <Text style={{ maxWidth: 260, textAlign: "center", fontSize: 13.5, lineHeight: 20, fontWeight: 500, color: c.ink2 }}>{t("mobile.favoritesEmptyHint")}</Text>
-          <View style={{ marginTop: 4, height: 24, paddingHorizontal: 11, borderRadius: 999, alignItems: "center", justifyContent: "center", backgroundColor: c.accentSoft }}>
-            <Text style={{ fontSize: 12, fontWeight: 600, color: c.accent }}>{t("mobile.favoritesSoon")}</Text>
-          </View>
         </View>
       </View>}
     </Scroll>
@@ -830,17 +879,22 @@ function LibraryNav(props: { connected: boolean; statusVisible: boolean; onSetti
   </View>;
 }
 
-function noteRow(note: { path: string; title: string; mtimeMs: number }, onOpen: (path: string) => void, ios = false) {
+function noteRow(note: { path: string; title: string; mtimeMs: number }, snippet: string, onOpen: (path: string) => void, ios = false, last = false) {
   const c = mobileColors();
-  return <Button testID={`mobile-note-${note.path}`} onPress={() => { Keyboard.dismiss(); onOpen(note.path); }}
-    style={{ minHeight: ios ? 70 : 58, paddingVertical: ios ? 12 : 10, paddingHorizontal: ios ? 16 : 4, gap: ios ? 4 : 3,
-      backgroundColor: ios ? c.list : "transparent", borderBottomWidth: 0.5, borderBottomColor: c.thread }}>
-    <Text numberOfLines={1} style={{ fontSize: ios ? 17 : 16, fontWeight: ios ? 600 : 590, letterSpacing: ios ? -0.2 : -0.25, color: c.ink }}>{note.title}</Text>
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-      <Text numberOfLines={1} style={{ flex: 1, fontSize: ios ? 15 : 12, color: c.ink2 }}>{note.path.includes("/") ? note.path.split("/").slice(0, -1).join("/") : t("mobile.library")}</Text>
-      <Text style={{ fontSize: ios ? 15 : 11, color: c.ink3 }}>{formatWhen(note.mtimeMs, locale())}</Text>
-    </View>
-  </Button>;
+  const folder = note.path.includes("/") ? note.path.split("/").slice(0, -1).join(" / ") : "";
+  const secondary = snippet || folder;
+  return <View>
+    <Button testID={`mobile-note-${note.path}`} onPress={() => { Keyboard.dismiss(); onOpen(note.path); }}
+      style={{ minHeight: ios ? 64 : 58, paddingVertical: 10, paddingHorizontal: ios ? 16 : 4, gap: 3,
+        backgroundColor: ios ? c.list : "transparent", borderBottomWidth: ios ? 0 : 0.5, borderBottomColor: c.thread }}>
+      <Text numberOfLines={1} style={{ fontSize: ios ? 17 : 16, fontWeight: ios ? 600 : 590, letterSpacing: ios ? -0.2 : -0.25, color: c.ink }}>{note.title}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Text numberOfLines={1} style={{ flex: 1, fontSize: ios ? 15 : 12, color: c.ink2 }}>{secondary}</Text>
+        <Text style={{ fontSize: ios ? 15 : 11, color: c.ink3 }}>{formatWhen(note.mtimeMs, locale())}</Text>
+      </View>
+    </Button>
+    {ios && !last ? <RowDivider inset={16} /> : null}
+  </View>;
 }
 
 function emptyNotes() {
@@ -855,17 +909,17 @@ function emptyNotes() {
 function ReaderDock(props: { content: string; bottom: number; onOutline: () => void; onType: () => void }) {
   const c = mobileColors();
   const words = () => articleModel(props.content).stats.chars;
-  return <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 16,
+  return <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0,
     paddingBottom: Math.max(8, props.bottom - 10), alignItems: "center" }}>
-    <View style={{ width: "100%", height: 50, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between", ...glassStyle(25) }}>
+    <View style={{ height: 52, paddingHorizontal: 6, flexDirection: "row", alignItems: "center", gap: 2, ...glassStyle(26) }}>
       <Button testID="mobile-outline" accessibilityLabel={t("inspector.outline")} onPress={props.onOutline}
-        style={{ minWidth: 64, height: 50, paddingHorizontal: 10, justifyContent: "center" }}>
-        <Text style={{ fontSize: 17, color: c.accent }}>{t("inspector.outline")}</Text>
+        style={{ width: 48, height: 44, alignItems: "center", justifyContent: "center" }}>
+        <Icon name="list-tree" color={c.accent} size={20} />
       </Button>
-      <Text testID="mobile-word-count" style={{ fontSize: 13, fontWeight: 400, color: c.ink3 }}>{t("mobile.words", { n: words() })}</Text>
+      <Text testID="mobile-word-count" style={{ minWidth: 78, textAlign: "center", fontSize: 13, fontWeight: 400, color: c.ink3 }}>{t("mobile.words", { n: words() })}</Text>
       <Button testID="mobile-type" accessibilityLabel={t("settings.font.size")} onPress={props.onType}
-        style={{ minWidth: 64, height: 50, paddingHorizontal: 10, alignItems: "flex-end", justifyContent: "center" }}>
-        <Text style={{ fontSize: 19, fontWeight: 500, color: c.accent }}>A</Text>
+        style={{ width: 48, height: 44, alignItems: "center", justifyContent: "center" }}>
+        <Text style={{ fontSize: 18, fontWeight: 600, color: c.accent }}>Aa</Text>
       </Button>
     </View>
   </View>;
@@ -988,11 +1042,7 @@ function MobileSettings(props: { connected: boolean; onImport: () => void; onTra
       <SettingsRow id="mobile-trash" icon="x" iconBg="#FF3B30" title={t("mobile.trash")} onPress={props.onTrash} last />
     </SettingsGroup>
 
-    <SectionTitle>StoatMD</SectionTitle>
-    <SettingsGroup>
-      <SettingsRow icon="cloud" title={t("mobile.paidVersion")} value={t("mobile.syncIncluded")} last />
-    </SettingsGroup>
-    <Text style={{ marginTop: 24, textAlign: "center", fontSize: 13, lineHeight: 19, color: c.ink3 }}>
+    <Text style={{ marginTop: 32, textAlign: "center", fontSize: 13, lineHeight: 19, color: c.ink3 }}>
       <Text style={{ fontWeight: 600, color: c.ink2 }}>StoatMD</Text> · {t("mobile.brandTagline")}
     </Text>
   </View>;
