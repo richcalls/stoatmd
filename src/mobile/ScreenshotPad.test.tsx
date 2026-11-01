@@ -66,6 +66,18 @@ test("iPad 横屏：左库右文两栏", async () => {
   await app.press("id:mobile-note-工作/周报.md");
   await app.waitUntil(() => app.texts().includes("第 36 周"), { timeout: 8000 });
   expect(app.shows("id:mobile-doc-split")).toBe(true);
+
+  // 分屏里也能直接 ⌘F 在源码里查找。
+  await app.keyboard.press("mod+f");
+  await app.waitFor("id:mobile-find-input");
+  await app.paste("id:mobile-find-input", { text: "云盘" });
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(app.texts()).toContain("1 / 1");
+  await app.screenshot("screenshots/ios-raw/ipad-08-editor-find.png");
+  await app.keyboard.press("escape");
+  await new Promise(resolve => setTimeout(resolve, 200));
+  expect(app.shows("id:mobile-find")).toBe(false);
+
   await app.keyboard.press("mod+3");
   await new Promise(resolve => setTimeout(resolve, 300));
   expect(app.shows("id:mobile-doc-split")).toBe(false);

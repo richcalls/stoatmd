@@ -15,6 +15,18 @@ test("iPhone: create a folder and note, save Chinese text, read, rename and dupl
   await app.waitFor("id:mobile-source");
   await app.paste("id:mobile-source", { text: "# 我的笔记\n\n记录第一天。\n\n## 下一步\n\n继续写作。" });
   await app.waitUntil(() => app.texts().includes("已保存"));
+
+  // 编辑态查找：⌘F 起查找，命中后选中源码里的文字。
+  await app.keyboard.press("mod+f");
+  await app.waitFor("id:mobile-find-input");
+  await app.paste("id:mobile-find-input", { text: "下一步" });
+  await new Promise(resolve => setTimeout(resolve, 200));
+  expect(app.texts()).toContain("1 / 1");
+  await app.keyboard.press("escape");
+  await new Promise(resolve => setTimeout(resolve, 200));
+  expect(app.shows("id:mobile-find")).toBe(false);
+  expect(app.shows("id:mobile-source")).toBe(true);
+
   await app.press("id:mobile-read");
   expect(app.shows("id:mobile-preview")).toBe(true);
   expect(app.shows("text:记录第一天。")).toBe(true);

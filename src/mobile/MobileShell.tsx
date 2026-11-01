@@ -349,15 +349,27 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   };
   const model = () => previewModel(lib.note()?.content ?? "", { fontSize: fontSize(), lineHeight: lineHeightPx() });
   const goToBlock = (index: number) => { reader?.scrollToIndex({ index, animated: true, viewPosition: 0 }); };
-  /** 阅读视图的查找：一次命中一条，记它落在哪个顶层块（只看正文，不含 Markdown 标记）。 */
+  /**
+   * 查找命中：编辑态在源码里按字符偏移找（选中原文），阅读态按块找（滚到那块高亮）。
+   * 用 `toLowerCase` 而不是 `toLocaleLowerCase`：后者可能改变字符长度，偏移就对不上了。
+   */
   const findHits = computed(() => {
-    const query = findText().trim().toLocaleLowerCase();
-    const hits: { block: number }[] = [];
+    const query = findText().trim().toLowerCase();
+    const hits: { block: number; start: number; end: number }[] = [];
     if (!finding() || !query) return hits;
-    model().blocks.forEach((block, index) => {
-      const text = TextView.plainText({ blocks: [block] }).toLocaleLowerCase();
+    if (editing()) {
+      const text = (lib.note()?.content ?? "").toLowerCase();
       let at = text.indexOf(query);
-      while (at >= 0 && hits.length < 500) { hits.push({ block: index }); at = text.indexOf(query, at + query.length); }
+      while (at >= 0 && hits.length < 500) {
+        hits.push({ block: -1, start: at, end: at + query.length });
+        at = text.indexOf(query, at + query.length);
+      }
+      return hits;
+    }
+    model().blocks.forEach((block, index) => {
+      const text = TextView.plainText({ blocks: [block] }).toLowerCase();
+      let at = text.indexOf(query);
+      while (at >= 0 && hits.length < 500) { hits.push({ block: index, start: -1, end: -1 }); at = text.indexOf(query, at + query.length); }
     });
     return hits;
   });
@@ -367,7 +379,9 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     if (!total) return;
     const next = ((index % total) + total) % total;
     findHit.set(next);
-    reader?.scrollToIndex({ index: findHits()[next].block, animated: true, viewPosition: 0.2 });
+    const hit = findHits()[next];
+    if (editing()) { editor?.focus(); editor?.setSelection(hit.start, hit.end); return; }
+    reader?.scrollToIndex({ index: hit.block, animated: true, viewPosition: 0.2 });
   };
   const openFind = () => {
     if (!lib.note()) return;
@@ -565,6 +579,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
             <FormatButton label="❞" accessibilityLabel={t("mobile.tool.quote")} onPress={() => insert("> ")} />
             <FormatButton icon="cloud" accessibilityLabel={t("mobile.tool.link")} onPress={() => insert("[", "](https://)")} />
             <FormatButton icon="code" accessibilityLabel={t("mobile.tool.code")} onPress={() => insert("`", "`")} />
+            <FormatButton icon="magnifying-glass" accessibilityLabel={t("find.open")} onPress={openFind} />
             <FormatButton icon="caret-down" accessibilityLabel={t("common.done")} onPress={() => { Keyboard.dismiss(); void lib.flush(); }} />
           </View>
         </View>
