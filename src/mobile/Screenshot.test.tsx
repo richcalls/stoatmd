@@ -123,6 +123,6 @@ test("iOS 全部 Tab 与文件夹截图", async () => {
 test("iOS 收藏 Tab 截图", async () => {
   const app = await open("./ScreenshotFavorites.harness.tsx", phone);
   try { await app.screenshot(); } catch { return; }
-  await app.waitFor("id:mobile-favorites-soon");
+  await app.waitFor("id:mobile-note-工作/项目计划.md");
   await app.screenshot("screenshots/ios-raw/11b-favorites.png");
 }, 60_000);

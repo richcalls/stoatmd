@@ -55,6 +55,24 @@ export async function saveTheme(theme: string): Promise<void> {
   await writePreference(THEME_KEY, theme);
 }
 
+const FAVORITES_KEY = "prefs.favorites";
+
+/** 收藏只存在本机（云盘里不写额外文件，Mac 版还没有收藏）。 */
+export async function loadSavedFavorites(): Promise<string[]> {
+  const raw = await Storage.getItem(FAVORITES_KEY);
+  if (!raw) return [];
+  try {
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? list.filter((value): value is string => typeof value === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveFavorites(paths: readonly string[]): Promise<void> {
+  await writePreference(FAVORITES_KEY, JSON.stringify(paths));
+}
+
 export async function loadSavedRenderMode(): Promise<string | null> {
   return (await Storage.getItem(RENDER_MODE_KEY)) ?? null;
 }

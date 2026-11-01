@@ -33,6 +33,7 @@ import star from "../../assets/icons/star.svg";
 import sun from "../../assets/icons/sun.svg";
 import sync from "../../assets/icons/sync.svg";
 import textT from "../../assets/icons/text-t.svg";
+import trash from "../../assets/icons/trash.svg";
 import x from "../../assets/icons/x.svg";
 
 /**
@@ -63,6 +64,7 @@ export type IconName =
   | "info"
   | "list-tree"
   | "text-t"
+  | "trash"
   | "clock"
   | "code"
   | "split"
@@ -99,6 +101,7 @@ const MAP = {
   info,
   "list-tree": listTree,
   "text-t": textT,
+  trash,
   clock,
   code,
   split,

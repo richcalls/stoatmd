@@ -249,6 +249,7 @@
   "mobile.read": "Leer",
   "mobile.actions": "Más",
   "mobile.writeHint": "Empieza a escribir en Markdown…",
+  "mobile.selectNote": "Selecciona una nota",
   "mobile.emptyHint": "Crea una nota para empezar.",
   "mobile.loading": "Abriendo biblioteca…",
   "mobile.searching": "Buscando…",
@@ -286,10 +287,8 @@
   "mobile.pause": "Pausar",
   "mobile.resume": "Continuar",
   "mobile.searchResult": "{n} notas encontradas",
-  "mobile.favoritesSoon": "Próximamente",
-  "mobile.favoritesHint": "Favoritos entre dispositivos · Mac llegará pronto",
-  "mobile.favoritesEmpty": "Los favoritos están por llegar",
-  "mobile.favoritesEmptyHint": "Tus favoritos aparecerán aquí en todos tus dispositivos.",
+  "mobile.favoritesEmpty": "Aún no hay favoritos",
+  "mobile.favoritesEmptyHint": "Abre una nota y elige Favorito en el menú •••.",
   "mobile.recentGroup": "Recientes",
   "mobile.words": "{n} caracteres",
   "mobile.settingsLead": "Apariencia, tipografía y tu cuenta de nube.",
@@ -307,5 +306,10 @@
   "mobile.conflict.keepLocalHint": "Sobrescribir la nube con la versión de este dispositivo. Los cambios en la nube van a una copia de conflicto.",
   "mobile.conflict.keepRemoteHint": "Reemplazar este dispositivo con la versión de la nube. Los cambios locales van a una copia de conflicto.",
   "mobile.conflict.keepBothHint": "Conservar ambos: el original y una copia de conflicto para unir después.",
-  "mobile.typeSample": "Escribir despliega una idea despacio, hasta que cada frase encuentra su lugar."
+  "mobile.typeSample": "Escribir despliega una idea despacio, hasta que cada frase encuentra su lugar.",
+  "mobile.favoriteAdd": "Favorito",
+  "mobile.favoriteRemove": "Quitar de favoritos",
+  "mobile.showLibrary": "Mostrar biblioteca",
+  "mobile.hideLibrary": "Ocultar biblioteca",
+  "mobile.renderModeHint": "En lectura, el color distingue títulos, citas, enlaces y código; el monocromo solo conserva la jerarquía."
 }

@@ -249,6 +249,7 @@
   "mobile.read": "閱讀",
   "mobile.actions": "更多",
   "mobile.writeHint": "開始用 Markdown 寫作…",
+  "mobile.selectNote": "選擇一篇筆記",
   "mobile.emptyHint": "建立一篇筆記，開始記錄。",
   "mobile.loading": "正在開啟筆記庫…",
   "mobile.searching": "正在搜尋…",
@@ -286,10 +287,8 @@
   "mobile.pause": "暫停",
   "mobile.resume": "繼續",
   "mobile.searchResult": "找到 {n} 篇",
-  "mobile.favoritesSoon": "即將推出",
-  "mobile.favoritesHint": "跨裝置收藏 · Mac 版隨後跟上",
-  "mobile.favoritesEmpty": "收藏夾即將推出",
-  "mobile.favoritesEmptyHint": "之後可以在這裡找到跨裝置收藏的文字。",
+  "mobile.favoritesEmpty": "還沒有收藏的筆記",
+  "mobile.favoritesEmptyHint": "打開一篇筆記，在「…」選單裡點「收藏」。",
   "mobile.recentGroup": "最近",
   "mobile.words": "{n} 字",
   "mobile.settingsLead": "外觀、字體與你的雲端帳號。",
@@ -307,5 +306,10 @@
   "mobile.conflict.keepLocalHint": "用本機版本覆蓋雲端。雲端改動會進入衝突副本。",
   "mobile.conflict.keepRemoteHint": "用雲端版本取代本機。本機改動會進入衝突副本。",
   "mobile.conflict.keepBothHint": "保留兩份：原檔與衝突副本，由你稍後合併。",
-  "mobile.typeSample": "寫作是把想法慢慢攤開，讓每一句都落在該落的位置。"
+  "mobile.typeSample": "寫作是把想法慢慢攤開，讓每一句都落在該落的位置。",
+  "mobile.favoriteAdd": "收藏",
+  "mobile.favoriteRemove": "取消收藏",
+  "mobile.showLibrary": "顯示筆記庫",
+  "mobile.hideLibrary": "隱藏筆記庫",
+  "mobile.renderModeHint": "閱讀檢視裡區分標題、引用、連結與程式碼；單色只保留層級。"
 }

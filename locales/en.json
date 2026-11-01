@@ -249,6 +249,7 @@
   "mobile.read": "Read",
   "mobile.actions": "More",
   "mobile.writeHint": "Start writing in Markdown…",
+  "mobile.selectNote": "Select a note",
   "mobile.emptyHint": "Create a note to start writing.",
   "mobile.loading": "Opening your library…",
   "mobile.searching": "Searching…",
@@ -286,10 +287,8 @@
   "mobile.pause": "Pause",
   "mobile.resume": "Resume",
   "mobile.searchResult": "{n} notes found",
-  "mobile.favoritesSoon": "Coming soon",
-  "mobile.favoritesHint": "Favorites across devices · Mac follows soon",
-  "mobile.favoritesEmpty": "Favorites are coming",
-  "mobile.favoritesEmptyHint": "Saved favorites will appear here across devices.",
+  "mobile.favoritesEmpty": "No favorites yet",
+  "mobile.favoritesEmptyHint": "Open a note and choose Favorite from the ••• menu.",
   "mobile.recentGroup": "Recent",
   "mobile.words": "{n} characters",
   "mobile.settingsLead": "Appearance, type and your cloud account.",
@@ -307,5 +306,10 @@
   "mobile.conflict.keepLocalHint": "Overwrite the cloud with this device's version. Cloud changes go to a conflict copy.",
   "mobile.conflict.keepRemoteHint": "Replace this device with the cloud version. Local changes go to a conflict copy.",
   "mobile.conflict.keepBothHint": "Keep both the original and a conflict copy to merge later.",
-  "mobile.typeSample": "Writing unfolds an idea slowly, until every sentence settles where it belongs."
+  "mobile.typeSample": "Writing unfolds an idea slowly, until every sentence settles where it belongs.",
+  "mobile.favoriteAdd": "Favorite",
+  "mobile.favoriteRemove": "Remove Favorite",
+  "mobile.showLibrary": "Show Library",
+  "mobile.hideLibrary": "Hide Library",
+  "mobile.renderModeHint": "In reading view, color distinguishes headings, quotes, links and code; monochrome keeps only hierarchy."
 }

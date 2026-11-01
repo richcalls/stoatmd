@@ -249,6 +249,7 @@
   "mobile.read": "Lire",
   "mobile.actions": "Plus",
   "mobile.writeHint": "Commencez à écrire en Markdown…",
+  "mobile.selectNote": "Sélectionnez une note",
   "mobile.emptyHint": "Créez une note pour commencer.",
   "mobile.loading": "Ouverture de la bibliothèque…",
   "mobile.searching": "Recherche…",
@@ -286,10 +287,8 @@
   "mobile.pause": "Pause",
   "mobile.resume": "Reprendre",
   "mobile.searchResult": "{n} notes trouvées",
-  "mobile.favoritesSoon": "Bientôt",
-  "mobile.favoritesHint": "Favoris sur tous les appareils · Mac bientôt",
-  "mobile.favoritesEmpty": "Les favoris arrivent",
-  "mobile.favoritesEmptyHint": "Vos favoris apparaîtront ici sur tous les appareils.",
+  "mobile.favoritesEmpty": "Aucun favori",
+  "mobile.favoritesEmptyHint": "Ouvrez une note et choisissez Favori dans le menu •••.",
   "mobile.recentGroup": "Récents",
   "mobile.words": "{n} caractères",
   "mobile.settingsLead": "Apparence, typographie et votre compte cloud.",
@@ -307,5 +306,10 @@
   "mobile.conflict.keepLocalHint": "Remplacer le cloud par cette version locale. Les changements cloud vont dans une copie de conflit.",
   "mobile.conflict.keepRemoteHint": "Remplacer cet appareil par la version cloud. Les changements locaux vont dans une copie de conflit.",
   "mobile.conflict.keepBothHint": "Garder les deux : l'original et une copie de conflit à fusionner plus tard.",
-  "mobile.typeSample": "Écrire déplie une idée lentement, jusqu'à ce que chaque phrase trouve sa place."
+  "mobile.typeSample": "Écrire déplie une idée lentement, jusqu'à ce que chaque phrase trouve sa place.",
+  "mobile.favoriteAdd": "Favori",
+  "mobile.favoriteRemove": "Retirer des favoris",
+  "mobile.showLibrary": "Afficher la bibliothèque",
+  "mobile.hideLibrary": "Masquer la bibliothèque",
+  "mobile.renderModeHint": "En lecture, la couleur distingue titres, citations, liens et code ; le monochrome ne garde que la hiérarchie."
 }

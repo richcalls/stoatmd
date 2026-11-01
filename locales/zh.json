@@ -249,6 +249,7 @@
   "mobile.read": "阅读",
   "mobile.actions": "更多",
   "mobile.writeHint": "开始用 Markdown 写作…",
+  "mobile.selectNote": "选择一篇笔记",
   "mobile.emptyHint": "创建一篇笔记，开始记录。",
   "mobile.loading": "正在打开笔记库…",
   "mobile.searching": "正在搜索…",
@@ -286,10 +287,8 @@
   "mobile.pause": "暂停",
   "mobile.resume": "继续",
   "mobile.searchResult": "找到 {n} 篇",
-  "mobile.favoritesSoon": "即将推出",
-  "mobile.favoritesHint": "跨设备收藏 · Mac 版随后跟上",
-  "mobile.favoritesEmpty": "收藏夹即将推出",
-  "mobile.favoritesEmptyHint": "之后可以在这里找到跨设备收藏的文字。",
+  "mobile.favoritesEmpty": "还没有收藏的笔记",
+  "mobile.favoritesEmptyHint": "打开一篇笔记，在「…」菜单里点「收藏」。",
   "mobile.recentGroup": "最近",
   "mobile.words": "{n} 字",
   "mobile.settingsLead": "外观、字体与你的云盘账号。",
@@ -307,5 +306,10 @@
   "mobile.conflict.keepLocalHint": "用本机版本覆盖云端。云端改动会进入冲突副本。",
   "mobile.conflict.keepRemoteHint": "用云端版本替换本机。本机改动会进入冲突副本。",
   "mobile.conflict.keepBothHint": "保留两份：原文件与冲突副本，由你稍后合并。",
-  "mobile.typeSample": "写作是把想法慢慢摊开，让每一句都落在该落的位置。"
+  "mobile.typeSample": "写作是把想法慢慢摊开，让每一句都落在该落的位置。",
+  "mobile.favoriteAdd": "收藏",
+  "mobile.favoriteRemove": "取消收藏",
+  "mobile.showLibrary": "显示笔记库",
+  "mobile.hideLibrary": "隐藏笔记库",
+  "mobile.renderModeHint": "阅读视图里区分标题、引用、链接与代码；单色只保留层级。"
 }
