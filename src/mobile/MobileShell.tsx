@@ -1,6 +1,6 @@
-import { Keyboard, List, Scroll, Text, View, cleanup, computed, keyboardFrame, safeAreaInsets, signal, type JSX, type YNode } from "nsh";
+import { Keyboard, List, Scroll, Text, View, cleanup, computed, keyboardFrame, platform, safeAreaInsets, signal, type JSX, type YNode } from "nsh";
 import { Button, Dialog, Input, NavPage, NavStack, TextView, createNavStack } from "nsh/base";
-import { InputAccessoryView } from "nsh/mobile";
+import { InputAccessoryView, TabBar } from "nsh/mobile";
 import { MobileFiles, Vault } from "stoatmd/native";
 import { activeStorage, readActiveStorage, writeActiveStorage, storageBusy } from "../storage/state";
 import { syncRuntime } from "../sync/runtime";
@@ -31,12 +31,13 @@ function glassStyle(radius = 999) {
   const token = glass();
   return {
     backgroundColor: token.fill,
-    backdropFilter: "blur(42px) saturate(165%)",
+    backdropFilter: "blur(24px) saturate(180%)",
     glassEffect: "regular" as const,
     borderWidth: 0.5,
     borderColor: token.stroke,
     boxShadow: token.shadow,
     borderRadius: radius,
+    borderCurve: "continuous" as const,
   };
 }
 
@@ -58,6 +59,14 @@ function GlassPill(props: { id?: string; label: string; onPress: () => void; ico
   </Button>;
 }
 
+/** 系统导航栏里的工具项：导航栏本身就是玻璃，不再给按钮叠一层玻璃。 */
+function ToolbarIconButton(props: { id?: string; icon: IconName; label: string; tint?: string; onPress: () => void }) {
+  return <Button testID={props.id} accessibilityLabel={props.label} onPress={props.onPress}
+    style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+    <Icon name={props.icon} color={props.tint ?? mobileColors().accent} size={21} />
+  </Button>;
+}
+
 function Action(props: { label: string; onPress: () => void; icon?: IconName; id?: string; disabled?: boolean; selected?: boolean; accessibilityLabel?: string }) {
   const c = mobileColors();
   return <Button testID={props.id} accessibilityLabel={props.accessibilityLabel ?? props.label} disabled={props.disabled}
@@ -67,24 +76,34 @@ function Action(props: { label: string; onPress: () => void; icon?: IconName; id
   </Button>;
 }
 
-function SectionTitle(props: { children?: JSX.Element }) {
-  return <Text style={{ marginHorizontal: 6, marginBottom: 8, fontSize: 12.5, fontWeight: 600, color: mobileColors().ink2 }}>{props.children}</Text>;
+function SectionTitle(props: { top?: number; children?: JSX.Element }) {
+  return <Text style={{ marginTop: props.top ?? 24, marginBottom: 7, fontSize: 13, fontWeight: 400, color: mobileColors().ink2 }}>{props.children}</Text>;
 }
 
-function SettingsRow(props: { id?: string; icon?: IconName; title: string; detail?: string; value?: string; onPress?: () => void; disabled?: boolean }) {
+function SettingsRow(props: { id?: string; icon?: IconName; iconBg?: string; title: string; detail?: string; value?: string; onPress?: () => void; disabled?: boolean; last?: boolean }) {
   const c = mobileColors();
-  const row = <View style={{ minHeight: 48, paddingHorizontal: 12, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 11 }}>
-    {props.icon ? <Icon name={props.icon} color={c.accent} size={18} /> : null}
+  const row = <View style={{ minHeight: 44, paddingHorizontal: 16, paddingVertical: 7, flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: c.list }}>
+    {props.icon ? <View style={{ width: 29, height: 29, borderRadius: 7, borderCurve: "continuous", alignItems: "center", justifyContent: "center", backgroundColor: props.iconBg ?? c.accent }}>
+      <Icon name={props.icon} color="#FFFFFF" size={17} />
+    </View> : null}
     <View style={{ flex: 1, minWidth: 0 }}>
-      <Text style={{ fontSize: 15.5, fontWeight: 500, letterSpacing: -0.25, color: c.ink }}>{props.title}</Text>
-      {props.detail ? <Text numberOfLines={1} style={{ marginTop: 2, fontSize: 12, color: c.ink2 }}>{props.detail}</Text> : null}
+      <Text style={{ fontSize: 17, fontWeight: 400, letterSpacing: 0, color: c.ink }}>{props.title}</Text>
+      {props.detail ? <Text numberOfLines={1} style={{ marginTop: 2, fontSize: 13, color: c.ink2 }}>{props.detail}</Text> : null}
     </View>
-    {props.value ? <Text style={{ fontSize: 14, color: c.ink2 }}>{props.value}</Text> : null}
+    {props.value ? <Text numberOfLines={1} style={{ maxWidth: 180, textAlign: "right", fontSize: 17, color: c.ink3 }}>{props.value}</Text> : null}
     {props.onPress ? <Icon name="caret-right" color={c.ink3} size={14} /> : null}
+    {props.last ? null : <View style={{ position: "absolute", left: props.icon ? 57 : 16, right: 0, bottom: 0, height: 0.5, backgroundColor: c.thread }} />}
   </View>;
   return props.onPress
     ? <Button testID={props.id} disabled={props.disabled} onPress={props.onPress} style={{ opacity: props.disabled ? 0.45 : 1 }}>{row}</Button>
     : <View testID={props.id}>{row}</View>;
+}
+
+/** iOS 设置页的 inset grouped 卡片。 */
+function SettingsGroup(props: { children?: JSX.Element }) {
+  const c = mobileColors();
+  return <View style={{ borderRadius: 12, borderCurve: "continuous", overflow: "hidden", backgroundColor: c.list }}>{props.children}</View>;
 }
 
 /** 同步 accessory：同步中可暂停，暂停可继续，失败可重试；只出现在库页。 */
@@ -129,7 +148,7 @@ function PullIndicator(props: { percent: number }) {
   </View>;
 }
 
-export function MobileShell(props: { library?: MobileLibrary } = {}) {
+export function MobileShell(props: { library?: MobileLibrary; nativeChrome?: boolean; initialTab?: Tab } = {}) {
   setPaletteOverride(mobileColors);
   const library = signal<MobileLibrary | null>(null);
   const startupError = signal("");
@@ -167,7 +186,7 @@ export function MobileShell(props: { library?: MobileLibrary } = {}) {
   void load();
   cleanup(() => { alive = false; });
   return <View testID="mobile-shell" style={{ flex: 1, backgroundColor: mobileColors().paper }}>
-    <Each of={library() ? [library()!] : []} key={model => model}>{model => <MobileApp library={model()} connected={!props.library} onStorageActivated={activate} />}</Each>
+    <Each of={library() ? [library()!] : []} key={model => model}>{model => <MobileApp library={model()} connected={!props.library} nativeChrome={props.nativeChrome !== false} initialTab={props.initialTab} onStorageActivated={activate} />}</Each>
     {!library() ? <ConnectPage loading={loading()} error={startupError()} onRetry={() => { void load(); }} onStorageActivated={activate} /> : null}
   </View>;
 }
@@ -177,27 +196,25 @@ function ConnectPage(props: { loading: boolean; error: string; onRetry: () => vo
   const c = mobileColors();
   const bottom = safeAreaInsets();
   return <Scroll testID="mobile-connect" style={{ flex: 1, backgroundColor: c.paper }}
-    contentStyle={{ paddingTop: 76, paddingHorizontal: 22, paddingBottom: 28 + bottom().bottom, gap: 10 }}>
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 18 }}>
-      <View style={{ width: 32, height: 32, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: c.accentSoft }}>
-        <Icon name="notebook" color={c.accent} size={19} />
+    contentStyle={{ paddingTop: bottom().top + 24, paddingHorizontal: 20, paddingBottom: 28 + bottom().bottom }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 24 }}>
+      <View style={{ width: 36, height: 36, borderRadius: 9, borderCurve: "continuous", alignItems: "center", justifyContent: "center", backgroundColor: c.accent }}>
+        <Icon name="notebook" color={c.accentInk} size={21} />
       </View>
-      <Text style={{ fontSize: 17, fontWeight: 650, letterSpacing: -0.35, color: c.ink }}>StoatMD</Text>
+      <Text style={{ fontSize: 20, fontWeight: 700, letterSpacing: -0.4, color: c.ink }}>StoatMD</Text>
     </View>
-    <Text style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1.2, color: c.ink3 }}>STEP 1 / 2</Text>
-    <Text style={{ marginTop: 4, marginBottom: 6, fontSize: 28, fontWeight: 680, letterSpacing: -0.9, lineHeight: 32, color: c.ink }}>{t("mobile.connectTitle")}</Text>
-    <Text style={{ marginBottom: 20, fontSize: 14, lineHeight: 22, color: c.ink2 }}>{t("mobile.paidCloud")}</Text>
-    <Text style={{ fontSize: 12, fontWeight: 600, color: c.ink2 }}>{t("mobile.storageSection")}</Text>
-    <Text style={{ marginBottom: 12, fontSize: 12.5, lineHeight: 19, color: c.ink3 }}>{t("mobile.connectHint")}</Text>
-    {props.loading ? <Text style={{ color: c.ink2 }}>{t("mobile.loading")}</Text> : props.error ?
-      <View style={{ gap: 12 }}><Text style={{ color: c.ink }}>{props.error}</Text><Action label={t("sync.error.retry")} onPress={props.onRetry} /></View> :
-      <SyncSettings cloudOnly onBeforeMigration={async () => {}} onStorageActivated={props.onStorageActivated} />}
-    <Text style={{ marginTop: 18, textAlign: "center", fontSize: 12, color: c.ink3 }}><Text style={{ fontWeight: 600, color: c.ink2 }}>StoatMD</Text> · {t("mobile.brandTagline")}</Text>
+    <Text style={{ fontSize: 34, fontWeight: 700, letterSpacing: 0, lineHeight: 41, color: c.ink }}>{t("mobile.connectTitle")}</Text>
+    <Text style={{ marginTop: 10, marginBottom: 30, fontSize: 17, lineHeight: 24, color: c.ink2 }}>{t("mobile.paidCloud")}</Text>
+    {props.loading ? <Text style={{ fontSize: 17, color: c.ink2 }}>{t("mobile.loading")}</Text> : props.error ?
+      <View style={{ gap: 12 }}><Text style={{ fontSize: 17, color: c.ink }}>{props.error}</Text><Action label={t("sync.error.retry")} onPress={props.onRetry} /></View> :
+      <SyncSettings cloudOnly mobile onBeforeMigration={async () => {}} onStorageActivated={props.onStorageActivated} />}
+    <Text style={{ marginTop: 28, textAlign: "center", fontSize: 13, color: c.ink3 }}><Text style={{ fontWeight: 600, color: c.ink2 }}>StoatMD</Text> · {t("mobile.brandTagline")}</Text>
   </Scroll>;
 }
 
-function MobileApp(props: { library: MobileLibrary; connected: boolean; onStorageActivated: (root: string) => Promise<void> }) {
+function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeChrome: boolean; initialTab?: Tab; onStorageActivated: (root: string) => Promise<void> }) {
   const lib = props.library;
+  const ios = props.nativeChrome && platform.os === "ios";
   const nav = createNavStack<Route>(lib.note() ? [{ kind: "library" }, { kind: "document" }] : [{ kind: "library" }]);
   const panel = signal<Panel>(null);
   // Keep the native modal mounted when navigating between sheet contents.
@@ -208,7 +225,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; onStorag
   const operationBusy = signal(false);
   const busy = () => operationBusy() || storageBusy();
   const editing = signal(true);
-  const tab = signal<Tab>("recent");
+  const tab = signal<Tab>(props.initialTab ?? "recent");
   const selectedFolder = signal("");
   const bottom = safeAreaInsets();
   const running = async (action: () => Promise<unknown>) => {
@@ -323,33 +340,54 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; onStorag
     </View>
   </View>;
 
+  // 系统导航栏的右侧：次级入口（更多）在左，主操作（完成 / 编辑）贴右。
+  const docToolbar = () => <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+    <ToolbarIconButton id="mobile-actions" icon="more" label={t("mobile.actions")} tint={mobileColors().accent} onPress={() => show("actions")} />
+    {editing()
+      ? <Button testID="mobile-read" accessibilityLabel={t("common.done")}
+        onPress={() => { Keyboard.dismiss(); editing.set(false); void lib.flush(); }}
+        style={{ height: 44, paddingHorizontal: 8, justifyContent: "center" }}>
+        <Text style={{ fontSize: 17, fontWeight: 600, color: mobileColors().accent }}>{t("common.done")}</Text>
+      </Button>
+      : <Button testID="mobile-edit" accessibilityLabel={t("mobile.edit")} onPress={() => editing.set(true)}
+        style={{ height: 44, paddingHorizontal: 8, justifyContent: "center" }}>
+        <Text style={{ fontSize: 17, fontWeight: 500, color: mobileColors().accent }}>{t("mobile.edit")}</Text>
+      </Button>}
+  </View>;
+
   return <View style={{ flex: 1, backgroundColor: mobileColors().paper }}>
     <NavStack state={nav} testID="mobile-navigation" style={{ flex: 1 }}>
-      {(route) => route.kind === "library" ? <NavPage testID="mobile-library-page" headerVisible={false}
+      {(route) => route.kind === "library" ? <NavPage testID="mobile-library-page"
+        headerVisible={!ios} header={ios ? undefined : <LibraryNav connected={props.connected} statusVisible={!!syncStatus(syncRuntime.phase(), syncRuntime.progress(), syncRuntime.error())} onSettings={() => { Keyboard.dismiss(); show("settings"); }}
+          onSync={() => { void sync().catch(err => lib.error.set(String(err))); }}
+          onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
+          onRetry={() => { void sync().catch(err => lib.error.set(String(err))); }} />}
         statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }} style={{ backgroundColor: mobileColors().paper }}>
-        <LibraryPage library={lib} connected={props.connected} busy={busy()}
+        <LibraryPage library={lib} connected={props.connected} busy={busy()} ios={ios}
           onOpen={openNote} onSync={sync} onSettings={() => show("settings")}
           tab={tab} onTab={next => tab.set(next)} folder={selectedFolder} onFolder={path => selectedFolder.set(path)}
           onNewNote={newNote} onNewFolder={() => { selectedFolder.set(""); input.set(""); show("folder"); }}
           error={errorBanner()} conflict={conflictBanner()} />
-      </NavPage> : <NavPage testID="mobile-document-page" headerVisible={false}
+      </NavPage> : <NavPage testID="mobile-document-page" headerVisible={ios}
+        title={ios ? docTitle() : undefined} headerBackVisible={ios} headerTransparent={false}
+        headerRight={ios ? docToolbar() : undefined}
         popOnBack={false} popOnSwipe={false} onBackPress={back}
         onDismiss={() => { void running(() => lib.refresh()); }}
-        statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }} style={{ backgroundColor: mobileColors().paper }}>
+        statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }} style={{ backgroundColor: mobileColors().editor }}>
         <View style={{ flex: 1, paddingBottom: keyboardFrame().height }}>
-          {docNav()}
-          {lib.recovered() ? <View testID="mobile-recovered" style={{ marginTop: 52 + bottom().top, padding: 12, backgroundColor: mobileColors().accentSoft }}><Text style={{ color: mobileColors().ink }}>{t("mobile.recovered")}</Text></View> : null}
+          {!ios ? docNav() : null}
+          {lib.recovered() ? <View testID="mobile-recovered" style={{ marginTop: ios ? 8 : 52 + bottom().top, padding: 12, backgroundColor: mobileColors().accentSoft }}><Text style={{ color: mobileColors().ink }}>{t("mobile.recovered")}</Text></View> : null}
           {conflictBanner()}
           {errorBanner()}
           {editing() ? <Input ref={(node) => { editor = node; selected = { start: 0, end: 0 }; }}
             testID="mobile-source" readonly={busy()} value={lib.note()?.content ?? ""} multiline autoCorrect={false} autoCapitalize="none"
             placeholder={t("mobile.writeHint")} onChange={lib.edit} onSelectionChange={range => { selected = range; }}
             ios={{ inputAccessoryViewID: "markdown-tools", keyboardAppearance: mobileIsDark() ? "dark" : "light" }}
-            style={{ flex: 1, paddingTop: 66 + bottom().top, paddingHorizontal: 18, paddingBottom: 8, color: mobileColors().ink, backgroundColor: mobileColors().editor,
+            style={{ flex: 1, paddingTop: ios ? 12 : 66 + bottom().top, paddingHorizontal: 18, paddingBottom: 8, color: mobileColors().ink, backgroundColor: mobileColors().editor,
               fontFamily: "monospace", fontSize: editorFontSize(), lineHeight: Math.round(editorFontSize() * 1.75) }} /> :
             <View style={{ flex: 1 }}>
               <List ref={node => { reader = node; }} testID="mobile-preview" each={model().blocks} estimatedItemSize={model().estimatedItemSize}
-                contentStyle={{ paddingHorizontal: 24, paddingTop: 70 + bottom().top, paddingBottom: 104 + bottom().bottom }} style={{ flex: 1, backgroundColor: mobileColors().preview }}>
+                contentStyle={{ paddingHorizontal: 24, paddingTop: ios ? 10 : 70 + bottom().top, paddingBottom: 104 + bottom().bottom }} style={{ flex: 1, backgroundColor: mobileColors().preview }}>
                 {(block, index) => <View style={{ paddingTop: previewGap(index() > 0 ? model().blocks[index() - 1] : undefined, block(), fontSize() / 15) }}>
                   <TextView document={{ blocks: [displayBlock(block(), renderMode())] }} selectable links="open" onLinkPress={event => onLink(event.url)} styles={readerStyles()} />
                 </View>}
@@ -375,18 +413,23 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; onStorag
     </NavStack>
     <Dialog open={panelOpen()} presentation="pageSheet" onOpenChange={open => { if (!open) closePanel(); }}
       style={{ flex: 1, backgroundColor: mobileColors().paper }} statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }}>
-      <View style={{ flex: 1, paddingTop: 16 + bottom().top, paddingBottom: bottom().bottom, backgroundColor: mobileColors().paper }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20 }}>
-          <Text style={{ color: mobileColors().ink, fontSize: 23, fontWeight: 600 }}>{panel() === "settings" ? t("settings.title")
+      <View style={{ flex: 1, backgroundColor: mobileColors().paper }}>
+        {platform.os === "ios" ? <View pointerEvents="none" style={{ position: "absolute", top: 5, left: "50%", marginLeft: -18, width: 36, height: 5, borderRadius: 2.5,
+          backgroundColor: mobileIsDark() ? "rgba(235, 235, 245, 0.28)" : "rgba(60, 60, 67, 0.28)", zIndex: 5 }} /> : null}
+        <View style={{ paddingTop: platform.os === "ios" ? 18 : bottom().top + 4, minHeight: 62, paddingHorizontal: 8, flexDirection: "row", alignItems: "center" }}>
+          <Text numberOfLines={1} style={{ position: "absolute", left: 72, right: 72, textAlign: "center", color: mobileColors().ink, fontSize: 17, fontWeight: 600 }}>
+            {panel() === "settings" ? t("settings.title")
             : panel() === "storage" ? t("mobile.storageLocation") : panel() === "outline" ? t("inspector.outline") : panel() === "type" ? t("settings.font.size")
             : panel() === "folder" ? t("mobile.newFolder") : panel() === "rename" ? t("rename.title") : panel() === "move" ? t("mobile.move")
-            : panel() === "cloudConflicts" ? t("sync.manageConflicts") : panel() === "trash" || panel() === "erase" ? t("mobile.trash") : docTitle()}</Text>
-          <Button testID="mobile-panel-done" disabled={busy()} accessibilityLabel={t("common.done")} onPress={closePanel} style={glassStyle(999)}>
-            <Text style={{ paddingHorizontal: 14, paddingVertical: 8, color: mobileColors().accent, fontSize: 15, fontWeight: 550 }}>{t("common.done")}</Text>
+            : panel() === "cloudConflicts" ? t("sync.manageConflicts") : panel() === "trash" || panel() === "erase" ? t("mobile.trash") : docTitle()}
+          </Text>
+          <Button testID="mobile-panel-done" disabled={busy()} accessibilityLabel={t("common.done")} onPress={closePanel}
+            style={{ marginLeft: "auto", height: 44, paddingHorizontal: 12, justifyContent: "center", opacity: busy() ? 0.45 : 1 }}>
+            <Text style={{ color: mobileColors().accent, fontSize: 17, fontWeight: 600 }}>{t("common.done")}</Text>
           </Button>
         </View>
         {errorBanner()}
-        <Scroll style={{ flex: 1 }} contentStyle={{ padding: 20, gap: 16 }} keyboardDismissMode="on-drag">
+        <Scroll style={{ flex: 1 }} contentStyle={{ padding: 16, paddingTop: 8, paddingBottom: 32 + bottom().bottom, gap: 16 }} keyboardDismissMode="on-drag">
           {panel() === "cloudConflicts" ? <View style={{ gap: 20 }}>
             {!syncRuntime.conflicts().length ? <Text style={{ color: mobileColors().ink2 }}>{t("sync.synced")}</Text> : null}
             {syncRuntime.conflicts().map(item => <View style={{ gap: 8 }}>
@@ -404,7 +447,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; onStorag
               onImport={() => importFile(selectedFolder())} onTrash={() => { void running(async () => { await lib.loadTrash(); show("trash"); }); }}
               onStorage={() => show("storage")} onSync={() => { void running(sync); }} onConflicts={() => show("cloudConflicts")} />
             : panel() === "storage" ? <View style={{ gap: 20 }}>
-              {props.connected ? <SyncSettings cloudOnly vaultRoot={activeStorage()?.root}
+              {props.connected ? <SyncSettings cloudOnly mobile vaultRoot={activeStorage()?.root}
                 onBeforeMigration={async () => { if (!await lib.flush()) throw new Error(t("mobile.saveFailed")); }}
                 onStorageActivated={props.onStorageActivated} onSyncNow={() => { void running(sync); }}
                 onManageConflicts={() => show("cloudConflicts")} /> : null}
@@ -455,10 +498,50 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; onStorag
   </View>;
 }
 
+
+/** 库页的 iOS 大标题栏。单独成组件，滚动时只重绘这一条栏，不重绘整个列表。 */
+function LibraryHeader(props: { scrollY: () => number; busy: boolean; onNewNote: () => void; onSettings: () => void }) {
+  const c = mobileColors();
+  const bottom = safeAreaInsets();
+  const collapse = () => Math.max(0, Math.min(1, props.scrollY() / 40));
+  const scrolled = () => props.scrollY() > 1;
+  const barFill = mobileIsDark() ? "rgba(0, 0, 0, 0.72)" : "rgba(242, 242, 247, 0.80)";
+  const groupGlass = () => ({
+    height: 40, flexDirection: "row" as const, alignItems: "center" as const, borderRadius: 20, borderCurve: "continuous" as const,
+    backgroundColor: glass().fillStrong, backdropFilter: "blur(24px) saturate(180%)", glassEffect: "regular" as const,
+    borderWidth: 0.5, borderColor: mobileIsDark() ? glass().stroke : glass().strokeDark,
+  });
+  return <View pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 30 }}>
+    <View style={{ height: bottom().top + 44, paddingTop: bottom().top, paddingHorizontal: 16, flexDirection: "row", alignItems: "center",
+      backgroundColor: scrolled() ? barFill : "transparent", backdropFilter: scrolled() ? "blur(24px) saturate(180%)" : undefined,
+      borderBottomWidth: scrolled() ? 0.5 : 0, borderBottomColor: c.thread }}>
+      <Text numberOfLines={1} style={{ position: "absolute", left: 72, right: 72, textAlign: "center", fontSize: 17, fontWeight: 600,
+        letterSpacing: -0.4, color: c.ink, opacity: collapse() }}>{t("mobile.library")}</Text>
+      <View style={{ marginLeft: "auto", ...groupGlass() }}>
+        <Button testID="mobile-new-note" accessibilityLabel={t("note.new")} disabled={props.busy} onPress={props.onNewNote}
+          style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", opacity: props.busy ? 0.45 : 1 }}>
+          <Icon name="compose" color={c.accent} size={20} />
+        </Button>
+        <View style={{ width: 0.5, height: 20, backgroundColor: mobileIsDark() ? "rgba(255, 255, 255, 0.18)" : "rgba(0, 0, 0, 0.12)" }} />
+        <Button testID="mobile-settings" accessibilityLabel={t("settings.title")} onPress={() => { Keyboard.dismiss(); props.onSettings(); }}
+          style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
+          <Icon name="gear" color={c.accent} size={20} />
+        </Button>
+      </View>
+    </View>
+    <View pointerEvents="none" style={{ height: 48 * (1 - collapse()), overflow: "hidden", backgroundColor: c.paper, paddingHorizontal: 16 }}>
+      <View style={{ height: 48, justifyContent: "center", opacity: 1 - collapse() }}>
+        <Text numberOfLines={1} style={{ fontSize: 34, fontWeight: 700, letterSpacing: 0, color: c.ink }}>{t("mobile.library")}</Text>
+      </View>
+    </View>
+  </View>;
+}
+
 function LibraryPage(props: {
   library: MobileLibrary;
   connected: boolean;
   busy: boolean;
+  ios: boolean;
   onOpen: (path: string) => void;
   onSync: () => Promise<void>;
   onSettings: () => void;
@@ -477,6 +560,7 @@ function LibraryPage(props: {
   const query = signal("");
   const expanded = signal<Set<string>>(new Set());
   const pulling = signal(false);
+  const scrollY = signal(0);
   const search = librarySearch(() => lib.vault, query, lib.entries);
   const allNotes = () => lib.entries().filter(e => !e.isDir && /\.(md|markdown)$/i.test(e.name))
     .map(e => ({ path: e.path, title: titleFromName(e.name.normalize("NFC")), mtimeMs: e.mtimeMs }))
@@ -512,39 +596,58 @@ function LibraryPage(props: {
     const progress = syncRuntime.progress();
     return progress.total > 0 ? Math.round(progress.done / progress.total * 100) : 0;
   };
-  const month = () => new Date().toLocaleDateString(locale(), { month: "long" }).toUpperCase();
   const notPulling = () => pulling();
   const statusVisible = () => !pulling() && !!syncStatus(syncRuntime.phase(), syncRuntime.progress(), syncRuntime.error());
+  const searchField = () => <View style={{ height: 36, marginBottom: 10, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", gap: 7,
+    borderRadius: 10, borderCurve: "continuous", backgroundColor: c.searchBg }}>
+    <Icon name="magnifying-glass" color={c.ink3} size={16} />
+    <Input testID="mobile-search" value={query()} onChange={value => query.set(value)} placeholder={t("search.placeholder")} returnKeyType="search"
+      onSubmit={event => { query.set(event.text); Keyboard.dismiss(); }}
+      style={{ flex: 1, height: 36, paddingRight: query() ? 2 : 8, fontSize: 16, color: c.ink }} />
+    {query() ? <Button testID="mobile-search-clear" accessibilityLabel={t("search.empty")} onPress={() => { query.set(""); Keyboard.dismiss(); }}
+      style={{ width: 28, height: 28, alignItems: "center", justifyContent: "center" }}>
+      <Icon name="x" color={c.ink3} size={14} />
+    </Button> : null}
+  </View>;
 
   return <View style={{ flex: 1, backgroundColor: c.paper }}>
-    <Scroll testID="mobile-library-list" style={{ flex: 1 }} onRefresh={refresh} refreshing={pulling()}
-      refreshIndicator={{ height: 52 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
-      contentStyle={{ paddingTop: (statusVisible() ? 100 : 58) + bottom().top, paddingHorizontal: 16, paddingBottom: 108 + bottom().bottom }}>
-      {notPulling() ? <PullIndicator percent={percent()} /> : null}
-      {q() ? <Text testID="mobile-search-meta" style={{ paddingHorizontal: 4, paddingBottom: 4, fontSize: 12, fontWeight: 500, color: c.ink3 }}>{t("mobile.searchResult", { n: results().length })}</Text> : null}
-      <View style={{ flexDirection: "row", marginBottom: 2, borderBottomWidth: 0.5, borderBottomColor: c.thread, paddingHorizontal: 2 }}>
-        {([["recent", "mobile.recent"], ["all", "mobile.all"], ["favorites", "mobile.favorites"]] as const).map(([id, key]) => {
-          const active = props.tab() === id;
-          return <Button testID={`mobile-tab-${id}`} onPress={() => { Keyboard.dismiss(); props.onTab(id); }}
-            style={{ height: 36, paddingHorizontal: 11, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontSize: 13, fontWeight: active ? 600 : 500, letterSpacing: -0.2, color: active ? c.ink : c.ink3 }}>{t(key)}</Text>
-            {active ? <View style={{ position: "absolute", left: 8, right: 8, bottom: 0, height: 2, borderTopLeftRadius: 2, borderTopRightRadius: 2, backgroundColor: c.accent }} /> : null}
-          </Button>;
-        })}
-      </View>
+    <View style={{ flex: 1 }}>
+      {props.ios ? <LibraryHeader scrollY={scrollY} busy={props.busy} onNewNote={newNote} onSettings={props.onSettings} /> : null}
+      <Scroll testID="mobile-library-list" style={{ flex: 1 }} onRefresh={refresh} refreshing={pulling()}
+        onScroll={props.ios ? event => scrollY.set(Math.max(0, event.offset.y)) : undefined} scrollEventThrottle={16}
+        refreshIndicator={props.ios ? undefined : { height: 52 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
+        contentStyle={{ paddingTop: props.ios ? bottom().top + 44 + 48 + 8 : (statusVisible() ? 100 : 58) + bottom().top, paddingHorizontal: 16, paddingBottom: props.ios ? 96 : 108 + bottom().bottom }}>
+        {!props.ios && notPulling() ? <PullIndicator percent={percent()} /> : null}
+        {props.ios && statusVisible() ? <View style={{ marginBottom: 8 }}><SyncAccessory onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
+          onRetry={() => { void props.onSync().catch(err => lib.error.set(String(err))); }} /></View> : null}
+        {props.ios ? searchField() : null}
+        {q() ? <Text testID="mobile-search-meta" style={{ paddingHorizontal: 4, paddingBottom: 4, fontSize: 12, fontWeight: 500, color: c.ink3 }}>{t("mobile.searchResult", { n: results().length })}</Text> : null}
+        {props.ios ? null : <View style={{ flexDirection: "row", marginBottom: 2, borderBottomWidth: 0.5, borderBottomColor: c.thread, paddingHorizontal: 2 }}>
+          {([["recent", "mobile.recent"], ["all", "mobile.all"], ["favorites", "mobile.favorites"]] as const).map(([id, key]) => {
+            const active = props.tab() === id;
+            return <Button testID={`mobile-tab-${id}`} onPress={() => { Keyboard.dismiss(); props.onTab(id); }}
+              style={{ height: 36, paddingHorizontal: 11, alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ fontSize: 13, fontWeight: active ? 600 : 500, letterSpacing: -0.2, color: active ? c.ink : c.ink3 }}>{t(key)}</Text>
+              {active ? <View style={{ position: "absolute", left: 8, right: 8, bottom: 0, height: 2, borderTopLeftRadius: 2, borderTopRightRadius: 2, backgroundColor: c.accent }} /> : null}
+            </Button>;
+          })}
+        </View>}
       {props.error}
       {props.conflict}
 
       {q() ? <View>
-        {results().map(note => noteRow(note, props.onOpen))}
+        <View style={props.ios ? { borderRadius: 12, borderCurve: "continuous", overflow: "hidden", backgroundColor: c.list } : undefined}>
+          {results().map(note => noteRow(note, props.onOpen, props.ios))}
+        </View>
         {!results().length && !search.pending() ? <Text style={{ paddingVertical: 40, textAlign: "center", color: c.ink3, fontSize: 15 }}>{t("search.empty")}</Text> : null}
         {search.pending() ? <Text style={{ paddingVertical: 20, textAlign: "center", color: c.ink3 }}>{t("mobile.searching")}</Text> : null}
       </View> : props.tab() === "recent" ? <View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingHorizontal: 4, paddingTop: 14, paddingBottom: 6 }}>
-          <Text style={{ fontSize: 12, fontWeight: 600, color: c.ink3 }}>{t("mobile.recentGroup")}</Text>
-          <Text style={{ fontSize: 10, fontWeight: 550, letterSpacing: 0.8, color: c.ink3, opacity: 0.7 }}>{month()}</Text>
+        <View style={{ paddingTop: 16, paddingBottom: 6 }}>
+          <Text style={{ fontSize: 13, fontWeight: 400, color: c.ink2 }}>{t("mobile.recentGroup")}</Text>
         </View>
-        {allNotes().slice(0, 40).map(note => noteRow(note, props.onOpen))}
+        <View style={props.ios ? { borderRadius: 12, borderCurve: "continuous", overflow: "hidden", backgroundColor: c.list } : undefined}>
+          {allNotes().slice(0, 40).map(note => noteRow(note, props.onOpen, props.ios))}
+        </View>
         {!allNotes().length ? emptyNotes() : null}
       </View> : props.tab() === "all" ? <View style={{ paddingTop: 6 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 4, paddingBottom: 6 }}>
@@ -552,27 +655,37 @@ function LibraryPage(props: {
           <Text style={{ color: c.ink3, opacity: 0.7 }}>/</Text>
           <Text style={{ fontSize: 12.5, fontWeight: 600, color: c.ink }}>{syncRuntime.connection()?.remoteName || "StoatMD"}</Text>
         </View>
+        <View style={props.ios ? { borderRadius: 12, borderCurve: "continuous", overflow: "hidden", backgroundColor: c.list } : undefined}>
         {tree().map(row => row.kind === "folder" ? <Button testID={`mobile-folder-${row.path}`} disabled={props.busy}
           onPress={() => { Keyboard.dismiss(); toggleFolder(row.path); }}
-          style={{ minHeight: 40, paddingLeft: row.depth * 18, paddingRight: 10, flexDirection: "row", alignItems: "center", gap: 8 }}>
+          style={{ minHeight: props.ios ? 48 : 40, paddingHorizontal: props.ios ? 12 : undefined, paddingLeft: row.depth * 18 + (props.ios ? 12 : 0), paddingRight: 10, flexDirection: "row", alignItems: "center", gap: 8,
+            backgroundColor: props.ios ? c.list : "transparent", borderBottomWidth: props.ios ? 0.5 : 0, borderBottomColor: c.thread }}>
           <View style={{ width: 22, height: 22, alignItems: "center", justifyContent: "center" }}>
             <Icon name={row.expanded ? "caret-down" : "caret-right"} color={c.ink3} size={14} />
           </View>
           <View style={{ width: 26, height: 26, borderRadius: 7, alignItems: "center", justifyContent: "center", backgroundColor: c.accentSoft }}>
             <Icon name="folder" color={c.accent} size={14} />
           </View>
-          <Text numberOfLines={1} style={{ flex: 1, fontSize: 14.5, fontWeight: 590, letterSpacing: -0.22, color: c.ink }}>{row.name}</Text>
-          <Text style={{ fontSize: 11.5, color: c.ink3 }}>{row.count}</Text>
+          <Text numberOfLines={1} style={{ flex: 1, fontSize: 16, fontWeight: 500, letterSpacing: 0, color: c.ink }}>{row.name}</Text>
+          <Text style={{ fontSize: 15, color: c.ink3 }}>{row.count}</Text>
         </Button> : <Button testID={`mobile-note-${row.path}`} disabled={props.busy}
           onPress={() => { Keyboard.dismiss(); props.onOpen(row.path); }}
-          style={{ minHeight: 40, paddingLeft: row.depth * 18, paddingRight: 10, flexDirection: "row", alignItems: "center", gap: 8 }}>
+          style={{ minHeight: props.ios ? 48 : 40, paddingHorizontal: props.ios ? 12 : undefined, paddingLeft: row.depth * 18 + (props.ios ? 12 : 0), paddingRight: 10, flexDirection: "row", alignItems: "center", gap: 8,
+            backgroundColor: props.ios ? c.list : "transparent", borderBottomWidth: props.ios ? 0.5 : 0, borderBottomColor: c.thread }}>
           <View style={{ width: 22, height: 22 }} />
-          <View style={{ width: 26, height: 26, borderRadius: 7, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(44,42,38,0.06)" }}>
+          <View style={{ width: 26, height: 26, borderRadius: 7, alignItems: "center", justifyContent: "center", backgroundColor: c.searchBg }}>
             <Icon name="file-text" color={c.ink2} size={14} />
           </View>
-          <Text numberOfLines={1} style={{ flex: 1, fontFamily: "monospace", fontSize: 13, fontWeight: 500, color: c.ink }}>{row.name}</Text>
-          <Text style={{ fontSize: 11.5, color: c.ink3 }}>{formatWhen(row.mtimeMs, locale())}</Text>
+          <Text numberOfLines={1} style={{ flex: 1, fontFamily: props.ios ? undefined : "monospace", fontSize: props.ios ? 17 : 13, fontWeight: 400, color: c.ink }}>{props.ios ? row.title : row.name}</Text>
+          <Text style={{ fontSize: props.ios ? 15 : 11.5, color: c.ink3 }}>{formatWhen(row.mtimeMs, locale())}</Text>
         </Button>)}
+        </View>
+        {props.ios ? <Button testID="mobile-new-folder" accessibilityLabel={t("mobile.newFolder")} disabled={props.busy} onPress={props.onNewFolder}
+          style={{ marginTop: 14, minHeight: 44, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 10,
+            backgroundColor: c.list, borderRadius: 12, borderCurve: "continuous", opacity: props.busy ? 0.45 : 1 }}>
+          <Icon name="folder-plus" color={c.accent} size={18} />
+          <Text style={{ fontSize: 17, color: c.accent }}>{t("mobile.newFolder")}</Text>
+        </Button> : null}
       </View> : <View>
         <View testID="mobile-favorites-soon" style={{ marginTop: 2, marginBottom: 4, paddingVertical: 10, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 14,
           backgroundColor: c.list, borderWidth: 0.5, borderColor: c.thread }}>
@@ -594,12 +707,16 @@ function LibraryPage(props: {
       </View>}
     </Scroll>
 
-    <LibraryNav connected={props.connected} statusVisible={statusVisible()} onSettings={() => { Keyboard.dismiss(); props.onSettings(); }}
-      onSync={() => { void props.onSync().catch(err => lib.error.set(String(err))); }}
-      onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
-      onRetry={() => { void props.onSync().catch(err => lib.error.set(String(err))); }} />
+    </View>
 
-    <View style={{ position: "absolute", left: 0, right: 0, bottom: keyboardFrame().height, paddingHorizontal: 20, paddingBottom: keyboardFrame().height ? 8 : 12 + bottom().bottom, flexDirection: "row", alignItems: "center", gap: 10 }}>
+    {props.ios ? <TabBar items={[
+        { title: t("mobile.recent"), icon: "clock" },
+        { title: t("mobile.all"), icon: "folder" },
+        { title: t("mobile.favorites"), icon: "star" },
+      ]} selectedIndex={props.tab() === "all" ? 1 : props.tab() === "favorites" ? 2 : 0}
+      onChange={index => { Keyboard.dismiss(); props.onTab(index === 1 ? "all" : index === 2 ? "favorites" : "recent"); }} /> : null}
+
+    {props.ios ? null : <View style={{ position: "absolute", left: 0, right: 0, bottom: keyboardFrame().height, paddingHorizontal: 20, paddingBottom: keyboardFrame().height ? 8 : 12 + bottom().bottom, flexDirection: "row", alignItems: "center", gap: 10 }}>
       <Button testID="mobile-new-folder" accessibilityLabel={t("mobile.newFolder")} disabled={props.busy} onPress={props.onNewFolder}
         style={{ width: 48, height: 48, alignItems: "center", justifyContent: "center", ...glassStyle(16) }}>
         <Icon name="folder-plus" color={c.ink} size={20} />
@@ -618,7 +735,7 @@ function LibraryPage(props: {
         style={{ width: 48, height: 48, alignItems: "center", justifyContent: "center", ...glassStyle(16), backgroundColor: c.accentSoft }}>
         <Icon name="compose" color={c.accent} size={20} />
       </Button>
-    </View>
+    </View>}
   </View>;
 }
 
@@ -638,14 +755,15 @@ function LibraryNav(props: { connected: boolean; statusVisible: boolean; onSetti
   </View>;
 }
 
-function noteRow(note: { path: string; title: string; mtimeMs: number }, onOpen: (path: string) => void) {
+function noteRow(note: { path: string; title: string; mtimeMs: number }, onOpen: (path: string) => void, ios = false) {
   const c = mobileColors();
   return <Button testID={`mobile-note-${note.path}`} onPress={() => { Keyboard.dismiss(); onOpen(note.path); }}
-    style={{ minHeight: 58, paddingVertical: 10, paddingHorizontal: 4, gap: 3, borderBottomWidth: 0.5, borderBottomColor: c.thread }}>
-    <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: 560, letterSpacing: -0.25, color: c.ink }}>{note.title}</Text>
+    style={{ minHeight: ios ? 70 : 58, paddingVertical: ios ? 12 : 10, paddingHorizontal: ios ? 16 : 4, gap: ios ? 4 : 3,
+      backgroundColor: ios ? c.list : "transparent", borderBottomWidth: 0.5, borderBottomColor: c.thread }}>
+    <Text numberOfLines={1} style={{ fontSize: ios ? 17 : 16, fontWeight: ios ? 600 : 590, letterSpacing: ios ? -0.2 : -0.25, color: c.ink }}>{note.title}</Text>
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-      <Text numberOfLines={1} style={{ flex: 1, fontSize: 12, color: c.ink3 }}>{note.path.includes("/") ? note.path.split("/").slice(0, -1).join("/") : t("mobile.library")}</Text>
-      <Text style={{ fontSize: 11, color: c.ink3 }}>{formatWhen(note.mtimeMs, locale())}</Text>
+      <Text numberOfLines={1} style={{ flex: 1, fontSize: ios ? 15 : 12, color: c.ink2 }}>{note.path.includes("/") ? note.path.split("/").slice(0, -1).join("/") : t("mobile.library")}</Text>
+      <Text style={{ fontSize: ios ? 15 : 11, color: c.ink3 }}>{formatWhen(note.mtimeMs, locale())}</Text>
     </View>
   </Button>;
 }
@@ -662,16 +780,16 @@ function emptyNotes() {
 function ReaderDock(props: { content: string; bottom: number; onOutline: () => void; onType: () => void }) {
   const c = mobileColors();
   const words = () => articleModel(props.content).stats.chars;
-  return <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 22, paddingBottom: 22 + props.bottom, alignItems: "center" }}>
-    <View style={{ width: "100%", height: 48, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between", ...glassStyle(999) }}>
-      <Button testID="mobile-outline" accessibilityLabel={t("inspector.outline")} onPress={props.onOutline} style={{ minWidth: 52, height: 40, justifyContent: "center" }}>
-        <Text style={{ fontSize: 13, fontWeight: 500, letterSpacing: -0.1, color: c.ink2 }}>{t("inspector.outline")}</Text>
-      </Button>
-      <Text testID="mobile-word-count" style={{ fontSize: 13, fontWeight: 500, color: c.ink3 }}>{t("mobile.words", { n: words() })}</Text>
-      <Button testID="mobile-type" accessibilityLabel={t("settings.font.size")} onPress={props.onType} style={{ minWidth: 52, height: 40, alignItems: "flex-end", justifyContent: "center" }}>
-        <Text style={{ fontSize: 17, fontWeight: 500, color: c.ink }}>A</Text>
-      </Button>
-    </View>
+  return <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 49 + props.bottom, paddingBottom: props.bottom, paddingHorizontal: 20,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: 0.5, borderTopColor: c.thread,
+    backgroundColor: mobileIsDark() ? "rgba(0, 0, 0, 0.82)" : "rgba(255, 255, 255, 0.82)", backdropFilter: "blur(24px) saturate(180%)" }}>
+    <Button testID="mobile-outline" accessibilityLabel={t("inspector.outline")} onPress={props.onOutline} style={{ minWidth: 60, height: 49, justifyContent: "center" }}>
+      <Text style={{ fontSize: 17, color: c.accent }}>{t("inspector.outline")}</Text>
+    </Button>
+    <Text testID="mobile-word-count" style={{ fontSize: 13, fontWeight: 400, color: c.ink3 }}>{t("mobile.words", { n: words() })}</Text>
+    <Button testID="mobile-type" accessibilityLabel={t("settings.font.size")} onPress={props.onType} style={{ minWidth: 60, height: 49, alignItems: "flex-end", justifyContent: "center" }}>
+      <Text style={{ fontSize: 19, fontWeight: 500, color: c.accent }}>A</Text>
+    </Button>
   </View>;
 }
 
@@ -725,57 +843,62 @@ function TypeSettings() {
   </View>;
 }
 
+function ThemeRow(props: { theme: (typeof MOBILE_THEMES)[number]; last?: boolean }) {
+  const c = mobileColors();
+  const theme = props.theme;
+  const active = mobileThemeId() === theme.id;
+  return <Button testID={`mobile-theme-${theme.id}`} onPress={() => applyTheme(theme.id)}
+    style={{ minHeight: 48, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 12,
+      backgroundColor: c.list }}>
+    <View style={{ width: 29, height: 29, borderRadius: 7, borderCurve: "continuous", alignItems: "center", justifyContent: "center",
+      backgroundColor: theme.art.paper, borderWidth: 0.5, borderColor: theme.id === "nord" ? "#3A3A3C" : c.thread }}>
+      <Text style={{ fontSize: 13, fontWeight: 600, letterSpacing: -0.2, color: theme.art.ink }}>Aa</Text>
+    </View>
+    <Text style={{ flex: 1, fontSize: 17, color: c.ink }}>{theme.name}</Text>
+    {active ? <Icon name="check" color={c.accent} size={18} /> : null}
+    {props.last ? null : <View style={{ position: "absolute", left: 57, right: 0, bottom: 0, height: 0.5, backgroundColor: c.thread }} />}
+  </Button>;
+}
+
 function MobileSettings(props: { connected: boolean; onImport: () => void; onTrash: () => void; onStorage: () => void; onSync: () => void; onConflicts: () => void }) {
   const c = mobileColors();
-  return <View style={{ gap: 22 }}>
-    <Text style={{ marginHorizontal: 2, marginTop: -10, fontSize: 13, lineHeight: 20, color: c.ink2 }}>{t("mobile.settingsLead")}</Text>
-    <View style={{ gap: 8 }}>
-      <SectionTitle>{t("settings.appearance")}</SectionTitle>
-      <View style={{ paddingHorizontal: 4, paddingBottom: 4, flexDirection: "row", gap: 8 }}>
-        {MOBILE_THEMES.map(theme => {
-          const active = mobileThemeId() === theme.id;
-          return <Button testID={`mobile-theme-${theme.id}`} onPress={() => applyTheme(theme.id)}
-            style={{ flex: 1, borderRadius: 12, overflow: "hidden", borderWidth: active ? 1.5 : 0.5, borderColor: active ? c.accent : c.thread }}>
-            <View style={{ height: 54, padding: 8, backgroundColor: theme.art.paper }}>
-              <Text style={{ fontSize: 9.5, fontWeight: 700, color: theme.art.accent }}># 标题</Text>
-              <Text style={{ fontSize: 9.5, color: theme.art.ink }}>**粗体** <Text style={{ color: theme.art.code }}>`code`</Text></Text>
-            </View>
-            <View style={{ height: 28, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: c.list }}>
-              <Text style={{ fontSize: 11, fontWeight: 560, color: c.ink }}>{theme.name}</Text>
-              {active ? <Icon name="check" color={c.accent} size={12} /> : null}
-            </View>
-          </Button>;
-        })}
-      </View>
+  const connection = () => syncRuntime.connection();
+  return <View>
+    <SectionTitle top={2}>{t("settings.appearance")}</SectionTitle>
+    <SettingsGroup>
+      {MOBILE_THEMES.map((theme, index) => <ThemeRow theme={theme} last={index === MOBILE_THEMES.length - 1} />)}
+    </SettingsGroup>
+
+    <SectionTitle>{t("mobile.sectionText")}</SectionTitle>
+    <SettingsGroup>
       <LanguageRow />
-    </View>
-    <View style={{ gap: 8 }}>
-      <SectionTitle>{t("mobile.sectionText")}</SectionTitle>
       <FontRow />
-    </View>
-    <View style={{ gap: 8 }}>
-      <SectionTitle>{t("mobile.storageLocation")}</SectionTitle>
-      <SettingsRow id="mobile-storage-row" icon="cloud" title={props.connected ? t(providerLabelKey(syncRuntime.connection()!.provider)) : t("mobile.notConnected")}
-        detail={props.connected ? `${syncRuntime.connection()!.remotePath || "/"} · ${t("mobile.offlineReady")}` : t("mobile.connectHint")} value={props.connected ? t("storage.inUse") : undefined} onPress={props.onStorage} />
-      {props.connected ? <View style={{ marginHorizontal: 6, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Text style={{ fontSize: 12.5, color: c.ink2 }}>{t("sync.synced")} · {formatSyncMoment(syncRuntime.lastSyncAt())}</Text>
-        <Button testID="mobile-sync-now" onPress={props.onSync} style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 6 }}>
-          <Icon name="sync" color={c.accent} size={14} />
-          <Text style={{ fontSize: 12.5, fontWeight: 600, color: c.accent }}>{t("mobile.syncNow")}</Text>
-        </Button>
-      </View> : null}
-      {syncRuntime.conflicts().length ? <SettingsRow id="mobile-conflicts-row" icon="info" title={t("sync.manageConflicts")} value={String(syncRuntime.conflicts().length)} onPress={props.onConflicts} /> : null}
-    </View>
-    <View style={{ gap: 8 }}>
-      <SectionTitle>{t("mobile.sectionData")}</SectionTitle>
-      <SettingsRow id="mobile-import" icon="file-text" title={t("mobile.import")} onPress={props.onImport} />
-      <SettingsRow id="mobile-trash" icon="x" title={t("mobile.trash")} onPress={props.onTrash} />
-    </View>
-    <View style={{ gap: 8 }}>
-      <SectionTitle>StoatMD</SectionTitle>
-      <SettingsRow icon="cloud" title={t("mobile.paidVersion")} value={t("mobile.syncIncluded")} />
-    </View>
-    <Text style={{ marginTop: 8, textAlign: "center", fontSize: 12, color: c.ink3 }}><Text style={{ fontWeight: 600, color: c.ink2 }}>StoatMD</Text> · {t("mobile.brandTagline")}</Text>
+    </SettingsGroup>
+
+    <SectionTitle>{t("mobile.storageLocation")}</SectionTitle>
+    <SettingsGroup>
+      <SettingsRow id="mobile-storage-row" icon="cloud" title={props.connected ? t(providerLabelKey(connection()!.provider)) : t("mobile.notConnected")}
+        detail={props.connected ? `${connection()!.remotePath || "/"} · ${t("mobile.offlineReady")}` : t("mobile.connectHint")}
+        value={props.connected ? t("storage.inUse") : undefined} onPress={props.onStorage} />
+      {props.connected ? <SettingsRow id="mobile-sync-now" icon="arrows-clockwise" iconBg="#34C759" title={t("mobile.syncNow")}
+        detail={`${t("sync.synced")} · ${formatSyncMoment(syncRuntime.lastSyncAt())}`} onPress={props.onSync} /> : null}
+      {syncRuntime.conflicts().length ? <SettingsRow id="mobile-conflicts-row" icon="info" iconBg="#FF9500" title={t("sync.manageConflicts")}
+        value={String(syncRuntime.conflicts().length)} onPress={props.onConflicts} /> : null}
+    </SettingsGroup>
+
+    <SectionTitle>{t("mobile.sectionData")}</SectionTitle>
+    <SettingsGroup>
+      <SettingsRow id="mobile-import" icon="file-text" iconBg="#34C759" title={t("mobile.import")} onPress={props.onImport} />
+      <SettingsRow id="mobile-trash" icon="x" iconBg="#FF3B30" title={t("mobile.trash")} onPress={props.onTrash} last />
+    </SettingsGroup>
+
+    <SectionTitle>StoatMD</SectionTitle>
+    <SettingsGroup>
+      <SettingsRow icon="cloud" title={t("mobile.paidVersion")} value={t("mobile.syncIncluded")} last />
+    </SettingsGroup>
+    <Text style={{ marginTop: 24, textAlign: "center", fontSize: 13, lineHeight: 19, color: c.ink3 }}>
+      <Text style={{ fontWeight: 600, color: c.ink2 }}>StoatMD</Text> · {t("mobile.brandTagline")}
+    </Text>
   </View>;
 }
 
@@ -786,22 +909,23 @@ function LanguageRow() {
     { id: "zh-Hant", label: "繁體中文" }, { id: "ja", label: "日本語" }, { id: "ko", label: "한국어" }, { id: "de", label: "Deutsch" }, { id: "fr", label: "Français" }, { id: "es", label: "Español" }];
   const current = () => languages.find(language => language.id === localePref())?.label ?? t("settings.locale.system");
   return <View>
-    <SettingsRow id="mobile-language-toggle" icon="book" title={t("settings.locale")} value={current()} onPress={() => open.set(!open())} />
-    {open() ? <View style={{ marginTop: 4, gap: 2 }}>
-      {languages.map(language => <Button testID={`mobile-language-${language.id}`} onPress={() => { setLocalePref(language.id); void saveLocale(language.id); open.set(false); }}
-        style={{ minHeight: 44, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Text style={{ fontSize: 15, color: c.ink }}>{language.label}</Text>
-        {localePref() === language.id ? <Icon name="check" color={c.accent} size={16} /> : null}
-      </Button>)}
-    </View> : null}
+    <SettingsRow id="mobile-language-toggle" title={t("settings.locale")} value={current()} onPress={() => open.set(!open())} />
+    {open() ? languages.map(language => <Button testID={`mobile-language-${language.id}`}
+      onPress={() => { setLocalePref(language.id); void saveLocale(language.id); open.set(false); }}
+      style={{ minHeight: 44, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+        backgroundColor: c.list }}>
+      <Text style={{ fontSize: 17, color: c.ink }}>{language.label}</Text>
+      {localePref() === language.id ? <Icon name="check" color={c.accent} size={18} /> : null}
+      <View style={{ position: "absolute", left: 16, right: 0, bottom: 0, height: 0.5, backgroundColor: c.thread }} />
+    </Button>) : null}
   </View>;
 }
 
 function FontRow() {
   const open = signal(false);
   return <View>
-    <SettingsRow id="mobile-text-row" icon="text-t" title={t("mobile.typography")} value={`Kami · ${fontSize()} / ${lineHeightRatio()}`} onPress={() => open.set(!open())} />
-    {open() ? <View style={{ marginTop: 10 }}><TypeSettings /></View> : null}
+    <SettingsRow id="mobile-text-row" title={t("mobile.typography")} value={`Kami · ${fontSize()} / ${lineHeightRatio()}`} onPress={() => open.set(!open())} />
+    {open() ? <View style={{ padding: 16 }}><TypeSettings /></View> : null}
   </View>;
 }
 

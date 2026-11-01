@@ -106,7 +106,7 @@ test("iPhone: move, recycle, restore and permanently delete a note", async () =>
   await app.waitFor("text:最近删除为空");
 }, 120_000);
 
-test("iPhone: 库页三 Tab、文件树、搜索与阅读底栏按 Cream×Glass 稿工作", async () => {
+test("iPhone: 库页三 Tab、文件树、搜索与阅读底栏工作", async () => {
   const app = await open("./MobileShell.harness.tsx", phone);
   await app.waitFor("id:mobile-tab-recent");
   expect(app.shows("text:还没有笔记")).toBe(true);

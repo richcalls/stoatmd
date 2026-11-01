@@ -16,6 +16,8 @@ import { uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
 export type SyncSettingsProps = {
   open?: boolean;
   cloudOnly?: boolean;
+  /** iOS：用系统分组列表与蓝色文字按钮，而不是桌面的自定义控件。 */
+  mobile?: boolean;
   vaultRoot?: string | null;
   onOpenVault?: () => void;
   onBeforeMigration?: () => Promise<void>;
@@ -45,6 +47,7 @@ function errorText(err: unknown, connecting = false): string {
 
 /** A single active storage location with an explicit, verified migration before switching. */
 export function SyncSettings(props: SyncSettingsProps) {
+  const ios = !!props.mobile;
   const stage = signal<Stage>(migration.phase() === "idle" ? "idle" : "migration");
   const provider = signal<ProviderId | null>(null);
   const stack = signal<RemoteDir[]>([]);
@@ -173,21 +176,24 @@ export function SyncSettings(props: SyncSettingsProps) {
     try { await settingsStorage.retryCleanup(); }
     catch (err) { localError.set(errorText(err)); }
   };
-  const label = (text: string) => <Text style={{ fontSize: uiTextSize(14), fontWeight: "600", color: colors().ink }}>{text}</Text>;
-  const detail = (text: string) => <Text style={{ fontSize: uiTextSize(12.5), lineHeight: uiLineHeight(19), color: colors().ink2 }}>{text}</Text>;
+  const label = (text: string) => <Text style={ios ? { fontSize: 13, fontWeight: "400", color: colors().ink2 } : { fontSize: uiTextSize(14), fontWeight: "600", color: colors().ink }}>{text}</Text>;
+  const detail = (text: string) => <Text style={ios ? { fontSize: 13, lineHeight: 19, color: colors().ink2 } : { fontSize: uiTextSize(12.5), lineHeight: uiLineHeight(19), color: colors().ink2 }}>{text}</Text>;
   const button = (id: string, text: string, onPress: () => void, primary = false, disabled = false) => (
     <Button testID={id} disabled={disabled} onPress={onPress}
-      style={{ minHeight: props.cloudOnly ? 44 : uiControlHeight(30), paddingHorizontal: 12, borderRadius: 6, borderWidth: primary ? 0 : 1,
-        borderColor: colors().thread, backgroundColor: primary ? colors().accent : colors().list,
-        justifyContent: "center", alignItems: "center", opacity: disabled ? 0.45 : 1 }}
+      style={ios
+        ? { minHeight: 46, paddingHorizontal: primary ? 20 : 12, borderRadius: primary ? 12 : 0,
+            backgroundColor: primary ? colors().accent : "transparent", justifyContent: "center", alignItems: "center", opacity: disabled ? 0.4 : 1 }
+        : { minHeight: props.cloudOnly ? 44 : uiControlHeight(30), paddingHorizontal: 12, borderRadius: 6, borderWidth: primary ? 0 : 1,
+            borderColor: colors().thread, backgroundColor: primary ? colors().accent : colors().list,
+            justifyContent: "center", alignItems: "center", opacity: disabled ? 0.45 : 1 }}
       hoverStyle={{ opacity: 0.8 }} activeStyle={{ opacity: 0.65 }}>
-      <Text style={{ fontSize: uiTextSize(13), fontWeight: "500", color: primary ? colors().accentInk : colors().ink }}>{text}</Text>
+      <Text style={{ fontSize: ios ? 17 : uiTextSize(13), fontWeight: ios ? (primary ? "600" : "400") : "500", color: primary ? colors().accentInk : ios ? colors().accent : colors().ink }}>{text}</Text>
     </Button>
   );
   const pathRow = (caption: string, location: Location) => (
-    <View style={{ padding: 12, gap: 4 }}>
-      <Text style={{ fontSize: uiTextSize(11), color: colors().ink3 }}>{caption}</Text>
-      {label(locationName(location.kind))}
+    <View style={{ padding: ios ? 16 : 12, gap: ios ? 3 : 4 }}>
+      <Text style={{ fontSize: ios ? 12 : uiTextSize(11), color: colors().ink3 }}>{caption}</Text>
+      <Text style={{ fontSize: ios ? 17 : uiTextSize(14), fontWeight: ios ? "400" : "600", color: colors().ink }}>{locationName(location.kind)}</Text>
       {detail(locationPath(location))}
     </View>
   );
@@ -206,26 +212,37 @@ export function SyncSettings(props: SyncSettingsProps) {
       <If when={stage() === "idle"}>
         {label(t("storage.title"))}
         {detail(t(props.cloudOnly ? "mobile.connectHint" : "storage.description"))}
-        <View testID="storage-locations" style={{ borderWidth: 1, borderColor: colors().thread, borderRadius: 9, overflow: "hidden" }}>
+        <View testID="storage-locations" style={ios
+          ? { borderRadius: 12, overflow: "hidden", backgroundColor: colors().list }
+          : { borderWidth: 1, borderColor: colors().thread, borderRadius: 9, overflow: "hidden" }}>
           <Each of={locations}>{(row) => {
             const kind = row();
             return (
               <Button testID={`storage-location-${kind}`} disabled={loading() || storageBusy() || currentKind() === kind}
                 onPress={() => void choose(kind)}
-                style={{ paddingHorizontal: 13, paddingVertical: 13, minHeight: uiControlHeight(64),
-                  flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors().list,
-                  borderBottomWidth: kind === "google" ? 0 : 1, borderBottomColor: colors().thread }}
+                style={ios
+                  ? { paddingHorizontal: 16, minHeight: 62, flexDirection: "row", alignItems: "center", gap: 12,
+                      backgroundColor: colors().list, borderBottomWidth: kind === "google" ? 0 : 0.5, borderBottomColor: colors().thread }
+                  : { paddingHorizontal: 13, paddingVertical: 13, minHeight: uiControlHeight(64),
+                      flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors().list,
+                      borderBottomWidth: kind === "google" ? 0 : 1, borderBottomColor: colors().thread }}
                 hoverStyle={{ backgroundColor: colors().accentSoft }}>
-                <Icon name={kind === "local" ? "folder" : "cloud"} size={20} color={currentKind() === kind ? colors().accent : colors().ink2} />
-                <View style={{ flex: 1, gap: 4 }}>
-                  {label(locationName(kind))}
-                  <Text style={{ fontSize: uiTextSize(12), color: colors().ink3 }}>{t(props.cloudOnly ? "mobile.cloudIncluded" : kind === "local" ? "storage.localDescription" : "storage.cloudDescription")}</Text>
+                {ios
+                  ? <View style={{ width: 29, height: 29, borderRadius: 7, borderCurve: "continuous", alignItems: "center", justifyContent: "center", backgroundColor: colors().accent }}>
+                      <Icon name={kind === "local" ? "folder" : "cloud"} size={17} color={colors().accentInk} />
+                    </View>
+                  : <Icon name={kind === "local" ? "folder" : "cloud"} size={20} color={currentKind() === kind ? colors().accent : colors().ink2} />}
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={{ fontSize: ios ? 17 : uiTextSize(14), fontWeight: ios ? "400" : "600", color: colors().ink }}>{locationName(kind)}</Text>
+                  <Text style={{ fontSize: ios ? 13 : uiTextSize(12), lineHeight: ios ? 18 : undefined, color: ios ? colors().ink2 : colors().ink3 }}>{t(props.cloudOnly ? "mobile.cloudIncluded" : kind === "local" ? "storage.localDescription" : "storage.cloudDescription")}</Text>
                 </View>
                 <If when={currentKind() === kind}>
-                  <Text testID={`storage-current-${kind}`} style={{ fontSize: uiTextSize(12), color: colors().accent }}>{t("storage.inUse")} ✓</Text>
+                  {ios
+                    ? <View testID={`storage-current-${kind}`}><Icon name="check" size={18} color={colors().accent} /></View>
+                    : <Text testID={`storage-current-${kind}`} style={{ fontSize: uiTextSize(12), color: colors().accent }}>{t("storage.inUse")} ✓</Text>}
                 </If>
                 <If when={currentKind() !== kind}>
-                  <Text style={{ fontSize: uiTextSize(12), color: colors().ink3 }}>{kind !== "local" && locked() ? "Pro" : "›"}</Text>
+                  {ios ? <Icon name="caret-right" size={14} color={colors().ink3} /> : <Text style={{ fontSize: uiTextSize(12), color: colors().ink3 }}>{kind !== "local" && locked() ? "Pro" : "›"}</Text>}
                 </If>
               </Button>
             );
@@ -237,7 +254,7 @@ export function SyncSettings(props: SyncSettingsProps) {
             {detail(status())}
             {detail(t("storage.cacheDescription"))}
           </If>
-          <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+          <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", justifyContent: ios ? "flex-end" : undefined }}>
             {connected() || !props.cloudOnly ? button("storage-change-folder", t("storage.changeFolder"), () => void choose(currentKind()), false, loading()) : null}
             <If when={!!connected()}>
               {button("sync-now", t("sync.syncNow"), () => props.onSyncNow?.(), false, locked() || syncRuntime.phase() === "syncing")}
@@ -269,23 +286,24 @@ export function SyncSettings(props: SyncSettingsProps) {
           </If>
           <Text testID="sync-folder-path" style={{ flex: 1, fontSize: uiTextSize(13), color: colors().ink }} numberOfLines={1}>{stack().map(d => d.name).join(" / ")}</Text>
         </View>
-        <Scroll style={{ height: 180, borderWidth: 1, borderColor: colors().thread, borderRadius: 8 }}>
-          <View style={{ padding: 6, gap: 2 }}>
+        <Scroll style={ios ? { height: 220, borderRadius: 12, backgroundColor: colors().list } : { height: 180, borderWidth: 1, borderColor: colors().thread, borderRadius: 8 }}>
+          <View style={{ padding: ios ? 0 : 6, gap: 2 }}>
             <If when={loading()}>{detail(t("sync.folder.loading"))}</If>
             <If when={!loading() && !subfolders().length}>{detail(t("sync.folder.empty"))}</If>
             <Each of={subfolders()}>{row => {
               const dir = row();
               return <Button testID={`sync-folder-${dir.name}`} disabled={loading()}
                 onPress={() => { stack.update(s => [...s, dir]); void loadFolders(dir); }}
-                style={{ flexDirection: "row", alignItems: "center", padding: 8, gap: 8, borderRadius: 5 }} hoverStyle={{ backgroundColor: colors().accentSoft }}>
-                <Icon name="folder" size={15} color={colors().ink2} />
-                <Text style={{ flex: 1, fontSize: uiTextSize(13), color: colors().ink }}>{dir.name}</Text>
-                <Text style={{ color: colors().ink3 }}>›</Text>
+                style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: ios ? 16 : 8, minHeight: ios ? 44 : undefined, paddingVertical: ios ? 0 : 8, gap: ios ? 12 : 8, borderRadius: ios ? 0 : 5,
+                  borderBottomWidth: ios ? 0.5 : 0, borderBottomColor: colors().thread }} hoverStyle={{ backgroundColor: colors().accentSoft }}>
+                <Icon name="folder" size={ios ? 19 : 15} color={ios ? colors().accent : colors().ink2} />
+                <Text style={{ flex: 1, fontSize: ios ? 17 : uiTextSize(13), color: colors().ink }}>{dir.name}</Text>
+                <Icon name="caret-right" size={14} color={colors().ink3} />
               </Button>;
             }}</Each>
           </View>
         </Scroll>
-        <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+        <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", justifyContent: ios ? "flex-end" : undefined }}>
           {button("sync-folder-cancel", t("sync.cancel"), () => void cancel(), false, loading())}
           {button("sync-folder-create", t("sync.folder.create"), () => void createFolder(), false, loading())}
           {button("sync-folder-use", t("storage.continue"), () => void useFolder(currentDir()), true, loading())}
@@ -295,9 +313,9 @@ export function SyncSettings(props: SyncSettingsProps) {
       <If when={stage() === "migration"}>
         <If when={migration.phase() === "confirm" || migration.phase() === "failed"}>
           {label(t("storage.confirmTitle"))}
-          <View style={{ borderWidth: 1, borderColor: colors().thread, borderRadius: 9, backgroundColor: colors().list }}>
+          <View style={ios ? { borderRadius: 12, overflow: "hidden", backgroundColor: colors().list } : { borderWidth: 1, borderColor: colors().thread, borderRadius: 9, backgroundColor: colors().list }}>
             {pathRow(t("storage.from"), currentLocation())}
-            <View style={{ height: 1, backgroundColor: colors().thread }} />
+            <View style={{ height: 0.5, backgroundColor: colors().thread }} />
             <If when={!!migration.target()}>{pathRow(t("storage.to"), migration.target()!)}</If>
           </View>
           {detail(t("storage.summary", { files: migration.summary()?.files ?? 0, folders: migration.summary()?.directories ?? 0,
