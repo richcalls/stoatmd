@@ -306,5 +306,6 @@
   "mobile.offlineReady": "オフライン対応",
   "mobile.conflict.keepLocalHint": "この端末の版でクラウドを上書きします。クラウドの変更は競合コピーに残ります。",
   "mobile.conflict.keepRemoteHint": "クラウド版でこの端末を置き換えます。ローカルの変更は競合コピーに残ります。",
-  "mobile.conflict.keepBothHint": "元のファイルと競合コピーの両方を残し、後で統合します。"
+  "mobile.conflict.keepBothHint": "元のファイルと競合コピーの両方を残し、後で統合します。",
+  "mobile.typeSample": "書くことは、考えをゆっくり広げ、すべての文をあるべき場所へ置いていくこと。"
 }

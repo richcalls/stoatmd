@@ -306,5 +306,6 @@
   "mobile.offlineReady": "Ready offline",
   "mobile.conflict.keepLocalHint": "Overwrite the cloud with this device's version. Cloud changes go to a conflict copy.",
   "mobile.conflict.keepRemoteHint": "Replace this device with the cloud version. Local changes go to a conflict copy.",
-  "mobile.conflict.keepBothHint": "Keep both the original and a conflict copy to merge later."
+  "mobile.conflict.keepBothHint": "Keep both the original and a conflict copy to merge later.",
+  "mobile.typeSample": "Writing unfolds an idea slowly, until every sentence settles where it belongs."
 }

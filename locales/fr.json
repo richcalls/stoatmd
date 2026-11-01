@@ -306,5 +306,6 @@
   "mobile.offlineReady": "Hors ligne prêt",
   "mobile.conflict.keepLocalHint": "Remplacer le cloud par cette version locale. Les changements cloud vont dans une copie de conflit.",
   "mobile.conflict.keepRemoteHint": "Remplacer cet appareil par la version cloud. Les changements locaux vont dans une copie de conflit.",
-  "mobile.conflict.keepBothHint": "Garder les deux : l'original et une copie de conflit à fusionner plus tard."
+  "mobile.conflict.keepBothHint": "Garder les deux : l'original et une copie de conflit à fusionner plus tard.",
+  "mobile.typeSample": "Écrire déplie une idée lentement, jusqu'à ce que chaque phrase trouve sa place."
 }

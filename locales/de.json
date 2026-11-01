@@ -306,5 +306,6 @@
   "mobile.offlineReady": "Offline bereit",
   "mobile.conflict.keepLocalHint": "Die Cloud mit dieser Geräteversion überschreiben. Cloud-Änderungen landen in einer Konfliktkopie.",
   "mobile.conflict.keepRemoteHint": "Dieses Gerät durch die Cloud-Version ersetzen. Lokale Änderungen landen in einer Konfliktkopie.",
-  "mobile.conflict.keepBothHint": "Beide behalten: Original und Konfliktkopie, später zusammenführen."
+  "mobile.conflict.keepBothHint": "Beide behalten: Original und Konfliktkopie, später zusammenführen.",
+  "mobile.typeSample": "Schreiben breitet einen Gedanken langsam aus, bis jeder Satz seinen Platz findet."
 }
