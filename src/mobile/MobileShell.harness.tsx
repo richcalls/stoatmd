@@ -9,5 +9,5 @@ import { restoreTypography } from "../ui/typography";
 const memory = memoryVault();
 memory.files.clear();
 void Promise.all([restoreLocale(), restoreTheme(), restoreTypography()]).then(() => {
-  mount(() => <MobileShell library={mobileLibrary(memory.vault)} />);
+  mount(() => <MobileShell library={mobileLibrary(memory.vault)} nativeChrome={false} />);
 });

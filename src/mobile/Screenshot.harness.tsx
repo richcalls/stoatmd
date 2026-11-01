@@ -91,6 +91,11 @@ put("阅读/设计系统.md", `# 设计系统
 
 正文使用系统衬线字体，界面使用无衬线字体。`, 5);
 
+memory.vault.ensureDir("随笔");
+for (let index = 1; index <= 20; index += 1) {
+  put(`随笔/随笔 ${index}.md`, `# 随笔 ${index}\n\n第 ${index} 篇随手记。`, 10 + index);
+}
+
 void Promise.all([restoreLocale(), restoreTheme(), restoreTypography()]).then(() => {
   mount(() => <MobileShell library={mobileLibrary(memory.vault)} />);
 });
