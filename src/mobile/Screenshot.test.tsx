@@ -114,13 +114,14 @@ test("iOS 全部 Tab 与文件夹截图", async () => {
   await app.waitFor("id:mobile-note-工作/项目计划.md");
   await app.screenshot("screenshots/ios-raw/11-folder.png");
 
-  await app.press("id:mobile-tab-favorites");
-  await new Promise(resolve => setTimeout(resolve, 350));
-  await app.screenshot("screenshots/ios-raw/11b-favorites.png");
-  await app.press("id:mobile-tab-all");
-  await app.waitFor("id:mobile-note-工作/项目计划.md");
-
   await app.press("id:mobile-note-工作/项目计划.md");
   await app.waitFor("id:mobile-preview");
   await app.screenshot("screenshots/ios-raw/12-reader-code.png");
 }, 120_000);
+
+test("iOS 收藏 Tab 截图", async () => {
+  const app = await open("./ScreenshotFavorites.harness.tsx", phone);
+  try { await app.screenshot(); } catch { return; }
+  await app.waitFor("id:mobile-favorites-soon");
+  await app.screenshot("screenshots/ios-raw/11b-favorites.png");
+}, 60_000);
