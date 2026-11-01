@@ -13,7 +13,7 @@ import { displayBlock, renderMode } from "../ui/documentAppearance";
 import { findShortcuts } from "../ui/findShortcuts";
 import { locale, localePref, setLocalePref, t, type LocalePref } from "../ui/i18n";
 import { librarySearch } from "../ui/librarySearch";
-import { saveLocale } from "../ui/prefs";
+import { loadSavedFavorites, saveFavorites, saveLocale } from "../ui/prefs";
 import { previewGap, previewModel, resolveAnchor } from "../ui/previewModel";
 import { applyTheme, setPaletteOverride } from "../ui/theme";
 import { LINE_HEIGHT_MAX, LINE_HEIGHT_MIN, LINE_HEIGHT_STEP, applyEditorFontSize, applyFontLineHeight, applyFontSize, editorFontSize, fontLineHeight, fontSize, lineHeightPx } from "../ui/typography";
@@ -292,6 +292,16 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   const findHit = signal(0);
   // iPad 的「编辑 + 预览」同屏（对齐 Mac 的 split 模式），窄屏不提供。
   const previewSplit = signal(false);
+  // 收藏按路径存在本机（云盘是真相源，但不往里面塞额外文件，Mac 版还没有收藏）。
+  const favorites = signal<string[]>([]);
+  void loadSavedFavorites().then(list => favorites.set(list)).catch(() => {});
+  const isFavorite = (path: string) => favorites().includes(path);
+  const favoriteSet = () => Object.fromEntries(favorites().map(path => [path, true]));
+  const toggleFavorite = (path: string) => {
+    const next = isFavorite(path) ? favorites().filter(item => item !== path) : [...favorites(), path];
+    favorites.set(next);
+    void saveFavorites(next);
+  };
   // 大标题滚出屏幕后，用系统导航栏的小标题接住，和原生大标题收起一致。
   const libraryTitleCollapsed = signal(false);
   const selectedFolder = signal("");
@@ -490,7 +500,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     ios={ios ? { headerRightSystemItem: "compose" } : undefined}
     statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }} style={{ backgroundColor: ios ? mobileColors().list : mobileColors().paper }}>
     <LibraryPage library={lib} connected={props.connected} busy={busy()} ios={ios} wide={wide()}
-      selectedPath={() => lib.note()?.path ?? ""}
+      selectedPath={() => lib.note()?.path ?? ""} favorites={() => favoriteSet()}
       onOpen={openNote} onSync={sync} onSettings={() => show("settings")} settingsOpen={() => panel() === "settings"} settingsTap={props.settingsTap}
       tab={tab} onTab={next => tab.set(next)} folder={selectedFolder} onFolder={path => selectedFolder.set(path)}
       onNewNote={newNote} onNewFolder={() => { selectedFolder.set(""); input.set(""); show("folder"); }}
@@ -699,6 +709,8 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
                 <PanelRow id="mobile-rename" icon="pencil" title={t("rename.title")} onPress={() => { input.set(docTitle()); show("rename"); }} />
                 <PanelRow id="mobile-duplicate" icon="file-text" title={t("context.duplicate")} disabled={busy()} onPress={() => { void running(async () => { if (await lib.copy(t("context.duplicateSuffix"))) closePanel(); }); }} />
                 <PanelRow id="mobile-move" icon="folder" title={t("mobile.move")} disabled={busy()} onPress={() => { void running(async () => { await lib.refresh(); show("move"); }); }} />
+                <PanelRow id="mobile-favorite" icon="star" accent={isFavorite(lib.note()?.path ?? "")} title={isFavorite(lib.note()?.path ?? "") ? t("mobile.favoriteRemove") : t("mobile.favoriteAdd")}
+                  onPress={() => { if (lib.note()) toggleFavorite(lib.note()!.path); }} />
                 <PanelRow id="mobile-info" icon="info" title={t("info.stats")} onPress={() => show("info")} />
                 <PanelRow id="mobile-export" icon="cloud" title={t("mobile.export")} disabled={busy()} last onPress={exportFile} />
               </SettingsGroup>
@@ -766,6 +778,8 @@ function LibraryPage(props: {
   wide: boolean;
   /** 分栏里右栏正在看的笔记，列表里高亮它。 */
   selectedPath: () => string;
+  /** 收藏的路径集合：收藏 Tab 按它过滤。 */
+  favorites: () => Readonly<Record<string, boolean>>;
   onOpen: (path: string) => void;
   onSync: () => Promise<void>;
   onSettings: () => void;
@@ -792,6 +806,7 @@ function LibraryPage(props: {
   const allNotes = () => lib.entries().filter(e => !e.isDir && /\.(md|markdown)$/i.test(e.name))
     .map(e => ({ path: e.path, title: titleFromName(e.name.normalize("NFC")), mtimeMs: e.mtimeMs }))
     .sort((a, b) => b.mtimeMs - a.mtimeMs || a.path.localeCompare(b.path));
+  const favoriteNotes = () => allNotes().filter(note => props.favorites()[note.path]);
   const q = () => query().trim().normalize("NFC").toLowerCase();
   const results = () => {
     const text = q();
@@ -953,18 +968,17 @@ function LibraryPage(props: {
           <Text style={{ fontSize: 17, color: c.accent }}>{t("mobile.newFolder")}</Text>
         </Button> : null}
       </View> : <View>
-        <View testID="mobile-favorites-soon" style={{ marginTop: 2, marginBottom: 4, marginHorizontal: props.ios ? 16 : 0, paddingVertical: 10, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 14,
-          backgroundColor: c.list, borderWidth: 0.5, borderColor: c.thread }}>
-          <View style={{ height: 22, paddingHorizontal: 9, borderRadius: 999, alignItems: "center", justifyContent: "center", backgroundColor: c.accentSoft }}>
-            <Text style={{ fontSize: 11, fontWeight: 600, color: c.accent }}>{t("mobile.favoritesSoon")}</Text>
+        {favoriteNotes().length ? <View>
+          <View style={{ paddingTop: props.ios ? 6 : 16, paddingBottom: 6, paddingHorizontal: props.ios ? 16 : 0 }}>
+            <Text style={{ fontSize: 13, fontWeight: 400, color: c.ink2 }}>{t("mobile.favorites")}</Text>
           </View>
-          <Text style={{ flex: 1, fontSize: 12.5, fontWeight: 500, lineHeight: 17, color: c.ink2 }}>{t("mobile.favoritesHint")}</Text>
-        </View>
-        <View style={{ minHeight: 260, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 28, paddingVertical: 24 }}>
+          {favoriteNotes().map((note, index, list) =>
+            noteRow(note, snippetFor(note.path), props.onOpen, props.ios, index === list.length - 1, props.wide && note.path === props.selectedPath()))}
+        </View> : <View testID="mobile-favorites-empty" style={{ minHeight: 260, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 28, paddingVertical: 24 }}>
           <Icon name="star" color={c.ink3} size={40} />
           <Text style={{ marginTop: 6, fontSize: 17, fontWeight: 600, letterSpacing: -0.35, color: c.ink }}>{t("mobile.favoritesEmpty")}</Text>
           <Text style={{ maxWidth: 260, textAlign: "center", fontSize: 13.5, lineHeight: 20, fontWeight: 500, color: c.ink2 }}>{t("mobile.favoritesEmptyHint")}</Text>
-        </View>
+        </View>}
       </View>}
     </Scroll>
 

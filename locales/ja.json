@@ -287,10 +287,8 @@
   "mobile.pause": "一時停止",
   "mobile.resume": "再開",
   "mobile.searchResult": "{n} 件見つかりました",
-  "mobile.favoritesSoon": "近日公開",
-  "mobile.favoritesHint": "端末をまたぐお気に入り · Mac 版も追って対応",
-  "mobile.favoritesEmpty": "お気に入りは近日公開",
-  "mobile.favoritesEmptyHint": "保存したお気に入りがここに表示されます。",
+  "mobile.favoritesEmpty": "お気に入りはまだありません",
+  "mobile.favoritesEmptyHint": "ノートを開いて「•••」メニューの「お気に入り」を選びます。",
   "mobile.recentGroup": "最近",
   "mobile.words": "{n} 文字",
   "mobile.settingsLead": "外観、書体、クラウドアカウント。",
@@ -308,5 +306,7 @@
   "mobile.conflict.keepLocalHint": "この端末の版でクラウドを上書きします。クラウドの変更は競合コピーに残ります。",
   "mobile.conflict.keepRemoteHint": "クラウド版でこの端末を置き換えます。ローカルの変更は競合コピーに残ります。",
   "mobile.conflict.keepBothHint": "元のファイルと競合コピーの両方を残し、後で統合します。",
-  "mobile.typeSample": "書くことは、考えをゆっくり広げ、すべての文をあるべき場所へ置いていくこと。"
+  "mobile.typeSample": "書くことは、考えをゆっくり広げ、すべての文をあるべき場所へ置いていくこと。",
+  "mobile.favoriteAdd": "お気に入り",
+  "mobile.favoriteRemove": "お気に入りを解除"
 }

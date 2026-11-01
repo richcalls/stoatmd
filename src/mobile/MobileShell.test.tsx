@@ -130,8 +130,8 @@ test("iPhone: 库页三 Tab、文件树、搜索与阅读底栏工作", async ()
   await app.waitFor("id:mobile-note-随笔/untitled.md");
 
   await app.press("id:mobile-tab-favorites");
-  await app.waitFor("id:mobile-favorites-soon");
-  expect(app.texts().includes("即将推出")).toBe(true);
+  await app.waitFor("id:mobile-favorites-empty");
+  expect(app.texts().includes("还没有收藏的笔记")).toBe(true);
   expect(app.spanStyle("id:mobile-tab-favorites >> text:收藏").color).toBe("#1a1a1aff");
   expect(app.spanStyle("id:mobile-tab-recent >> text:最近").color).toBe("#6d6b65ff");
   expect(app.shows("id:mobile-note-随笔/untitled.md")).toBe(false);
@@ -171,4 +171,35 @@ test("iPhone: 库页三 Tab、文件树、搜索与阅读底栏工作", async ()
   await app.waitFor("id:mobile-source");
   expect(app.shows("id:mobile-read")).toBe(true);
   expect(app.shows("id:mobile-save-status")).toBe(true);
+}, 120_000);
+
+test("iPhone: 收藏的笔记出现在收藏 Tab，还能取消收藏", async () => {
+  const app = await open("./MobileShell.harness.tsx", phone);
+  await app.press("id:mobile-new-note");
+  await app.waitFor("id:mobile-source");
+  await app.paste("id:mobile-source", { text: "# 常看的笔记\n\n收藏成一条。" });
+  await app.waitUntil(() => app.texts().includes("已保存"));
+  await app.press("id:mobile-read");
+  await app.waitFor("id:mobile-preview");
+  await app.press("id:mobile-actions");
+  await app.waitFor("id:mobile-favorite");
+  await app.press("id:mobile-favorite");
+  expect(app.texts()).toContain("取消收藏");
+  expect(app.storage()["prefs.favorites"]).toContain("untitled.md");
+  await app.press("id:mobile-panel-done");
+  await app.back();
+  await app.waitFor("id:mobile-search");
+  await app.press("id:mobile-tab-favorites");
+  await app.waitFor("id:mobile-note-untitled.md");
+
+  // 打开收藏的笔记，取消收藏后收藏 Tab 回到空状态。
+  await app.press("id:mobile-note-untitled.md");
+  await app.waitFor("id:mobile-preview");
+  await app.press("id:mobile-actions");
+  await app.waitFor("id:mobile-favorite");
+  expect(app.texts()).toContain("取消收藏");
+  await app.press("id:mobile-favorite");
+  await app.press("id:mobile-panel-done");
+  await app.back();
+  await app.waitFor("id:mobile-favorites-empty");
 }, 120_000);

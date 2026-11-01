@@ -287,10 +287,8 @@
   "mobile.pause": "Pausieren",
   "mobile.resume": "Fortsetzen",
   "mobile.searchResult": "{n} Notizen gefunden",
-  "mobile.favoritesSoon": "Demnächst",
-  "mobile.favoritesHint": "Favoriten geräteübergreifend · Mac folgt bald",
-  "mobile.favoritesEmpty": "Favoriten kommen bald",
-  "mobile.favoritesEmptyHint": "Gespeicherte Favoriten erscheinen hier auf allen Geräten.",
+  "mobile.favoritesEmpty": "Noch keine Favoriten",
+  "mobile.favoritesEmptyHint": "Öffne eine Notiz und wähle im •••-Menü „Favorit“.",
   "mobile.recentGroup": "Zuletzt",
   "mobile.words": "{n} Zeichen",
   "mobile.settingsLead": "Aussehen, Schrift und dein Cloud-Konto.",
@@ -308,5 +306,7 @@
   "mobile.conflict.keepLocalHint": "Die Cloud mit dieser Geräteversion überschreiben. Cloud-Änderungen landen in einer Konfliktkopie.",
   "mobile.conflict.keepRemoteHint": "Dieses Gerät durch die Cloud-Version ersetzen. Lokale Änderungen landen in einer Konfliktkopie.",
   "mobile.conflict.keepBothHint": "Beide behalten: Original und Konfliktkopie, später zusammenführen.",
-  "mobile.typeSample": "Schreiben breitet einen Gedanken langsam aus, bis jeder Satz seinen Platz findet."
+  "mobile.typeSample": "Schreiben breitet einen Gedanken langsam aus, bis jeder Satz seinen Platz findet.",
+  "mobile.favoriteAdd": "Favorit",
+  "mobile.favoriteRemove": "Favorit entfernen"
 }

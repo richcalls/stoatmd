@@ -287,10 +287,8 @@
   "mobile.pause": "일시 중지",
   "mobile.resume": "계속",
   "mobile.searchResult": "{n}개 찾음",
-  "mobile.favoritesSoon": "곧 제공",
-  "mobile.favoritesHint": "기기 간 즐겨찾기 · Mac 버전도 곧",
-  "mobile.favoritesEmpty": "즐겨찾기가 곧 제공됩니다",
-  "mobile.favoritesEmptyHint": "저장한 즐겨찾기가 여기에 표시됩니다.",
+  "mobile.favoritesEmpty": "즐겨찾기한 노트가 없습니다",
+  "mobile.favoritesEmptyHint": "노트를 열고 ••• 메뉴에서 즐겨찾기를 선택하세요.",
   "mobile.recentGroup": "최근",
   "mobile.words": "{n}자",
   "mobile.settingsLead": "모양, 글꼴, 클라우드 계정.",
@@ -308,5 +306,7 @@
   "mobile.conflict.keepLocalHint": "이 기기 버전으로 클라우드를 덮어씁니다. 클라우드 변경은 충돌 사본에 남습니다.",
   "mobile.conflict.keepRemoteHint": "클라우드 버전으로 이 기기를 바꿉니다. 로컬 변경은 충돌 사본에 남습니다.",
   "mobile.conflict.keepBothHint": "원본과 충돌 사본을 모두 남겨 나중에 합칩니다.",
-  "mobile.typeSample": "글쓰기는 생각을 천천히 펼쳐, 모든 문장이 제자리를 찾게 하는 일입니다."
+  "mobile.typeSample": "글쓰기는 생각을 천천히 펼쳐, 모든 문장이 제자리를 찾게 하는 일입니다.",
+  "mobile.favoriteAdd": "즐겨찾기",
+  "mobile.favoriteRemove": "즐겨찾기 해제"
 }

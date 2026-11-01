@@ -43,7 +43,7 @@ Mac 侧仍保留本地免费 + 云盘买断与本地↔云盘迁移；iOS 边界
 
 1. **最近修改**（**默认**）— 最近改过的文件列表；无文件夹分区  
 2. **全部** — 可嵌套**文件树**（见 `11-file-tree`）；路径示意如 `Google Drive / StoatMD`  
-3. **收藏夹** — **未来功能**（Mac 未做）；稿含「即将推出」示例（见 `12-favorites`），Cream×Glass，非灰禁用
+3. **收藏夹** — 在笔记的「…」菜单里收藏/取消收藏；收藏按路径存在本机（`prefs.favorites`），不往云盘写额外文件，Mac 版还没有收藏。稿里的「即将推出」示例见 `12-favorites`，已被真实列表取代
 
 ### 底栏（真机 Grok Bot 式 · 分离浮起 Liquid Glass）
 
@@ -102,7 +102,7 @@ Mac 侧仍保留本地免费 + 云盘买断与本地↔云盘迁移；iOS 边界
 | [`03-library-paused.png`](03-library-paused.png) | 完整同步已暂停（可继续） |
 | [`03b-library-error.png`](03b-library-error.png) | 完整同步失败（可重试） |
 | [`11-file-tree.png`](11-file-tree.png) | 「全部」Tab · 可嵌套文件树 |
-| [`12-favorites.png`](12-favorites.png) | 「收藏夹」Tab · 即将推出示例 |
+| [`12-favorites.png`](12-favorites.png) | 「收藏夹」Tab · 即将推出示例（实现已改为真实列表） |
 
 ### 编辑 / 阅读
 
