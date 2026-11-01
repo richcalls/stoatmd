@@ -311,7 +311,12 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     if (await lib.createNote(folder)) { editing.set(true); if (!wide()) nav.push({ kind: "document" }); }
   }); };
   const openNote = (path: string) => { void running(async () => {
-    if (await lib.openNote(path)) { finding.set(false); findText.set(""); findHit.set(0); editing.set(false); if (!wide()) nav.push({ kind: "document" }); }
+    if (await lib.openNote(path)) {
+      finding.set(false); findText.set(""); findHit.set(0);
+      // 分屏预览里换笔记：留在编辑态，别把用户踢回阅读。
+      if (!(wide() && previewSplit())) editing.set(false);
+      if (!wide()) nav.push({ kind: "document" });
+    }
   }); };
   const back = () => { void running(async () => {
     if (await lib.flush()) { Keyboard.dismiss(); await lib.refresh(); nav.pop(); }
