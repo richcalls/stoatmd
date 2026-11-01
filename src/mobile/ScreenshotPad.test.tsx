@@ -30,4 +30,11 @@ test("iPad 竖屏：仍然是两栏", async () => {
   await app.press("id:mobile-note-开始使用.md");
   await app.waitFor("id:mobile-preview");
   await app.screenshot("screenshots/ios-raw/ipad-03-portrait.png");
+
+  // 分栏里换笔记：右栏内容跟着换，左栏不跳走。
+  await app.press("id:mobile-note-工作/项目计划.md");
+  await new Promise(resolve => setTimeout(resolve, 400));
+  expect(app.shows("id:mobile-note-开始使用.md")).toBe(true);
+  expect(app.shows("id:mobile-split-detail")).toBe(true);
+  await app.screenshot("screenshots/ios-raw/ipad-04-switch.png");
 }, 120_000);

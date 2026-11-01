@@ -430,6 +430,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     ios={ios ? { headerRightSystemItem: "compose" } : undefined}
     statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }} style={{ backgroundColor: ios ? mobileColors().list : mobileColors().paper }}>
     <LibraryPage library={lib} connected={props.connected} busy={busy()} ios={ios} wide={wide()}
+      selectedPath={() => lib.note()?.path ?? ""}
       onOpen={openNote} onSync={sync} onSettings={() => show("settings")} settingsOpen={() => panel() === "settings"} settingsTap={props.settingsTap}
       tab={tab} onTab={next => tab.set(next)} folder={selectedFolder} onFolder={path => selectedFolder.set(path)}
       onNewNote={newNote} onNewFolder={() => { selectedFolder.set(""); input.set(""); show("folder"); }}
@@ -673,6 +674,8 @@ function LibraryPage(props: {
   ios: boolean;
   /** 分栏（iPad）：底栏换成列表上方的分段 tab，设置挪到同一行的齿轮。 */
   wide: boolean;
+  /** 分栏里右栏正在看的笔记，列表里高亮它。 */
+  selectedPath: () => string;
   onOpen: (path: string) => void;
   onSync: () => Promise<void>;
   onSettings: () => void;
@@ -805,7 +808,7 @@ function LibraryPage(props: {
 
       {q() ? <View>
         <View>
-          {results().map((note, index) => noteRow(note, snippetFor(note.path), props.onOpen, props.ios, index === results().length - 1))}
+          {results().map((note, index) => noteRow(note, snippetFor(note.path), props.onOpen, props.ios, index === results().length - 1, props.wide && note.path === props.selectedPath()))}
         </View>
         {!results().length && !search.pending() ? <Text style={{ paddingVertical: 40, textAlign: "center", color: c.ink3, fontSize: 15 }}>{t("search.empty")}</Text> : null}
         {search.pending() ? <Text style={{ paddingVertical: 20, textAlign: "center", color: c.ink3 }}>{t("mobile.searching")}</Text> : null}
@@ -814,7 +817,7 @@ function LibraryPage(props: {
           <Text style={{ fontSize: 13, fontWeight: 400, color: c.ink2 }}>{t("mobile.recentGroup")}</Text>
         </View>
         <View>
-          {allNotes().slice(0, 40).map((note, index) => noteRow(note, snippetFor(note.path), props.onOpen, props.ios, index === Math.min(allNotes().length, 40) - 1))}
+          {allNotes().slice(0, 40).map((note, index) => noteRow(note, snippetFor(note.path), props.onOpen, props.ios, index === Math.min(allNotes().length, 40) - 1, props.wide && note.path === props.selectedPath()))}
         </View>
         {!allNotes().length ? emptyNotes() : null}
       </View> : props.tab() === "all" ? <View style={{ paddingTop: props.ios ? 2 : 6 }}>
@@ -840,7 +843,7 @@ function LibraryPage(props: {
         </Button> : <Button testID={`mobile-note-${row.path}`} disabled={props.busy}
           onPress={() => { Keyboard.dismiss(); props.onOpen(row.path); }}
           style={{ minHeight: props.ios ? 48 : 40, paddingHorizontal: props.ios ? 16 : undefined, paddingLeft: row.depth * 18 + (props.ios ? 16 : 0), paddingRight: 16, flexDirection: "row", alignItems: "center", gap: 8,
-            backgroundColor: props.ios ? c.list : "transparent", borderBottomWidth: props.ios ? 0 : 0.5, borderBottomColor: c.thread }}>
+            backgroundColor: row.path === props.selectedPath() ? c.accentSoft : props.ios ? c.list : "transparent", borderBottomWidth: props.ios ? 0 : 0.5, borderBottomColor: c.thread }}>
           <View style={{ width: 22, height: 22 }} />
           <View style={{ width: 26, height: 26, borderRadius: 7, alignItems: "center", justifyContent: "center", backgroundColor: c.searchBg }}>
             <Icon name="file-text" color={c.ink2} size={14} />
@@ -917,14 +920,14 @@ function LibraryNav(props: { connected: boolean; statusVisible: boolean; onSetti
   </View>;
 }
 
-function noteRow(note: { path: string; title: string; mtimeMs: number }, snippet: string, onOpen: (path: string) => void, ios = false, last = false) {
+function noteRow(note: { path: string; title: string; mtimeMs: number }, snippet: string, onOpen: (path: string) => void, ios = false, last = false, selected = false) {
   const c = mobileColors();
   const folder = note.path.includes("/") ? note.path.split("/").slice(0, -1).join(" / ") : "";
   const secondary = snippet || folder;
   return <View>
     <Button testID={`mobile-note-${note.path}`} onPress={() => { Keyboard.dismiss(); onOpen(note.path); }}
       style={{ minHeight: ios ? 64 : 58, paddingVertical: 10, paddingHorizontal: ios ? 16 : 4, gap: 3,
-        backgroundColor: ios ? c.list : "transparent", borderBottomWidth: ios ? 0 : 0.5, borderBottomColor: c.thread }}>
+        backgroundColor: selected ? c.accentSoft : ios ? c.list : "transparent", borderBottomWidth: ios ? 0 : 0.5, borderBottomColor: c.thread }}>
       <Text numberOfLines={1} style={{ fontSize: ios ? 17 : 16, fontWeight: ios ? 600 : 590, letterSpacing: ios ? -0.2 : -0.25, color: c.ink }}>{note.title}</Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <Text numberOfLines={1} style={{ flex: 1, fontSize: ios ? 15 : 12, color: c.ink2 }}>{secondary}</Text>
