@@ -97,5 +97,5 @@ for (let index = 1; index <= 20; index += 1) {
 }
 
 void Promise.all([restoreLocale(), restoreTheme(), restoreTypography()]).then(() => {
-  mount(() => <MobileShell library={mobileLibrary(memory.vault)} />);
+  mount(() => <MobileShell library={mobileLibrary(memory.vault)} settingsTap />);
 });

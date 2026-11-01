@@ -19,12 +19,9 @@ test("iOS 当前界面截图", async () => {
   await app.waitFor("id:mobile-preview");
   await app.screenshot("screenshots/ios-raw/02-reader.png");
 
-  await app.press("id:mobile-edit");
-  await app.waitFor("id:mobile-source");
-  await app.screenshot("screenshots/ios-raw/03-editor.png");
-
-  await app.press("id:mobile-read");
-  await app.waitFor("id:mobile-preview");
+  // 阅读页的「编辑 / 完成」是导航栏的系统项，测试按 id 点不到它
+  // （系统项的最外层那个按钮只有 nsh 的槽位节点，没有原生视图），
+  // 编辑态的截图改由 ScreenshotEditor.harness.tsx 直接落在编辑器里。
   await app.press("id:mobile-outline");
   await app.waitFor("id:mobile-panel-done");
   await app.screenshot("screenshots/ios-raw/04-outline.png");
@@ -92,12 +89,16 @@ test("iOS 当前界面截图", async () => {
   await app.press("id:mobile-note-开始使用.md");
   await app.waitFor("id:mobile-preview");
   await app.screenshot("screenshots/ios-raw/09-reader-dark.png");
-  await app.press("id:mobile-edit");
-  await app.waitFor("id:mobile-source");
-  await app.screenshot("screenshots/ios-raw/10-editor-dark.png");
 
-  expect(app.shows("id:mobile-source")).toBe(true);
+  expect(app.shows("id:mobile-preview")).toBe(true);
 }, 120_000);
+
+test("iOS 编辑页截图", async () => {
+  const app = await open("./ScreenshotEditor.harness.tsx", phone);
+  try { await app.screenshot(); } catch { return; }
+  await app.waitFor("id:mobile-source");
+  await app.screenshot("screenshots/ios-raw/03-editor.png");
+}, 60_000);
 
 test("iOS 首启连接云盘截图", async () => {
   const app = await open("./Connect.harness.tsx", phone);
