@@ -74,8 +74,16 @@ def prepare(app, env, work):
         "DTCompiler": "com.apple.compilers.llvm.clang.1_0",
         "BuildMachineOSBuild": run("sw_vers", "-buildVersion", capture_output=True, text=True).stdout.strip(),
     })
-    info["UIDeviceFamily"] = [1]
+    # iPad 与 iPhone 共用一套窗口布局（宽度 >= 760pt 走两栏），发布包必须声明
+    # universal，否则 iPad 只会以 iPhone 兼容模式运行，看不到分栏。
+    info["UIDeviceFamily"] = [1, 2]
     info["UISupportedInterfaceOrientations"] = ["UIInterfaceOrientationPortrait"]
+    info["UISupportedInterfaceOrientations~ipad"] = [
+        "UIInterfaceOrientationPortrait",
+        "UIInterfaceOrientationPortraitUpsideDown",
+        "UIInterfaceOrientationLandscapeLeft",
+        "UIInterfaceOrientationLandscapeRight",
+    ]
     info.setdefault("UILaunchScreen", {})
     catalog = work / "Assets.xcassets"
     iconset = catalog / "AppIcon.appiconset"
@@ -88,7 +96,7 @@ def prepare(app, env, work):
     partial = work / "asset-info.plist"
     run("xcrun", "actool", catalog, "--compile", app, "--platform", "iphoneos",
         "--minimum-deployment-target", info.get("MinimumOSVersion", "16.0"),
-        "--target-device", "iphone", "--app-icon", "AppIcon",
+        "--target-device", "iphone", "--target-device", "ipad", "--app-icon", "AppIcon",
         "--output-partial-info-plist", partial)
     info.update(plistlib.loads(partial.read_bytes()))
     plist_path.write_bytes(plistlib.dumps(info))
