@@ -847,10 +847,12 @@ function LibraryPage(props: {
   const pulling = signal(false);
   const titleCollapsed = signal(false);
   const search = librarySearch(() => lib.vault, query, lib.entries);
-  const allNotes = () => lib.entries().filter(e => !e.isDir && /\.(md|markdown)$/i.test(e.name))
+  // 缓存派生列表：切 tab 时列表会整体重绘，tree() 又在每行里被调用，
+  // 缓存后大库不会因为反复排序 / 平铺而卡顿。
+  const allNotes = computed(() => lib.entries().filter(e => !e.isDir && /\.(md|markdown)$/i.test(e.name))
     .map(e => ({ path: e.path, title: titleFromName(e.name.normalize("NFC")), mtimeMs: e.mtimeMs }))
-    .sort((a, b) => b.mtimeMs - a.mtimeMs || a.path.localeCompare(b.path));
-  const favoriteNotes = () => allNotes().filter(note => props.favorites()[note.path]);
+    .sort((a, b) => b.mtimeMs - a.mtimeMs || a.path.localeCompare(b.path)));
+  const favoriteNotes = computed(() => allNotes().filter(note => props.favorites()[note.path]));
   const q = () => query().trim().normalize("NFC").toLowerCase();
   const results = () => {
     const text = q();
@@ -861,7 +863,7 @@ function LibraryPage(props: {
     for (const path of search.matches()) paths.add(path);
     return Array.from(paths).map(path => known.get(path)).filter(Boolean) as ReturnType<typeof allNotes>;
   };
-  const tree = () => flattenTree(lib.entries(), expanded());
+  const tree = computed(() => flattenTree(lib.entries(), expanded()));
   // 同一时间只滑开一行；点别的行或再点自己都会收回去。
   const swipeOpen = signal("");
   const swipe = { open: () => swipeOpen(), setOpen: (path: string) => swipeOpen.set(path), close: () => swipeOpen.set(""), onRecycle: props.onRecycle };
