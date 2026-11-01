@@ -8,7 +8,10 @@ export type SyncStatus = {
   percent: number;
 };
 
-function errorKey(kind: SyncErrorKind): string {
+function errorKey(kind: SyncErrorKind, message: string): string {
+  // 云盘限流 / 超时 / 5xx 都不是「设备没网」，别把它们都说成网络不可用。
+  if (kind === "network" && /^HTTP 429\b/.test(message)) return "sync.error.rateLimited";
+  if (kind === "network" && (/^HTTP 5\d\d\b/.test(message) || /timed out/.test(message))) return "sync.error.remote";
   if (kind === "network") return "sync.error.network";
   if (kind === "auth") return "sync.error.auth";
   if (kind === "config") return "sync.error.config";
@@ -38,7 +41,7 @@ export function syncStatus(
     return { kind: "progress", key: "mobile.syncProgress", params, percent: percentOf(progress) };
   }
   if ((phase === "offline" || phase === "error") && error) {
-    return { kind: "error", key: errorKey(error.kind), percent: percentOf(progress) };
+    return { kind: "error", key: errorKey(error.kind, error.message), percent: percentOf(progress) };
   }
   return null;
 }

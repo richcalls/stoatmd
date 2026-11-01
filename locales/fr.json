@@ -43,6 +43,8 @@
   "sync.manageConflicts": "Résoudre les conflits",
   "sync.firstSync": "Première synchronisation…",
   "sync.error.network": "Réseau indisponible. L’édition locale continue ; la synchronisation réessaiera automatiquement.",
+  "sync.error.rateLimited": "Le stockage cloud limite les requêtes. La synchronisation réessaiera automatiquement ; l’édition locale continue.",
+  "sync.error.remote": "Le stockage cloud ne répond pas. La synchronisation réessaiera automatiquement ; l’édition locale continue.",
   "sync.error.connectNetwork": "Impossible de joindre le service cloud. Vérifiez votre connexion réseau et réessayez.",
   "sync.error.auth": "Autorisation expirée. Reconnectez le drive.",
   "sync.error.config": "Les identifiants du client cloud sont absents. Terminez d’abord la configuration développeur.",
