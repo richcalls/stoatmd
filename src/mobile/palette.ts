@@ -19,7 +19,7 @@ export type MobileTheme = {
   art: { paper: string; ink: string; muted: string; accent: string; code: string };
 };
 
-/** 纸面保留一点暖意，界面其余颜色对齐 iOS 系统语义色。 */
+/** 浅色界面直接采用 iOS 系统语义色，不做自绘配色。 */
 const PAPER: MobileTheme = {
   id: "paper",
   name: "Paper",
