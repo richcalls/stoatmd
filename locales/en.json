@@ -308,5 +308,7 @@
   "mobile.conflict.keepBothHint": "Keep both the original and a conflict copy to merge later.",
   "mobile.typeSample": "Writing unfolds an idea slowly, until every sentence settles where it belongs.",
   "mobile.favoriteAdd": "Favorite",
-  "mobile.favoriteRemove": "Remove Favorite"
+  "mobile.favoriteRemove": "Remove Favorite",
+  "mobile.showLibrary": "Show Library",
+  "mobile.hideLibrary": "Hide Library"
 }

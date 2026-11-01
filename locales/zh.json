@@ -308,5 +308,7 @@
   "mobile.conflict.keepBothHint": "保留两份：原文件与冲突副本，由你稍后合并。",
   "mobile.typeSample": "写作是把想法慢慢摊开，让每一句都落在该落的位置。",
   "mobile.favoriteAdd": "收藏",
-  "mobile.favoriteRemove": "取消收藏"
+  "mobile.favoriteRemove": "取消收藏",
+  "mobile.showLibrary": "显示笔记库",
+  "mobile.hideLibrary": "隐藏笔记库"
 }

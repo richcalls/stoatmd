@@ -308,5 +308,7 @@
   "mobile.conflict.keepBothHint": "Beide behalten: Original und Konfliktkopie, später zusammenführen.",
   "mobile.typeSample": "Schreiben breitet einen Gedanken langsam aus, bis jeder Satz seinen Platz findet.",
   "mobile.favoriteAdd": "Favorit",
-  "mobile.favoriteRemove": "Favorit entfernen"
+  "mobile.favoriteRemove": "Favorit entfernen",
+  "mobile.showLibrary": "Bibliothek einblenden",
+  "mobile.hideLibrary": "Bibliothek ausblenden"
 }

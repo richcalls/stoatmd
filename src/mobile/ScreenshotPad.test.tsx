@@ -71,6 +71,15 @@ test("iPad 横屏：左库右文两栏", async () => {
   expect(app.shows("id:mobile-doc-split")).toBe(false);
   expect(app.shows("id:mobile-source")).toBe(false);
   expect(app.shows("id:mobile-preview")).toBe(true);
+
+  // 收起左栏（阅读页底栏的侧栏按钮 / ⌘B），文档拿整幅宽度。
+  await app.press("id:mobile-toggle-library");
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(app.shows("id:mobile-split")).toBe(false);
+  expect(app.shows("id:mobile-split-detail")).toBe(true);
+  await app.screenshot("screenshots/ios-raw/ipad-07-collapsed.png");
+  await app.keyboard.press("mod+b");
+  await app.waitFor("id:mobile-split");
 }, 120_000);
 
 test("iPad 竖屏：仍然是两栏", async () => {

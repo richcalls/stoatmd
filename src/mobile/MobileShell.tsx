@@ -292,6 +292,9 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   const findHit = signal(0);
   // iPad 的「编辑 + 预览」同屏（对齐 Mac 的 split 模式），窄屏不提供。
   const previewSplit = signal(false);
+  // iPad 左栏可以收起（⌘B / 阅读页底栏的侧栏按钮），给文档腾出整幅宽度。
+  const libraryCollapsed = signal(false);
+  const toggleLibrary = () => { if (!wide()) return; Keyboard.dismiss(); libraryCollapsed.set(!libraryCollapsed()); };
   // 收藏按路径存在本机（云盘是真相源，但不往里面塞额外文件，Mac 版还没有收藏）。
   const favorites = signal<string[]>([]);
   void loadSavedFavorites().then(list => favorites.set(list)).catch(() => {});
@@ -389,6 +392,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   });
   // iPad 外接键盘：对齐 Mac 的几个常用快捷键（新笔记 / 设置 / 编辑↔阅读）。
   keymap.bind("mod+n", () => { if (!busy()) newNote(selectedFolder()); }, { when: "always" });
+  keymap.bind("mod+b", () => toggleLibrary(), { when: "always" });
   keymap.bind("mod+,", () => show("settings"), { when: "always" });
   keymap.bind("mod+1", () => { if (lib.note()) { finding.set(false); previewSplit.set(false); editing.set(true); } }, { when: "always" });
   keymap.bind("mod+2", () => { if (lib.note() && wide()) { finding.set(false); previewSplit.set(true); editing.set(true); } }, { when: "always" });
@@ -528,6 +532,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     {dock ? <ReaderDock content={lib.note()?.content ?? ""} bottom={bottom().bottom}
       onOutline={() => show("outline")} onType={() => show("type")} onFind={openFind}
       onSplit={ios && wide() ? () => { finding.set(false); previewSplit.set(true); editing.set(true); } : undefined}
+      onToggleLibrary={ios && wide() ? toggleLibrary : undefined} sidebarOpen={!libraryCollapsed()}
       onActions={ios ? () => show("actions") : undefined} /> : null}
   </View>;
 
@@ -570,20 +575,28 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     </View>
   </NavPageI>;
 
+  const emptyDetail = () => <View testID="mobile-empty-detail" style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: mobileColors().preview }}>
+    <Icon name="file-text" color={mobileColors().ink3} size={40} />
+    <Text style={{ fontSize: 15, color: mobileColors().ink3 }}>{t("mobile.selectNote")}</Text>
+    {libraryCollapsed() ? <Button testID="mobile-show-library" accessibilityLabel={t("mobile.showLibrary")} onPress={toggleLibrary}
+      style={{ marginTop: 4, height: 38, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 7, ...glassStyle(999) }}>
+      <Icon name="sidebar" color={mobileColors().accent} size={17} />
+      <Text style={{ fontSize: 15, color: mobileColors().accent }}>{t("mobile.showLibrary")}</Text>
+    </Button> : null}
+  </View>;
+  const detailPane = () => <View testID="mobile-split-detail" style={{ flex: 1 }}>
+    {lib.note() ? <NavStack state={detailNav} style={{ flex: 1 }}>{() => documentPage(wide())}</NavStack> : emptyDetail()}
+  </View>;
+
   return <View style={{ flex: 1, backgroundColor: mobileColors().paper }}>
-    {wide()
+    {wide() && libraryCollapsed()
+      ? detailPane()
+      : wide()
       ? <View testID="mobile-split" style={{ flex: 1, flexDirection: "row" }}>
         <View testID="mobile-split-library" style={{ width: 340, borderRightWidth: 1, borderRightColor: mobileColors().thread }}>
           <NavStack state={nav} style={{ flex: 1 }}>{() => libraryPage()}</NavStack>
         </View>
-        <View testID="mobile-split-detail" style={{ flex: 1 }}>
-          {lib.note()
-            ? <NavStack state={detailNav} style={{ flex: 1 }}>{() => documentPage(true)}</NavStack>
-            : <View testID="mobile-empty-detail" style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: mobileColors().preview }}>
-              <Icon name="file-text" color={mobileColors().ink3} size={40} />
-              <Text style={{ fontSize: 15, color: mobileColors().ink3 }}>{t("mobile.selectNote")}</Text>
-            </View>}
-        </View>
+        {detailPane()}
       </View>
       : <NavStack state={nav} testID="mobile-navigation" style={{ flex: 1 }}>
         {(route) => route.kind === "library" ? libraryPage() : documentPage(false)}
@@ -1064,7 +1077,7 @@ function InfoRow(props: { label: string; value: string; last?: boolean }) {
   </View>;
 }
 
-function ReaderDock(props: { content: string; bottom: number; onOutline: () => void; onType: () => void; onFind?: () => void; onSplit?: () => void; onActions?: () => void }) {
+function ReaderDock(props: { content: string; bottom: number; onOutline: () => void; onType: () => void; onFind?: () => void; onSplit?: () => void; onToggleLibrary?: () => void; sidebarOpen?: boolean; onActions?: () => void }) {
   const c = mobileColors();
   const words = () => articleModel(props.content).stats.chars;
   return <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0,
@@ -1086,6 +1099,11 @@ function ReaderDock(props: { content: string; bottom: number; onOutline: () => v
       {props.onSplit ? <Button testID="mobile-split-preview" accessibilityLabel={t("mode.split")} onPress={props.onSplit}
         style={{ width: 48, height: 44, alignItems: "center", justifyContent: "center" }}>
         <Icon name="split" color={c.accent} size={20} />
+      </Button> : null}
+      {/* iPad：收起 / 展开左边笔记库，和 Mac 的 ⌘B 一样。 */}
+      {props.onToggleLibrary ? <Button testID="mobile-toggle-library" accessibilityLabel={t(props.sidebarOpen ? "mobile.hideLibrary" : "mobile.showLibrary")}
+        onPress={props.onToggleLibrary} style={{ width: 48, height: 44, alignItems: "center", justifyContent: "center" }}>
+        <Icon name="sidebar" color={props.sidebarOpen ? c.accent : c.ink3} size={20} />
       </Button> : null}
       {/* iOS 的导航栏右侧让给了「编辑 / 完成」，笔记的次要操作（重命名、复制、移动、
           导出、删除）落在这里，跟 Apple Notes 一样把文稿操作放在底部工具条上。 */}

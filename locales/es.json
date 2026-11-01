@@ -308,5 +308,7 @@
   "mobile.conflict.keepBothHint": "Conservar ambos: el original y una copia de conflicto para unir después.",
   "mobile.typeSample": "Escribir despliega una idea despacio, hasta que cada frase encuentra su lugar.",
   "mobile.favoriteAdd": "Favorito",
-  "mobile.favoriteRemove": "Quitar de favoritos"
+  "mobile.favoriteRemove": "Quitar de favoritos",
+  "mobile.showLibrary": "Mostrar biblioteca",
+  "mobile.hideLibrary": "Ocultar biblioteca"
 }
