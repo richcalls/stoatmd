@@ -249,6 +249,7 @@
   "mobile.read": "Read",
   "mobile.actions": "More",
   "mobile.writeHint": "Start writing in Markdown…",
+  "mobile.selectNote": "Select a note",
   "mobile.emptyHint": "Create a note to start writing.",
   "mobile.loading": "Opening your library…",
   "mobile.searching": "Searching…",

@@ -249,6 +249,7 @@
   "mobile.read": "読む",
   "mobile.actions": "その他",
   "mobile.writeHint": "Markdownで書き始める…",
+  "mobile.selectNote": "ノートを選択",
   "mobile.emptyHint": "ノートを作成して書き始めましょう。",
   "mobile.loading": "ライブラリを開いています…",
   "mobile.searching": "検索中…",

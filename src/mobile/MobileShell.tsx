@@ -1,4 +1,4 @@
-import { Keyboard, List, Scroll, Text, View, cleanup, computed, effect, keyboardFrame, platform, safeAreaInsets, signal, type JSX, type YNode } from "nsh";
+import { Keyboard, List, Scroll, Text, View, cleanup, computed, effect, keyboardFrame, platform, safeAreaInsets, signal, windowSize, type JSX, type YNode } from "nsh";
 import { Button, Dialog, Input, NavPage, NavStack, TextView, createNavStack } from "nsh/base";
 import { InputAccessoryView, TabBar } from "nsh/mobile";
 import { MobileFiles, Vault } from "stoatmd/native";
@@ -25,6 +25,14 @@ import { syncStatus } from "./syncStatus";
 type Route = { kind: "library" } | { kind: "document" };
 type Panel = "settings" | "storage" | "outline" | "type" | "actions" | "rename" | "folder" | "move" | "trash" | "erase" | "cloudConflicts" | null;
 type Tab = "recent" | "all" | "favorites";
+
+/**
+ * `NavPage` 的 `ios` 补充项（`headerRightSystemItem`）已实现但没写进 `NavPageProps`，
+ * 所以这里补个类型，用**普通属性**传，而不是 `{...{ ios }}` spread：
+ * spread 的对象是挂载时算好的一份死值，编辑态切换时系统栏按钮不会跟着从 Edit 变成 Done。
+ */
+type NavPageProps = Parameters<typeof NavPage>[0];
+const NavPageI = NavPage as unknown as (props: NavPageProps & { ios?: { headerRightSystemItem?: "done" | "edit" | "compose" } }) => ReturnType<typeof NavPage>;
 
 /** 顶栏 / 底栏 / 搜索 / 同步条 / sheet 共用的 Liquid Glass 材质。 */
 function glassStyle(radius = 999) {
@@ -262,6 +270,11 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   const lib = props.library;
   const ios = props.nativeChrome && platform.os === "ios";
   const nav = createNavStack<Route>(lib.note() ? [{ kind: "library" }, { kind: "document" }] : [{ kind: "library" }]);
+  // 宽屏（iPad 横屏 / 12.9 寸竖屏）走两栏：左边库、右边文档；窄屏仍是推入式导航。
+  // 760pt 是 iPad 分栏的常用断点，11 寸竖屏（834）也落在宽屏这一侧，和多任务窄窗（≤ 700）分开。
+  const wide = () => windowSize().width >= 760;
+  /** 右栏自己的导航栈：文档页在两个栈里复用，靠这个栈撑住 NavPage。 */
+  const detailNav = createNavStack<Route>([{ kind: "document" }]);
   const panel = signal<Panel>(null);
   // Keep the native modal mounted when navigating between sheet contents.
   const panelOpen = computed(() => panel() !== null);
@@ -288,10 +301,10 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   };
   const show = (next: Panel) => { Keyboard.dismiss(); operationError.set(""); panel.set(next); };
   const newNote = (folder: string) => { void running(async () => {
-    if (await lib.createNote(folder)) { editing.set(true); nav.push({ kind: "document" }); }
+    if (await lib.createNote(folder)) { editing.set(true); if (!wide()) nav.push({ kind: "document" }); }
   }); };
   const openNote = (path: string) => { void running(async () => {
-    if (await lib.openNote(path)) { editing.set(false); nav.push({ kind: "document" }); }
+    if (await lib.openNote(path)) { editing.set(false); if (!wide()) nav.push({ kind: "document" }); }
   }); };
   const back = () => { void running(async () => {
     if (await lib.flush()) { Keyboard.dismiss(); await lib.refresh(); nav.pop(); }
@@ -406,70 +419,89 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
 
   const moveFolders = () => [{ path: "", name: t("mobile.library") }, ...lib.entries().filter(entry => entry.isDir)];
 
-  return <View style={{ flex: 1, backgroundColor: mobileColors().paper }}>
-    <NavStack state={nav} testID="mobile-navigation" style={{ flex: 1 }}>
-      {(route) => route.kind === "library" ? <NavPage testID="mobile-library-page"
-        headerVisible={ios} title={ios ? (libraryTitleCollapsed() ? (tab() === "favorites" ? t("mobile.favorites") : t("mobile.library")) : "") : undefined}
-        header={ios ? undefined : <LibraryNav connected={props.connected} statusVisible={!!syncStatus(syncRuntime.phase(), syncRuntime.progress(), syncRuntime.error())} onSettings={() => { Keyboard.dismiss(); show("settings"); }}
-          onSync={() => { void sync().catch(err => lib.error.set(String(err))); }}
-          onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
-          onRetry={() => { void sync().catch(err => lib.error.set(String(err))); }} />}
-        headerRight={ios ? <Button testID="mobile-new-note" accessibilityLabel={t("note.new")} disabled={busy()}
-          onPress={() => newNote(selectedFolder())} style={{ width: 1, height: 1, opacity: 0 }}><Text> </Text></Button> : undefined}
-        {...(ios ? { ios: { headerRightSystemItem: "compose" as const } } : {})}
-        statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }} style={{ backgroundColor: ios ? mobileColors().list : mobileColors().paper }}>
-        <LibraryPage library={lib} connected={props.connected} busy={busy()} ios={ios}
-          onOpen={openNote} onSync={sync} onSettings={() => show("settings")} settingsOpen={() => panel() === "settings"} settingsTap={props.settingsTap}
-          tab={tab} onTab={next => tab.set(next)} folder={selectedFolder} onFolder={path => selectedFolder.set(path)}
-          onNewNote={newNote} onNewFolder={() => { selectedFolder.set(""); input.set(""); show("folder"); }}
-          onTitleCollapsed={collapsed => libraryTitleCollapsed.set(collapsed)}
-          error={errorBanner()} conflict={conflictBanner()} />
-      </NavPage> : <NavPage testID="mobile-document-page" headerVisible={ios}
-        title={ios ? docTitle() : undefined} headerBackVisible={ios} headerTransparent={false}
-        headerRight={ios ? docToolbar() : undefined}
-        {...(ios ? { ios: { headerRightSystemItem: (editing() ? "done" : "edit") as "done" | "edit" } } : {})}
-        popOnBack={ios} popOnSwipe={ios}
-        onBackPress={() => { if (ios) { Keyboard.dismiss(); void lib.flush(); } else back(); }}
-        onDismiss={() => { void running(async () => { await lib.flush(); await lib.refresh(); }); }}
-        statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }} style={{ backgroundColor: mobileColors().editor }}>
-        <View style={{ flex: 1, paddingBottom: keyboardFrame().height }}>
-          {!ios ? docNav() : null}
-          {lib.recovered() ? <View testID="mobile-recovered" style={{ marginTop: ios ? 8 : 52 + bottom().top, padding: 12, backgroundColor: mobileColors().accentSoft }}><Text style={{ color: mobileColors().ink }}>{t("mobile.recovered")}</Text></View> : null}
-          {conflictBanner()}
-          {errorBanner()}
-          {editing() ? <Input ref={(node) => { editor = node; selected = { start: 0, end: 0 }; }}
-            testID="mobile-source" readonly={busy()} value={lib.note()?.content ?? ""} multiline autoCorrect={false} autoCapitalize="none"
-            placeholder={t("mobile.writeHint")} onChange={lib.edit} onSelectionChange={range => { selected = range; }}
-            ios={{ inputAccessoryViewID: "markdown-tools", keyboardAppearance: mobileIsDark() ? "dark" : "light" }}
-            style={{ flex: 1, paddingTop: ios ? 14 : 66 + bottom().top, paddingHorizontal: 20, paddingBottom: 14, color: mobileColors().ink, backgroundColor: mobileColors().editor,
-              fontSize: editorFontSize() + 2, lineHeight: Math.round((editorFontSize() + 2) * 1.7), letterSpacing: 0.1 }} /> :
-            <View style={{ flex: 1 }}>
-              <List ref={node => { reader = node; }} testID="mobile-preview" each={model().blocks} estimatedItemSize={model().estimatedItemSize}
-                contentStyle={{ paddingHorizontal: 24, paddingTop: ios ? 10 : 70 + bottom().top, paddingBottom: 104 + bottom().bottom }} style={{ flex: 1, backgroundColor: mobileColors().preview }}>
-                {(block, index) => <View style={{ paddingTop: previewGap(index() > 0 ? model().blocks[index() - 1] : undefined, block(), fontSize() / 15) }}>
-                  <TextView document={{ blocks: [displayBlock(block(), renderMode())] }} selectable links="open" onLinkPress={event => onLink(event.url)} styles={readerStyles()} />
-                </View>}
-              </List>
-              <ReaderDock content={lib.note()?.content ?? ""} bottom={bottom().bottom}
-                onOutline={() => show("outline")} onType={() => show("type")}
-                onActions={ios ? () => show("actions") : undefined} />
+  const libraryPage = () => <NavPageI testID="mobile-library-page"
+    headerVisible={ios} title={ios ? (libraryTitleCollapsed() ? (tab() === "favorites" ? t("mobile.favorites") : t("mobile.library")) : "") : undefined}
+    header={ios ? undefined : <LibraryNav connected={props.connected} statusVisible={!!syncStatus(syncRuntime.phase(), syncRuntime.progress(), syncRuntime.error())} onSettings={() => { Keyboard.dismiss(); show("settings"); }}
+      onSync={() => { void sync().catch(err => lib.error.set(String(err))); }}
+      onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
+      onRetry={() => { void sync().catch(err => lib.error.set(String(err))); }} />}
+    headerRight={ios ? <Button testID="mobile-new-note" accessibilityLabel={t("note.new")} disabled={busy()}
+      onPress={() => newNote(selectedFolder())} style={{ width: 1, height: 1, opacity: 0 }}><Text> </Text></Button> : undefined}
+    ios={ios ? { headerRightSystemItem: "compose" } : undefined}
+    statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }} style={{ backgroundColor: ios ? mobileColors().list : mobileColors().paper }}>
+    <LibraryPage library={lib} connected={props.connected} busy={busy()} ios={ios} wide={wide()}
+      onOpen={openNote} onSync={sync} onSettings={() => show("settings")} settingsOpen={() => panel() === "settings"} settingsTap={props.settingsTap}
+      tab={tab} onTab={next => tab.set(next)} folder={selectedFolder} onFolder={path => selectedFolder.set(path)}
+      onNewNote={newNote} onNewFolder={() => { selectedFolder.set(""); input.set(""); show("folder"); }}
+      onTitleCollapsed={collapsed => libraryTitleCollapsed.set(collapsed)}
+      error={errorBanner()} conflict={conflictBanner()} />
+  </NavPageI>;
+
+  // 分栏里的文档页没有返回键：左边列表常在，换笔记靠左边点选。
+  const documentPage = (split: boolean) => <NavPageI testID="mobile-document-page" headerVisible={ios}
+    title={ios ? docTitle() : undefined} headerBackVisible={ios && !split} headerTransparent={false}
+    headerRight={ios ? docToolbar() : undefined}
+    ios={ios ? { headerRightSystemItem: editing() ? "done" : "edit" } : undefined}
+    popOnBack={ios && !split} popOnSwipe={ios && !split}
+    onBackPress={() => { if (split) return; if (ios) { Keyboard.dismiss(); void lib.flush(); } else back(); }}
+    onDismiss={() => { void running(async () => { await lib.flush(); await lib.refresh(); }); }}
+    statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }} style={{ backgroundColor: mobileColors().editor }}>
+    <View style={{ flex: 1, paddingBottom: keyboardFrame().height }}>
+      {!ios ? docNav() : null}
+      {lib.recovered() ? <View testID="mobile-recovered" style={{ marginTop: ios ? 8 : 52 + bottom().top, padding: 12, backgroundColor: mobileColors().accentSoft }}><Text style={{ color: mobileColors().ink }}>{t("mobile.recovered")}</Text></View> : null}
+      {conflictBanner()}
+      {errorBanner()}
+      {editing() ? <Input ref={(node) => { editor = node; selected = { start: 0, end: 0 }; }}
+        testID="mobile-source" readonly={busy()} value={lib.note()?.content ?? ""} multiline autoCorrect={false} autoCapitalize="none"
+        placeholder={t("mobile.writeHint")} onChange={lib.edit} onSelectionChange={range => { selected = range; }}
+        ios={{ inputAccessoryViewID: "markdown-tools", keyboardAppearance: mobileIsDark() ? "dark" : "light" }}
+        style={{ flex: 1, paddingTop: ios ? 14 : 66 + bottom().top, paddingHorizontal: 20, paddingBottom: 14, color: mobileColors().ink, backgroundColor: mobileColors().editor,
+          fontSize: editorFontSize() + 2, lineHeight: Math.round((editorFontSize() + 2) * 1.7), letterSpacing: 0.1 }} /> :
+        <View style={{ flex: 1 }}>
+          <List ref={node => { reader = node; }} testID="mobile-preview" each={model().blocks} estimatedItemSize={model().estimatedItemSize}
+            contentStyle={{ paddingHorizontal: 24, paddingTop: ios ? 10 : 70 + bottom().top, paddingBottom: 104 + bottom().bottom }} style={{ flex: 1, backgroundColor: mobileColors().preview }}>
+            {(block, index) => <View style={{ paddingTop: previewGap(index() > 0 ? model().blocks[index() - 1] : undefined, block(), fontSize() / 15) }}>
+              <TextView document={{ blocks: [displayBlock(block(), renderMode())] }} selectable links="open" onLinkPress={event => onLink(event.url)} styles={readerStyles()} />
             </View>}
-          <InputAccessoryView nativeID="markdown-tools" style={{ backgroundColor: mobileColors().paper }}>
-            <View style={{ paddingHorizontal: 12, paddingTop: 4, paddingBottom: 8 }}>
-              <View style={{ height: 46, paddingHorizontal: 6, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 2, ...glassStyle(16) }}>
-                <FormatButton label="H1" accessibilityLabel={t("mobile.tool.heading")} onPress={() => insert("# ")} />
-                <FormatButton label="B" accessibilityLabel={t("mobile.tool.bold")} onPress={() => insert("**", "**")} bold />
-                <FormatButton icon="list-tree" accessibilityLabel={t("mobile.tool.list")} onPress={() => insert("- ")} />
-                <FormatButton label="❞" accessibilityLabel={t("mobile.tool.quote")} onPress={() => insert("> ")} />
-                <FormatButton icon="cloud" accessibilityLabel={t("mobile.tool.link")} onPress={() => insert("[", "](https://)")} />
-                <FormatButton icon="code" accessibilityLabel={t("mobile.tool.code")} onPress={() => insert("`", "`")} />
-                <FormatButton icon="caret-down" accessibilityLabel={t("common.done")} onPress={() => { Keyboard.dismiss(); void lib.flush(); }} />
-              </View>
-            </View>
-          </InputAccessoryView>
+          </List>
+          <ReaderDock content={lib.note()?.content ?? ""} bottom={bottom().bottom}
+            onOutline={() => show("outline")} onType={() => show("type")}
+            onActions={ios ? () => show("actions") : undefined} />
+        </View>}
+      <InputAccessoryView nativeID="markdown-tools" style={{ backgroundColor: mobileColors().paper }}>
+        <View style={{ paddingHorizontal: 12, paddingTop: 4, paddingBottom: 8 }}>
+          <View style={{ height: 46, paddingHorizontal: 6, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 2, ...glassStyle(16) }}>
+            <FormatButton label="H1" accessibilityLabel={t("mobile.tool.heading")} onPress={() => insert("# ")} />
+            <FormatButton label="B" accessibilityLabel={t("mobile.tool.bold")} onPress={() => insert("**", "**")} bold />
+            <FormatButton icon="list-tree" accessibilityLabel={t("mobile.tool.list")} onPress={() => insert("- ")} />
+            <FormatButton label="❞" accessibilityLabel={t("mobile.tool.quote")} onPress={() => insert("> ")} />
+            <FormatButton icon="cloud" accessibilityLabel={t("mobile.tool.link")} onPress={() => insert("[", "](https://)")} />
+            <FormatButton icon="code" accessibilityLabel={t("mobile.tool.code")} onPress={() => insert("`", "`")} />
+            <FormatButton icon="caret-down" accessibilityLabel={t("common.done")} onPress={() => { Keyboard.dismiss(); void lib.flush(); }} />
+          </View>
         </View>
-      </NavPage>}
-    </NavStack>
+      </InputAccessoryView>
+    </View>
+  </NavPageI>;
+
+  return <View style={{ flex: 1, backgroundColor: mobileColors().paper }}>
+    {wide()
+      ? <View testID="mobile-split" style={{ flex: 1, flexDirection: "row" }}>
+        <View testID="mobile-split-library" style={{ width: 340, borderRightWidth: 1, borderRightColor: mobileColors().thread }}>
+          <NavStack state={nav} style={{ flex: 1 }}>{() => libraryPage()}</NavStack>
+        </View>
+        <View testID="mobile-split-detail" style={{ flex: 1 }}>
+          {lib.note()
+            ? <NavStack state={detailNav} style={{ flex: 1 }}>{() => documentPage(true)}</NavStack>
+            : <View testID="mobile-empty-detail" style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: mobileColors().preview }}>
+              <Icon name="file-text" color={mobileColors().ink3} size={40} />
+              <Text style={{ fontSize: 15, color: mobileColors().ink3 }}>{t("mobile.selectNote")}</Text>
+            </View>}
+        </View>
+      </View>
+      : <NavStack state={nav} testID="mobile-navigation" style={{ flex: 1 }}>
+        {(route) => route.kind === "library" ? libraryPage() : documentPage(false)}
+      </NavStack>}
     <Dialog open={panelOpen()} presentation="pageSheet" onOpenChange={open => { if (!open) closePanel(); }}
       style={{ flex: 1, backgroundColor: mobileColors().paper }} statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }}>
       <View style={{ flex: 1, backgroundColor: mobileColors().paper }}>
@@ -639,6 +671,8 @@ function LibraryPage(props: {
   connected: boolean;
   busy: boolean;
   ios: boolean;
+  /** 分栏（iPad）：底栏换成列表上方的分段 tab，设置挪到同一行的齿轮。 */
+  wide: boolean;
   onOpen: (path: string) => void;
   onSync: () => Promise<void>;
   onSettings: () => void;
@@ -738,7 +772,7 @@ function LibraryPage(props: {
           props.onTitleCollapsed(collapsed);
         }}
         refreshIndicator={{ height: 52 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
-        contentStyle={{ paddingTop: props.ios ? 6 : (statusVisible() ? 100 : 58) + bottom().top, paddingHorizontal: props.ios ? 0 : 16, paddingBottom: props.ios ? 88 : 108 + bottom().bottom }}>
+        contentStyle={{ paddingTop: props.ios ? 6 : (statusVisible() ? 100 : 58) + bottom().top, paddingHorizontal: props.ios ? 0 : 16, paddingBottom: props.wide ? 24 : props.ios ? 88 : 108 + bottom().bottom }}>
         {!props.ios && notPulling() ? <PullIndicator percent={percent()} /> : null}
         {props.ios ? <View style={{ paddingHorizontal: 16 }}>
           <Text style={{ fontSize: 34, fontWeight: 700, letterSpacing: 0.2, lineHeight: 41, color: c.ink }}>{libraryTitle()}</Text>
@@ -751,7 +785,7 @@ function LibraryPage(props: {
         {props.ios && statusVisible() ? <View style={{ marginHorizontal: 16, marginBottom: 8 }}><SyncAccessory onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
           onRetry={() => { void props.onSync().catch(err => lib.error.set(String(err))); }} /></View> : null}
         {q() ? <Text testID="mobile-search-meta" style={{ paddingHorizontal: props.ios ? 16 : 4, paddingTop: props.ios ? 4 : 0, paddingBottom: props.ios ? 6 : 4, fontSize: 12, fontWeight: 500, color: c.ink3 }}>{t("mobile.searchResult", { n: results().length })}</Text> : null}
-        {props.ios ? null : <View style={{ flexDirection: "row", marginBottom: 2, borderBottomWidth: 0.5, borderBottomColor: c.thread, paddingHorizontal: 2 }}>
+        {props.ios && !props.wide ? null : <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 2, borderBottomWidth: 0.5, borderBottomColor: c.thread, paddingHorizontal: props.wide ? 16 : 2 }}>
           {([["recent", "mobile.recent"], ["all", "mobile.all"], ["favorites", "mobile.favorites"]] as const).map(([id, key]) => {
             const active = props.tab() === id;
             return <Button testID={`mobile-tab-${id}`} onPress={() => { Keyboard.dismiss(); props.onTab(id); }}
@@ -760,6 +794,11 @@ function LibraryPage(props: {
               {active ? <View style={{ position: "absolute", left: 8, right: 8, bottom: 0, height: 2, borderTopLeftRadius: 2, borderTopRightRadius: 2, backgroundColor: c.accent }} /> : null}
             </Button>;
           })}
+          {/* 分栏没有底栏，设置入口放在这里。 */}
+          {props.wide ? <Button testID="mobile-settings" accessibilityLabel={t("settings.title")} onPress={() => { Keyboard.dismiss(); props.onSettings(); }}
+            style={{ marginLeft: "auto", width: 40, height: 36, alignItems: "center", justifyContent: "center" }}>
+            <Icon name="gear" color={c.accent} size={19} />
+          </Button> : null}
         </View>}
       {props.error}
       {props.conflict}
@@ -837,7 +876,7 @@ function LibraryPage(props: {
 
     </View>
 
-    {props.ios ? <NativeTabBar tab={props.tab} onTab={props.onTab} settingsOpen={props.settingsOpen} onSettings={props.onSettings} /> : null}
+    {props.ios && !props.wide ? <NativeTabBar tab={props.tab} onTab={props.onTab} settingsOpen={props.settingsOpen} onSettings={props.onSettings} /> : null}
 
     {props.ios ? null : <View style={{ position: "absolute", left: 0, right: 0, bottom: keyboardFrame().height, paddingHorizontal: 20, paddingBottom: keyboardFrame().height ? 8 : 12 + bottom().bottom, flexDirection: "row", alignItems: "center", gap: 10 }}>
       <Button testID="mobile-new-folder" accessibilityLabel={t("mobile.newFolder")} disabled={props.busy} onPress={props.onNewFolder}

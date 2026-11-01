@@ -249,6 +249,7 @@
   "mobile.read": "읽기",
   "mobile.actions": "더 보기",
   "mobile.writeHint": "Markdown으로 글쓰기…",
+  "mobile.selectNote": "노트를 선택하세요",
   "mobile.emptyHint": "노트를 만들어 기록을 시작하세요.",
   "mobile.loading": "라이브러리 여는 중…",
   "mobile.searching": "검색 중…",

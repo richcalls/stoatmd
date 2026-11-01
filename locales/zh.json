@@ -249,6 +249,7 @@
   "mobile.read": "阅读",
   "mobile.actions": "更多",
   "mobile.writeHint": "开始用 Markdown 写作…",
+  "mobile.selectNote": "选择一篇笔记",
   "mobile.emptyHint": "创建一篇笔记，开始记录。",
   "mobile.loading": "正在打开笔记库…",
   "mobile.searching": "正在搜索…",
