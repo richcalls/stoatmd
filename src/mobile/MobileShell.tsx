@@ -59,14 +59,6 @@ function GlassPill(props: { id?: string; label: string; onPress: () => void; ico
   </Button>;
 }
 
-/** 系统导航栏里的图标项：系统会把相邻项收进同一枚液态玻璃胶囊，自己不再画底。 */
-function ToolbarIconButton(props: { id?: string; icon: IconName; label: string; tint?: string; onPress: () => void }) {
-  return <Button testID={props.id} accessibilityLabel={props.label} onPress={props.onPress}
-    style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-    <Icon name={props.icon} color={props.tint ?? mobileColors().accent} size={21} />
-  </Button>;
-}
-
 function Action(props: { label: string; onPress: () => void; icon?: IconName; id?: string; disabled?: boolean; selected?: boolean; accessibilityLabel?: string }) {
   const c = mobileColors();
   return <Button testID={props.id} accessibilityLabel={props.accessibilityLabel ?? props.label} disabled={props.disabled}
@@ -202,7 +194,7 @@ function PullIndicator(props: { percent: number }) {
   </View>;
 }
 
-export function MobileShell(props: { library?: MobileLibrary; nativeChrome?: boolean; initialTab?: Tab } = {}) {
+export function MobileShell(props: { library?: MobileLibrary; nativeChrome?: boolean; initialTab?: Tab; /** 截图测试用：底栏是原生 UITabBar，测试点不到「设置」项。 */ settingsTap?: boolean } = {}) {
   setPaletteOverride(mobileColors);
   const library = signal<MobileLibrary | null>(null);
   const startupError = signal("");
@@ -240,7 +232,7 @@ export function MobileShell(props: { library?: MobileLibrary; nativeChrome?: boo
   void load();
   cleanup(() => { alive = false; });
   return <View testID="mobile-shell" style={{ flex: 1, backgroundColor: mobileColors().paper }}>
-    <Each of={library() ? [library()!] : []} key={model => model}>{model => <MobileApp library={model()} connected={!props.library} nativeChrome={props.nativeChrome !== false} initialTab={props.initialTab} onStorageActivated={activate} />}</Each>
+    <Each of={library() ? [library()!] : []} key={model => model}>{model => <MobileApp library={model()} connected={!props.library} nativeChrome={props.nativeChrome !== false} initialTab={props.initialTab} settingsTap={props.settingsTap} onStorageActivated={activate} />}</Each>
     {!library() ? <ConnectPage loading={loading()} error={startupError()} onRetry={() => { void load(); }} onStorageActivated={activate} /> : null}
   </View>;
 }
@@ -266,7 +258,7 @@ function ConnectPage(props: { loading: boolean; error: string; onRetry: () => vo
   </Scroll>;
 }
 
-function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeChrome: boolean; initialTab?: Tab; onStorageActivated: (root: string) => Promise<void> }) {
+function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeChrome: boolean; initialTab?: Tab; settingsTap?: boolean; onStorageActivated: (root: string) => Promise<void> }) {
   const lib = props.library;
   const ios = props.nativeChrome && platform.os === "ios";
   const nav = createNavStack<Route>(lib.note() ? [{ kind: "library" }, { kind: "document" }] : [{ kind: "library" }]);
@@ -396,20 +388,21 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     </View>
   </View>;
 
-  // 系统导航栏的右侧：次级入口（更多）在左，主操作（完成 / 编辑）贴右。
-  const docToolbar = () => <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
-    <ToolbarIconButton id="mobile-actions" icon="more" label={t("mobile.actions")} tint={mobileColors().accent} onPress={() => show("actions")} />
-    {editing()
-      ? <Button testID="mobile-read" accessibilityLabel={t("common.done")}
-        onPress={() => { Keyboard.dismiss(); editing.set(false); void lib.flush(); }}
-        style={{ height: 44, paddingHorizontal: 8, justifyContent: "center" }}>
-        <Text style={{ fontSize: 17, fontWeight: 600, color: mobileColors().accent }}>{t("common.done")}</Text>
-      </Button>
-      : <Button testID="mobile-edit" accessibilityLabel={t("mobile.edit")} onPress={() => editing.set(true)}
-        style={{ height: 44, paddingHorizontal: 8, justifyContent: "center" }}>
-        <Text style={{ fontSize: 17, fontWeight: 500, color: mobileColors().accent }}>{t("mobile.edit")}</Text>
-      </Button>}
-  </View>;
+  // 系统导航栏的右侧只放一个主操作：阅读时「编辑」，编辑时「完成」——
+  // 和通讯录 / 提醒事项的详情页一样，右侧永远只有一个模式切换按钮。
+  // 次要操作（重命名 / 复制 / 移动 / 导出 / 删除）挪到阅读页底部的 dock 里，
+  // 不再和「编辑」挤进同一枚胶囊：两个自绘项会被系统合进同一枚玻璃胶囊，
+  // 中间那段空白看起来像个被拉长的怪药丸。
+  // 必须用系统的 headerRightSystemItem，不能用自绘按钮：iOS 27.0 真机上
+  // 导航栏里的自绘按钮点了没反应（同样的点击在 iOS 26 模拟器上正常），
+  // 系统项则由 nsh 直接派发到槽位里那个按钮，不依赖导航栏的命中测试。
+  // 代价：系统项的文字跟设备语言走，app 内单独换语言时它会跟着设备而不是界面。
+  const docToggle = () => {
+    if (editing()) { Keyboard.dismiss(); editing.set(false); void lib.flush(); } else editing.set(true);
+  };
+  const docToolbar = () => <Button testID={editing() ? "mobile-read" : "mobile-edit"}
+    accessibilityLabel={editing() ? t("common.done") : t("mobile.edit")} onPress={docToggle}
+    style={{ width: 1, height: 1, opacity: 0 }}><Text> </Text></Button>;
 
   const moveFolders = () => [{ path: "", name: t("mobile.library") }, ...lib.entries().filter(entry => entry.isDir)];
 
@@ -421,13 +414,12 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
           onSync={() => { void sync().catch(err => lib.error.set(String(err))); }}
           onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
           onRetry={() => { void sync().catch(err => lib.error.set(String(err))); }} />}
-        headerLeft={ios ? <NativeSettingsButton onPress={() => show("settings")} /> : undefined}
         headerRight={ios ? <Button testID="mobile-new-note" accessibilityLabel={t("note.new")} disabled={busy()}
           onPress={() => newNote(selectedFolder())} style={{ width: 1, height: 1, opacity: 0 }}><Text> </Text></Button> : undefined}
         {...(ios ? { ios: { headerRightSystemItem: "compose" as const } } : {})}
         statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }} style={{ backgroundColor: ios ? mobileColors().list : mobileColors().paper }}>
         <LibraryPage library={lib} connected={props.connected} busy={busy()} ios={ios}
-          onOpen={openNote} onSync={sync} onSettings={() => show("settings")}
+          onOpen={openNote} onSync={sync} onSettings={() => show("settings")} settingsOpen={() => panel() === "settings"} settingsTap={props.settingsTap}
           tab={tab} onTab={next => tab.set(next)} folder={selectedFolder} onFolder={path => selectedFolder.set(path)}
           onNewNote={newNote} onNewFolder={() => { selectedFolder.set(""); input.set(""); show("folder"); }}
           onTitleCollapsed={collapsed => libraryTitleCollapsed.set(collapsed)}
@@ -435,6 +427,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
       </NavPage> : <NavPage testID="mobile-document-page" headerVisible={ios}
         title={ios ? docTitle() : undefined} headerBackVisible={ios} headerTransparent={false}
         headerRight={ios ? docToolbar() : undefined}
+        {...(ios ? { ios: { headerRightSystemItem: (editing() ? "done" : "edit") as "done" | "edit" } } : {})}
         popOnBack={ios} popOnSwipe={ios}
         onBackPress={() => { if (ios) { Keyboard.dismiss(); void lib.flush(); } else back(); }}
         onDismiss={() => { void running(async () => { await lib.flush(); await lib.refresh(); }); }}
@@ -458,7 +451,8 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
                 </View>}
               </List>
               <ReaderDock content={lib.note()?.content ?? ""} bottom={bottom().bottom}
-                onOutline={() => show("outline")} onType={() => show("type")} />
+                onOutline={() => show("outline")} onType={() => show("type")}
+                onActions={ios ? () => show("actions") : undefined} />
             </View>}
           <InputAccessoryView nativeID="markdown-tools" style={{ backgroundColor: mobileColors().paper }}>
             <View style={{ paddingHorizontal: 12, paddingTop: 4, paddingBottom: 8 }}>
@@ -598,34 +592,45 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
 
 
 const TABS = ["recent", "all", "favorites"] as const;
+/** 设置是底栏第四个入口；它打开面板，不切换库页的 tab。 */
+const SETTINGS_TAB = TABS.length;
 
 /**
  * 系统的 UITabBar：Liquid Glass、SF Symbol 与安全区都由 UIKit 负责，
  * tab 的标题和图标按平台的叫法给它（iOS 是 SF Symbol 名）。
  */
-function NativeTabBar(props: { tab: () => Tab; onTab: (next: Tab) => void }) {
+function NativeTabBar(props: { tab: () => Tab; onTab: (next: Tab) => void; settingsOpen: () => boolean; onSettings: () => void }) {
+  const bottom = safeAreaInsets();
+  const items = [
+    { title: t("mobile.recent"), icon: "clock" },
+    { title: t("mobile.all"), icon: "folder" },
+    { title: t("mobile.favorites"), icon: "star" },
+    { title: t("settings.title"), icon: "gearshape" },
+  ];
+  // 挂载时 selectedIndex 若是 0（默认值）UIKit 不会重绘选中态，第一项看起来没被选中；
+  // 先给一个越过末尾的索引（无选中）再设回，逼系统重设选中项。
+  const settled = signal(false);
+  effect(() => {
+    const timer = setTimeout(() => settled.set(true), 0);
+    return () => clearTimeout(timer);
+  });
+  const selected = () => props.settingsOpen() ? SETTINGS_TAB : TABS.indexOf(props.tab());
+  // 高度必须显式给。把高度交给系统时，iOS 27.0 真机上底栏只画选中项的文字，
+  // 其余标签缺失（3 项时稳定复现；4 项只是碰巧正常，不可依赖）。
+  // 49 + 安全区就是系统底栏的高度，显式给它之后 3 项 / 4 项都正常。
+  // 验证：2026-11-01 iPhone 16 Pro Max / iOS 27.0，build 13 与 dev 签名对照包截图。
   return <TabBar
     testID="mobile-tabbar"
-    items={[
-      { title: t("mobile.recent"), icon: "clock" },
-      { title: t("mobile.all"), icon: "folder" },
-      { title: t("mobile.favorites"), icon: "star" },
-    ]}
-    selectedIndex={TABS.indexOf(props.tab())}
+    style={{ height: 49 + bottom().bottom, backgroundColor: mobileColors().list }}
+    items={items}
+    selectedIndex={settled() ? selected() : items.length}
     onChange={index => {
+      Keyboard.dismiss();
+      if (index === SETTINGS_TAB) { props.onSettings(); return; }
       const next = TABS[index];
       if (!next || next === props.tab()) return;
-      Keyboard.dismiss();
       props.onTab(next);
     }} />;
-}
-
-/** 库页导航栏左侧的设置入口：交给系统放在导航栏里，尺寸随系统。 */
-function NativeSettingsButton(props: { onPress: () => void }) {
-  return <Button testID="mobile-settings" accessibilityLabel={t("settings.title")} onPress={() => { Keyboard.dismiss(); props.onPress(); }}
-    style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-    <Icon name="gear" color={mobileColors().accent} size={20} />
-  </Button>;
 }
 
 
@@ -637,6 +642,8 @@ function LibraryPage(props: {
   onOpen: (path: string) => void;
   onSync: () => Promise<void>;
   onSettings: () => void;
+  settingsOpen: () => boolean;
+  settingsTap?: boolean;
   tab: () => Tab;
   onTab: (next: Tab) => void;
   folder: () => string;
@@ -731,12 +738,15 @@ function LibraryPage(props: {
           props.onTitleCollapsed(collapsed);
         }}
         refreshIndicator={{ height: 52 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
-        contentStyle={{ paddingTop: props.ios ? 6 : (statusVisible() ? 100 : 58) + bottom().top, paddingHorizontal: props.ios ? 0 : 16, paddingBottom: props.ios ? 12 : 108 + bottom().bottom }}>
+        contentStyle={{ paddingTop: props.ios ? 6 : (statusVisible() ? 100 : 58) + bottom().top, paddingHorizontal: props.ios ? 0 : 16, paddingBottom: props.ios ? 88 : 108 + bottom().bottom }}>
         {!props.ios && notPulling() ? <PullIndicator percent={percent()} /> : null}
         {props.ios ? <View style={{ paddingHorizontal: 16 }}>
           <Text style={{ fontSize: 34, fontWeight: 700, letterSpacing: 0.2, lineHeight: 41, color: c.ink }}>{libraryTitle()}</Text>
           {librarySubtitle() ? <Text numberOfLines={1} style={{ marginTop: 1, fontSize: 13, color: c.ink3 }}>{librarySubtitle()}</Text> : null}
           <View style={{ marginTop: 12 }}>{searchField()}</View>
+          {/* 原生 UITabBar 的项不在 nsh 的视图树里，测试点不到底栏的「设置」；只有截图 harness 打开这块透明点击区。 */}
+          {props.settingsTap ? <Button testID="mobile-settings" accessibilityLabel={t("settings.title")} onPress={props.onSettings}
+            style={{ position: "absolute", top: 0, right: 0, width: 44, height: 44 }}><Text> </Text></Button> : null}
         </View> : null}
         {props.ios && statusVisible() ? <View style={{ marginHorizontal: 16, marginBottom: 8 }}><SyncAccessory onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
           onRetry={() => { void props.onSync().catch(err => lib.error.set(String(err))); }} /></View> : null}
@@ -827,7 +837,7 @@ function LibraryPage(props: {
 
     </View>
 
-    {props.ios ? <NativeTabBar tab={props.tab} onTab={props.onTab} /> : null}
+    {props.ios ? <NativeTabBar tab={props.tab} onTab={props.onTab} settingsOpen={props.settingsOpen} onSettings={props.onSettings} /> : null}
 
     {props.ios ? null : <View style={{ position: "absolute", left: 0, right: 0, bottom: keyboardFrame().height, paddingHorizontal: 20, paddingBottom: keyboardFrame().height ? 8 : 12 + bottom().bottom, flexDirection: "row", alignItems: "center", gap: 10 }}>
       <Button testID="mobile-new-folder" accessibilityLabel={t("mobile.newFolder")} disabled={props.busy} onPress={props.onNewFolder}
@@ -895,7 +905,7 @@ function emptyNotes() {
   </View>;
 }
 
-function ReaderDock(props: { content: string; bottom: number; onOutline: () => void; onType: () => void }) {
+function ReaderDock(props: { content: string; bottom: number; onOutline: () => void; onType: () => void; onActions?: () => void }) {
   const c = mobileColors();
   const words = () => articleModel(props.content).stats.chars;
   return <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0,
@@ -910,6 +920,12 @@ function ReaderDock(props: { content: string; bottom: number; onOutline: () => v
         style={{ width: 48, height: 44, alignItems: "center", justifyContent: "center" }}>
         <Text style={{ fontSize: 18, fontWeight: 600, color: c.accent }}>Aa</Text>
       </Button>
+      {/* iOS 的导航栏右侧让给了「编辑 / 完成」，笔记的次要操作（重命名、复制、移动、
+          导出、删除）落在这里，跟 Apple Notes 一样把文稿操作放在底部工具条上。 */}
+      {props.onActions ? <Button testID="mobile-actions" accessibilityLabel={t("mobile.actions")} onPress={props.onActions}
+        style={{ width: 48, height: 44, alignItems: "center", justifyContent: "center" }}>
+        <Icon name="more" color={c.accent} size={20} />
+      </Button> : null}
     </View>
   </View>;
 }
