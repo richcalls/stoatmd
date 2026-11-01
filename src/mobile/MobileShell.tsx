@@ -1,6 +1,6 @@
 import { Keyboard, List, Scroll, Text, View, cleanup, computed, effect, keyboardFrame, platform, safeAreaInsets, signal, type JSX, type YNode } from "nsh";
 import { Button, Dialog, Input, NavPage, NavStack, TextView, createNavStack } from "nsh/base";
-import { InputAccessoryView } from "nsh/mobile";
+import { InputAccessoryView, TabBar } from "nsh/mobile";
 import { MobileFiles, Vault } from "stoatmd/native";
 import { activeStorage, readActiveStorage, writeActiveStorage, storageBusy } from "../storage/state";
 import { syncRuntime } from "../sync/runtime";
@@ -597,38 +597,27 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
 }
 
 
-const TAB_ITEMS = [
-  { id: "recent", icon: "clock", key: "mobile.recent" },
-  { id: "all", icon: "folder", key: "mobile.all" },
-  { id: "favorites", icon: "star", key: "mobile.favorites" },
-] as const satisfies readonly { id: Tab; icon: IconName; key: string }[];
+const TABS = ["recent", "all", "favorites"] as const;
 
 /**
- * 悬浮的 Liquid Glass 标签栏。系统的 UITabBar 在页面里会额外铺一层全宽材质，
- * 滚动时看起来像一块遮罩；这里用同尺寸的玻璃胶囊，内容从下面穿过，没有那层底。
+ * 系统的 UITabBar：Liquid Glass、SF Symbol 与安全区都由 UIKit 负责，
+ * tab 的标题和图标按平台的叫法给它（iOS 是 SF Symbol 名）。
  */
-function FloatingTabBar(props: { tab: () => Tab; onTab: (next: Tab) => void }) {
-  const c = mobileColors();
-  const bottom = safeAreaInsets();
-  return <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0, alignItems: "center",
-    paddingBottom: Math.max(8, bottom().bottom - 12) }}>
-    <View style={{ width: 288, height: 56, flexDirection: "row", alignItems: "stretch", overflow: "hidden", ...glassStyle(28) }}>
-      {TAB_ITEMS.map(item => {
-        const active = props.tab() === item.id;
-        return <Button testID={`mobile-tab-${item.id}`} accessibilityLabel={t(item.key)}
-          onPress={() => { Keyboard.dismiss(); props.onTab(item.id); }}
-          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <View style={{ alignItems: "center", gap: 1 }}>
-            <View style={{ width: 50, height: 28, borderRadius: 14, borderCurve: "continuous", alignItems: "center", justifyContent: "center",
-              backgroundColor: active ? c.accentSoft : "transparent" }}>
-              <Icon name={item.icon} color={active ? c.accent : c.ink2} size={21} />
-            </View>
-            <Text style={{ fontSize: 10.5, fontWeight: active ? 600 : 500, letterSpacing: 0, color: active ? c.accent : c.ink2 }}>{t(item.key)}</Text>
-          </View>
-        </Button>;
-      })}
-    </View>
-  </View>;
+function NativeTabBar(props: { tab: () => Tab; onTab: (next: Tab) => void }) {
+  return <TabBar
+    testID="mobile-tabbar"
+    items={[
+      { title: t("mobile.recent"), icon: "clock" },
+      { title: t("mobile.all"), icon: "folder" },
+      { title: t("mobile.favorites"), icon: "star" },
+    ]}
+    selectedIndex={TABS.indexOf(props.tab())}
+    onChange={index => {
+      const next = TABS[index];
+      if (!next || next === props.tab()) return;
+      Keyboard.dismiss();
+      props.onTab(next);
+    }} />;
 }
 
 /** 库页导航栏左侧的设置入口：交给系统放在导航栏里，尺寸随系统。 */
@@ -742,7 +731,7 @@ function LibraryPage(props: {
           props.onTitleCollapsed(collapsed);
         }}
         refreshIndicator={{ height: 52 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
-        contentStyle={{ paddingTop: props.ios ? 6 : (statusVisible() ? 100 : 58) + bottom().top, paddingHorizontal: props.ios ? 0 : 16, paddingBottom: props.ios ? 104 + bottom().bottom : 108 + bottom().bottom }}>
+        contentStyle={{ paddingTop: props.ios ? 6 : (statusVisible() ? 100 : 58) + bottom().top, paddingHorizontal: props.ios ? 0 : 16, paddingBottom: props.ios ? 12 : 108 + bottom().bottom }}>
         {!props.ios && notPulling() ? <PullIndicator percent={percent()} /> : null}
         {props.ios ? <View style={{ paddingHorizontal: 16 }}>
           <Text style={{ fontSize: 34, fontWeight: 700, letterSpacing: 0.2, lineHeight: 41, color: c.ink }}>{libraryTitle()}</Text>
@@ -838,7 +827,7 @@ function LibraryPage(props: {
 
     </View>
 
-    {props.ios ? <FloatingTabBar tab={props.tab} onTab={props.onTab} /> : null}
+    {props.ios ? <NativeTabBar tab={props.tab} onTab={props.onTab} /> : null}
 
     {props.ios ? null : <View style={{ position: "absolute", left: 0, right: 0, bottom: keyboardFrame().height, paddingHorizontal: 20, paddingBottom: keyboardFrame().height ? 8 : 12 + bottom().bottom, flexDirection: "row", alignItems: "center", gap: 10 }}>
       <Button testID="mobile-new-folder" accessibilityLabel={t("mobile.newFolder")} disabled={props.busy} onPress={props.onNewFolder}
