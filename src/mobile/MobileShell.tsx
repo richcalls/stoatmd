@@ -1,6 +1,6 @@
 import { Keyboard, List, Scroll, Text, View, cleanup, computed, keyboardFrame, platform, safeAreaInsets, signal, type JSX, type YNode } from "nsh";
 import { Button, Dialog, Input, NavPage, NavStack, TextView, createNavStack } from "nsh/base";
-import { InputAccessoryView, TabBar } from "nsh/mobile";
+import { InputAccessoryView } from "nsh/mobile";
 import { MobileFiles, Vault } from "stoatmd/native";
 import { activeStorage, readActiveStorage, writeActiveStorage, storageBusy } from "../storage/state";
 import { syncRuntime } from "../sync/runtime";
@@ -59,7 +59,7 @@ function GlassPill(props: { id?: string; label: string; onPress: () => void; ico
   </Button>;
 }
 
-/** 系统导航栏里的工具项：导航栏本身就是玻璃，不再给按钮叠一层玻璃。 */
+/** 系统导航栏里的图标项：系统会把相邻项收进同一枚液态玻璃胶囊，自己不再画底。 */
 function ToolbarIconButton(props: { id?: string; icon: IconName; label: string; tint?: string; onPress: () => void }) {
   return <Button testID={props.id} accessibilityLabel={props.label} onPress={props.onPress}
     style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
@@ -80,6 +80,11 @@ function SectionTitle(props: { top?: number; children?: JSX.Element }) {
   return <Text style={{ marginTop: props.top ?? 24, marginBottom: 7, fontSize: 13, fontWeight: 400, color: mobileColors().ink2 }}>{props.children}</Text>;
 }
 
+/** 分组列表的行间细线。绝对定位的细线在 nsh 里不渲染，所以用真实的占位行。 */
+function RowDivider(props: { inset?: number }) {
+  return <View style={{ height: 1, marginLeft: props.inset ?? 16, backgroundColor: mobileColors().thread }} />;
+}
+
 function SettingsRow(props: { id?: string; icon?: IconName; iconBg?: string; title: string; detail?: string; value?: string; onPress?: () => void; disabled?: boolean; last?: boolean }) {
   const c = mobileColors();
   const row = <View style={{ minHeight: 44, paddingHorizontal: 16, paddingVertical: 7, flexDirection: "row", alignItems: "center", gap: 12,
@@ -93,17 +98,48 @@ function SettingsRow(props: { id?: string; icon?: IconName; iconBg?: string; tit
     </View>
     {props.value ? <Text numberOfLines={1} style={{ maxWidth: 180, textAlign: "right", fontSize: 17, color: c.ink3 }}>{props.value}</Text> : null}
     {props.onPress ? <Icon name="caret-right" color={c.ink3} size={14} /> : null}
-    {props.last ? null : <View style={{ position: "absolute", left: props.icon ? 57 : 16, right: 0, bottom: 0, height: 0.5, backgroundColor: c.thread }} />}
   </View>;
-  return props.onPress
-    ? <Button testID={props.id} disabled={props.disabled} onPress={props.onPress} style={{ opacity: props.disabled ? 0.45 : 1 }}>{row}</Button>
-    : <View testID={props.id}>{row}</View>;
+  return <View>
+    {props.onPress
+      ? <Button testID={props.id} disabled={props.disabled} onPress={props.onPress} style={{ opacity: props.disabled ? 0.45 : 1 }}>{row}</Button>
+      : <View testID={props.id}>{row}</View>}
+    {props.last ? null : <RowDivider inset={props.icon ? 57 : 16} />}
+  </View>;
 }
 
 /** iOS 设置页的 inset grouped 卡片。 */
 function SettingsGroup(props: { children?: JSX.Element }) {
   const c = mobileColors();
   return <View style={{ borderRadius: 12, borderCurve: "continuous", overflow: "hidden", backgroundColor: c.list }}>{props.children}</View>;
+}
+
+/** 面板里的操作行：与设置行同一套尺寸。 */
+function PanelRow(props: { id?: string; icon: IconName; title: string; detail?: string; destructive?: boolean; disabled?: boolean; selected?: boolean; last?: boolean; onPress: () => void }) {
+  const c = mobileColors();
+  return <View>
+    <Button testID={props.id} disabled={props.disabled} onPress={props.onPress}
+      style={{ minHeight: 44, paddingHorizontal: 16, paddingVertical: 7, flexDirection: "row", alignItems: "center", gap: 12,
+        backgroundColor: c.list, opacity: props.disabled ? 0.45 : 1 }}>
+      <View style={{ width: 29, height: 29, borderRadius: 7, borderCurve: "continuous", alignItems: "center", justifyContent: "center",
+        backgroundColor: props.destructive ? "#FF3B30" : c.accent }}>
+        <Icon name={props.icon} color="#FFFFFF" size={17} />
+      </View>
+      <Text style={{ flex: 1, fontSize: 17, color: props.destructive ? "#FF3B30" : c.ink }}>{props.title}</Text>
+      {props.detail ? <Text numberOfLines={1} style={{ maxWidth: 170, textAlign: "right", fontSize: 15, color: c.ink3 }}>{props.detail}</Text> : null}
+      {props.selected ? <Icon name="check" color={c.accent} size={18} /> : null}
+    </Button>
+    {props.last ? null : <RowDivider inset={57} />}
+  </View>;
+}
+
+/** 面板的主操作：系统蓝底白字。 */
+function PrimaryButton(props: { id?: string; label: string; disabled?: boolean; onPress: () => void }) {
+  const c = mobileColors();
+  return <Button testID={props.id} disabled={props.disabled} onPress={props.onPress}
+    style={{ height: 46, borderRadius: 12, borderCurve: "continuous", alignItems: "center", justifyContent: "center",
+      backgroundColor: c.accent, opacity: props.disabled ? 0.4 : 1 }}>
+    <Text style={{ fontSize: 17, fontWeight: 600, color: c.accentInk }}>{props.label}</Text>
+  </Button>;
 }
 
 /** 同步 accessory：同步中可暂停，暂停可继续，失败可重试；只出现在库页。 */
@@ -355,13 +391,20 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
       </Button>}
   </View>;
 
+  const moveFolders = () => [{ path: "", name: t("mobile.library") }, ...lib.entries().filter(entry => entry.isDir)];
+
   return <View style={{ flex: 1, backgroundColor: mobileColors().paper }}>
     <NavStack state={nav} testID="mobile-navigation" style={{ flex: 1 }}>
       {(route) => route.kind === "library" ? <NavPage testID="mobile-library-page"
-        headerVisible={!ios} header={ios ? undefined : <LibraryNav connected={props.connected} statusVisible={!!syncStatus(syncRuntime.phase(), syncRuntime.progress(), syncRuntime.error())} onSettings={() => { Keyboard.dismiss(); show("settings"); }}
+        headerVisible={ios} title={ios ? t("mobile.library") : undefined}
+        header={ios ? undefined : <LibraryNav connected={props.connected} statusVisible={!!syncStatus(syncRuntime.phase(), syncRuntime.progress(), syncRuntime.error())} onSettings={() => { Keyboard.dismiss(); show("settings"); }}
           onSync={() => { void sync().catch(err => lib.error.set(String(err))); }}
           onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
           onRetry={() => { void sync().catch(err => lib.error.set(String(err))); }} />}
+        headerLeft={ios ? <NativeSettingsButton onPress={() => show("settings")} /> : undefined}
+        headerRight={ios ? <Button testID="mobile-new-note" accessibilityLabel={t("note.new")} disabled={busy()}
+          onPress={() => newNote(selectedFolder())} style={{ width: 1, height: 1, opacity: 0 }}><Text> </Text></Button> : undefined}
+        {...(ios ? { ios: { headerRightSystemItem: "compose" as const } } : {})}
         statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }} style={{ backgroundColor: mobileColors().paper }}>
         <LibraryPage library={lib} connected={props.connected} busy={busy()} ios={ios}
           onOpen={openNote} onSync={sync} onSettings={() => show("settings")}
@@ -371,8 +414,9 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
       </NavPage> : <NavPage testID="mobile-document-page" headerVisible={ios}
         title={ios ? docTitle() : undefined} headerBackVisible={ios} headerTransparent={false}
         headerRight={ios ? docToolbar() : undefined}
-        popOnBack={false} popOnSwipe={false} onBackPress={back}
-        onDismiss={() => { void running(() => lib.refresh()); }}
+        popOnBack={ios} popOnSwipe={ios}
+        onBackPress={() => { if (ios) { Keyboard.dismiss(); void lib.flush(); } else back(); }}
+        onDismiss={() => { void running(async () => { await lib.flush(); await lib.refresh(); }); }}
         statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }} style={{ backgroundColor: mobileColors().editor }}>
         <View style={{ flex: 1, paddingBottom: keyboardFrame().height }}>
           {!ios ? docNav() : null}
@@ -421,7 +465,8 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
             {panel() === "settings" ? t("settings.title")
             : panel() === "storage" ? t("mobile.storageLocation") : panel() === "outline" ? t("inspector.outline") : panel() === "type" ? t("settings.font.size")
             : panel() === "folder" ? t("mobile.newFolder") : panel() === "rename" ? t("rename.title") : panel() === "move" ? t("mobile.move")
-            : panel() === "cloudConflicts" ? t("sync.manageConflicts") : panel() === "trash" || panel() === "erase" ? t("mobile.trash") : docTitle()}
+            : panel() === "cloudConflicts" ? t("sync.manageConflicts") : panel() === "trash" || panel() === "erase" ? t("mobile.trash")
+            : panel() === "actions" ? t("mobile.actions") : docTitle()}
           </Text>
           <Button testID="mobile-panel-done" disabled={busy()} accessibilityLabel={t("common.done")} onPress={closePanel}
             style={{ marginLeft: "auto", height: 44, paddingHorizontal: 12, justifyContent: "center", opacity: busy() ? 0.45 : 1 }}>
@@ -452,45 +497,80 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
                 onStorageActivated={props.onStorageActivated} onSyncNow={() => { void running(sync); }}
                 onManageConflicts={() => show("cloudConflicts")} /> : null}
               <SectionTitle>{t("settings.sync")}</SectionTitle>
-              <SettingsRow icon="cloud" title={t("mobile.syncIncluded")} value={syncRuntime.connection()?.account ?? ""} />
-            </View> : panel() === "move" ? <View style={{ gap: 8 }}>
-              {[{ path: "", name: t("mobile.library") }, ...lib.entries().filter(e => e.isDir)].map(folder =>
-                <Action id={`mobile-move-to-${folder.path || "root"}`} label={folder.path || folder.name} disabled={busy()} onPress={() => { void running(async () => { if (await lib.move(folder.path)) closePanel(); }); }} />)}
-            </View> : panel() === "trash" ? <View style={{ gap: 18 }}>
-              {!lib.recycled().length ? <Text style={{ color: mobileColors().ink2 }}>{t("mobile.trashEmpty")}</Text> : null}
-              {lib.recycled().map(item => <View style={{ gap: 6, borderBottomWidth: 1, borderBottomColor: mobileColors().thread, paddingBottom: 12 }}>
-                <Text style={{ color: mobileColors().ink }}>{item.original}</Text>
-                <Text style={{ color: mobileColors().ink3 }}>{formatWhen(item.deletedAt, locale())}</Text>
-                <Action id={`mobile-restore-${item.original}`} label={t("mobile.restore")} disabled={busy()} onPress={() => { void running(() => lib.restore(item.path, t("context.duplicateSuffix"))); }} />
-                <Action id={`mobile-erase-${item.original}`} label={t("mobile.erase")} disabled={busy()} onPress={() => { trashSelection.set(item.path); show("erase"); }} />
+              <SettingsGroup>
+                <SettingsRow icon="cloud" title={t("mobile.syncIncluded")} value={syncRuntime.connection()?.account ?? ""} last />
+              </SettingsGroup>
+            </View> : panel() === "move" ? <SettingsGroup>
+              {moveFolders().map((folder, index) =>
+                <PanelRow id={`mobile-move-to-${folder.path || "root"}`} icon="folder" title={folder.path || folder.name}
+                  selected={selectedFolder() === folder.path}
+                  disabled={busy()} last={index === moveFolders().length - 1}
+                  onPress={() => { void running(async () => { if (await lib.move(folder.path)) closePanel(); }); }} />)}
+            </SettingsGroup> : panel() === "trash" ? <View style={{ gap: 20 }}>
+              {!lib.recycled().length ? <View style={{ paddingTop: 96, alignItems: "center", gap: 12 }}>
+                <View style={{ width: 52, height: 52, borderRadius: 16, borderCurve: "continuous", alignItems: "center", justifyContent: "center",
+                  backgroundColor: mobileColors().list, borderWidth: 0.5, borderColor: mobileColors().thread }}>
+                  <Icon name="x" color={mobileColors().ink3} size={22} />
+                </View>
+                <Text style={{ fontSize: 15, color: mobileColors().ink2 }}>{t("mobile.trashEmpty")}</Text>
+              </View> : null}
+              {lib.recycled().map(item => <View style={{ gap: 8 }}>
+                <View style={{ paddingHorizontal: 4, gap: 2 }}>
+                  <Text numberOfLines={1} style={{ fontSize: 17, color: mobileColors().ink }}>{item.original}</Text>
+                  <Text style={{ fontSize: 13, color: mobileColors().ink3 }}>{formatWhen(item.deletedAt, locale())}</Text>
+                </View>
+                <SettingsGroup>
+                  <PanelRow id={`mobile-restore-${item.original}`} icon="arrows-clockwise" title={t("mobile.restore")} disabled={busy()} onPress={() => { void running(() => lib.restore(item.path, t("context.duplicateSuffix"))); }} />
+                  <PanelRow id={`mobile-erase-${item.original}`} icon="x" title={t("mobile.erase")} destructive last disabled={busy()} onPress={() => { trashSelection.set(item.path); show("erase"); }} />
+                </SettingsGroup>
               </View>)}
-            </View> : panel() === "erase" ? <View style={{ gap: 16 }}>
-              <Text style={{ color: mobileColors().ink }}>{t("mobile.eraseHint")}</Text>
-              <Text style={{ color: mobileColors().ink2 }}>{lib.recycled().find(item => item.path === trashSelection())?.original}</Text>
-              <Action id="mobile-erase-confirm" label={t("mobile.erase")} disabled={busy()} onPress={() => { void running(async () => { await lib.removePermanently(trashSelection()); show("trash"); }); }} />
-              <Action label={t("common.cancel")} onPress={() => show("trash")} />
+            </View> : panel() === "erase" ? <View style={{ gap: 20 }}>
+              <View style={{ paddingHorizontal: 4, gap: 6 }}>
+                <Text style={{ fontSize: 17, lineHeight: 24, color: mobileColors().ink }}>{t("mobile.eraseHint")}</Text>
+                <Text numberOfLines={1} style={{ fontSize: 15, color: mobileColors().ink2 }}>{lib.recycled().find(item => item.path === trashSelection())?.original}</Text>
+              </View>
+              <SettingsGroup>
+                <PanelRow id="mobile-erase-confirm" icon="x" title={t("mobile.erase")} destructive last disabled={busy()} onPress={() => { void running(async () => { await lib.removePermanently(trashSelection()); show("trash"); }); }} />
+              </SettingsGroup>
+              <Button onPress={() => show("trash")} style={{ height: 46, borderRadius: 12, borderCurve: "continuous", alignItems: "center", justifyContent: "center", backgroundColor: mobileColors().list }}>
+                <Text style={{ fontSize: 17, color: mobileColors().accent }}>{t("common.cancel")}</Text>
+              </Button>
             </View> : panel() === "type" ? <TypeSettings /> : panel() === "outline" ?
-            <View>{articleModel(lib.note()?.content ?? "").headings.length ? articleModel(lib.note()?.content ?? "").headings.map(h =>
-              <Button testID={`mobile-heading-${h.id}`} onPress={() => { closePanel(); goToBlock(h.blockIndex); }} style={{ minHeight: 48, paddingVertical: 12, paddingLeft: (h.level - 1) * 12 }}>
-                <Text style={{ color: mobileColors().ink, fontSize: 17 }}>{h.text}</Text>
-              </Button>) : <Text style={{ color: mobileColors().ink2 }}>{t("inspector.outline.empty")}</Text>}</View> :
-            panel() === "rename" || panel() === "folder" ? <View style={{ gap: 18 }}>
-              <Input testID="mobile-name" value={input()} onChange={value => input.set(value)}
-                returnKeyType="done" onSubmit={event => { input.set(event.text); Keyboard.dismiss(); }}
-                placeholder={t("rename.label")} autoCorrect={false} autoCapitalize="none"
-                style={{ minHeight: 48, padding: 12, borderWidth: 1, borderColor: mobileColors().thread, borderRadius: 10, fontSize: 17, color: mobileColors().ink }} />
-              <Action id="mobile-name-confirm" disabled={busy() || !input().trim()} label={panel() === "folder" ? t("mobile.create") : t("rename.confirm")} onPress={() => { void running(async () => {
+            <View>{articleModel(lib.note()?.content ?? "").headings.length ? <SettingsGroup>
+              {articleModel(lib.note()?.content ?? "").headings.map((h, index) =>
+                <View>
+                  <Button testID={`mobile-heading-${h.id}`} onPress={() => { closePanel(); goToBlock(h.blockIndex); }}
+                    style={{ minHeight: 44, paddingHorizontal: 16, paddingLeft: 16 + (h.level - 1) * 16, justifyContent: "center", backgroundColor: mobileColors().list }}>
+                    <Text numberOfLines={1} style={{ color: mobileColors().ink, fontSize: 17 }}>{h.text}</Text>
+                  </Button>
+                  {index === articleModel(lib.note()?.content ?? "").headings.length - 1 ? null : <RowDivider inset={16 + (h.level - 1) * 16} />}
+                </View>)}
+            </SettingsGroup> : <Text style={{ paddingVertical: 32, textAlign: "center", fontSize: 15, color: mobileColors().ink2 }}>{t("inspector.outline.empty")}</Text>}</View> :
+            panel() === "rename" || panel() === "folder" ? <View style={{ gap: 16 }}>
+              <SettingsGroup>
+                <View style={{ backgroundColor: mobileColors().list, paddingHorizontal: 16, paddingVertical: 12 }}>
+                  <Input testID="mobile-name" value={input()} onChange={value => input.set(value)}
+                    returnKeyType="done" onSubmit={event => { input.set(event.text); Keyboard.dismiss(); }}
+                    placeholder={t("rename.label")} autoCorrect={false} autoCapitalize="none"
+                    style={{ minHeight: 24, fontSize: 17, color: mobileColors().ink }} />
+                </View>
+              </SettingsGroup>
+              <PrimaryButton id="mobile-name-confirm" disabled={busy() || !input().trim()} label={panel() === "folder" ? t("mobile.create") : t("rename.confirm")} onPress={() => { void running(async () => {
                 if (panel() === "folder") { await lib.createFolder(selectedFolder(), input()); tab.set("all"); closePanel(); }
                 else if (await lib.renameNote(input())) closePanel();
               }); }} />
-            </View> : panel() === "actions" ? <View style={{ gap: 10 }}>
-              <Text style={{ color: mobileColors().ink3 }}>{lib.note()?.path}</Text>
-              <Action id="mobile-rename" label={t("rename.title")} onPress={() => { input.set(docTitle()); show("rename"); }} />
-              <Action id="mobile-duplicate" label={t("context.duplicate")} disabled={busy()} onPress={() => { void running(async () => { if (await lib.copy(t("context.duplicateSuffix"))) closePanel(); }); }} />
-              <Action id="mobile-move" label={t("mobile.move")} disabled={busy()} onPress={() => { void running(async () => { await lib.refresh(); show("move"); }); }} />
-              <Action id="mobile-export" label={t("mobile.export")} disabled={busy()} onPress={exportFile} />
-              <Action id="mobile-recycle" label={t("mobile.recycle")} disabled={busy()} onPress={() => { void running(async () => { if (await lib.recycle()) { await dismissPanel(); nav.pop(); } }); }} />
-              <Text style={{ color: mobileColors().ink2 }}>{t("info.chars")}: {articleModel(lib.note()?.content ?? "").stats.chars}</Text>
+            </View> : panel() === "actions" ? <View style={{ gap: 16 }}>
+              <Text numberOfLines={1} style={{ paddingHorizontal: 4, fontSize: 13, color: mobileColors().ink3 }}>{lib.note()?.path}</Text>
+              <SettingsGroup>
+                <PanelRow id="mobile-rename" icon="pencil" title={t("rename.title")} onPress={() => { input.set(docTitle()); show("rename"); }} />
+                <PanelRow id="mobile-duplicate" icon="file-text" title={t("context.duplicate")} disabled={busy()} onPress={() => { void running(async () => { if (await lib.copy(t("context.duplicateSuffix"))) closePanel(); }); }} />
+                <PanelRow id="mobile-move" icon="folder" title={t("mobile.move")} disabled={busy()} onPress={() => { void running(async () => { await lib.refresh(); show("move"); }); }} />
+                <PanelRow id="mobile-export" icon="cloud" title={t("mobile.export")} disabled={busy()} last onPress={exportFile} />
+              </SettingsGroup>
+              <SettingsGroup>
+                <PanelRow id="mobile-recycle" icon="x" title={t("mobile.recycle")} destructive disabled={busy()} onPress={() => { void running(async () => { if (await lib.recycle()) { await dismissPanel(); nav.pop(); } }); }} />
+              </SettingsGroup>
+              <Text style={{ textAlign: "center", fontSize: 13, color: mobileColors().ink3 }}>{t("info.chars")}: {articleModel(lib.note()?.content ?? "").stats.chars}</Text>
             </View> : null}
         </Scroll>
       </View>
@@ -499,43 +579,46 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
 }
 
 
-/** 库页的 iOS 大标题栏。单独成组件，滚动时只重绘这一条栏，不重绘整个列表。 */
-function LibraryHeader(props: { scrollY: () => number; busy: boolean; onNewNote: () => void; onSettings: () => void }) {
+const TAB_ITEMS = [
+  { id: "recent", icon: "clock", key: "mobile.recent" },
+  { id: "all", icon: "folder", key: "mobile.all" },
+  { id: "favorites", icon: "star", key: "mobile.favorites" },
+] as const satisfies readonly { id: Tab; icon: IconName; key: string }[];
+
+/**
+ * 悬浮的 Liquid Glass 标签栏。系统的 UITabBar 在页面里会额外铺一层全宽材质，
+ * 滚动时看起来像一块遮罩；这里用同尺寸的玻璃胶囊，内容从下面穿过，没有那层底。
+ */
+function FloatingTabBar(props: { tab: () => Tab; onTab: (next: Tab) => void }) {
   const c = mobileColors();
   const bottom = safeAreaInsets();
-  const collapse = () => Math.max(0, Math.min(1, props.scrollY() / 40));
-  const scrolled = () => props.scrollY() > 1;
-  const barFill = mobileIsDark() ? "rgba(0, 0, 0, 0.72)" : "rgba(242, 242, 247, 0.80)";
-  const groupGlass = () => ({
-    height: 40, flexDirection: "row" as const, alignItems: "center" as const, borderRadius: 20, borderCurve: "continuous" as const,
-    backgroundColor: glass().fillStrong, backdropFilter: "blur(24px) saturate(180%)", glassEffect: "regular" as const,
-    borderWidth: 0.5, borderColor: mobileIsDark() ? glass().stroke : glass().strokeDark,
-  });
-  return <View pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 30 }}>
-    <View style={{ height: bottom().top + 44, paddingTop: bottom().top, paddingHorizontal: 16, flexDirection: "row", alignItems: "center",
-      backgroundColor: scrolled() ? barFill : "transparent", backdropFilter: scrolled() ? "blur(24px) saturate(180%)" : undefined,
-      borderBottomWidth: scrolled() ? 0.5 : 0, borderBottomColor: c.thread }}>
-      <Text numberOfLines={1} style={{ position: "absolute", left: 72, right: 72, textAlign: "center", fontSize: 17, fontWeight: 600,
-        letterSpacing: -0.4, color: c.ink, opacity: collapse() }}>{t("mobile.library")}</Text>
-      <View style={{ marginLeft: "auto", ...groupGlass() }}>
-        <Button testID="mobile-new-note" accessibilityLabel={t("note.new")} disabled={props.busy} onPress={props.onNewNote}
-          style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", opacity: props.busy ? 0.45 : 1 }}>
-          <Icon name="compose" color={c.accent} size={20} />
-        </Button>
-        <View style={{ width: 0.5, height: 20, backgroundColor: mobileIsDark() ? "rgba(255, 255, 255, 0.18)" : "rgba(0, 0, 0, 0.12)" }} />
-        <Button testID="mobile-settings" accessibilityLabel={t("settings.title")} onPress={() => { Keyboard.dismiss(); props.onSettings(); }}
-          style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
-          <Icon name="gear" color={c.accent} size={20} />
-        </Button>
-      </View>
-    </View>
-    <View pointerEvents="none" style={{ height: 48 * (1 - collapse()), overflow: "hidden", backgroundColor: c.paper, paddingHorizontal: 16 }}>
-      <View style={{ height: 48, justifyContent: "center", opacity: 1 - collapse() }}>
-        <Text numberOfLines={1} style={{ fontSize: 34, fontWeight: 700, letterSpacing: 0, color: c.ink }}>{t("mobile.library")}</Text>
-      </View>
+  return <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0, alignItems: "center",
+    paddingBottom: Math.max(8, bottom().bottom - 12) }}>
+    <View style={{ width: 276, height: 53, flexDirection: "row", alignItems: "stretch", overflow: "hidden", ...glassStyle(26.5) }}>
+      {TAB_ITEMS.map(item => {
+        const active = props.tab() === item.id;
+        return <Button testID={`mobile-tab-${item.id}`} accessibilityLabel={t(item.key)}
+          onPress={() => { Keyboard.dismiss(); props.onTab(item.id); }}
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ alignItems: "center", gap: 2, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 16, borderCurve: "continuous",
+            backgroundColor: active ? (mobileIsDark() ? "rgba(255, 255, 255, 0.10)" : "rgba(0, 0, 0, 0.05)") : "transparent" }}>
+            <Icon name={item.icon} color={active ? c.accent : c.ink3} size={22} />
+            <Text style={{ fontSize: 10, fontWeight: 500, letterSpacing: 0, color: active ? c.accent : c.ink3 }}>{t(item.key)}</Text>
+          </View>
+        </Button>;
+      })}
     </View>
   </View>;
 }
+
+/** 库页导航栏左侧的设置入口：交给系统放在导航栏里，尺寸随系统。 */
+function NativeSettingsButton(props: { onPress: () => void }) {
+  return <Button testID="mobile-settings" accessibilityLabel={t("settings.title")} onPress={() => { Keyboard.dismiss(); props.onPress(); }}
+    style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+    <Icon name="gear" color={mobileColors().accent} size={20} />
+  </Button>;
+}
+
 
 function LibraryPage(props: {
   library: MobileLibrary;
@@ -560,7 +643,6 @@ function LibraryPage(props: {
   const query = signal("");
   const expanded = signal<Set<string>>(new Set());
   const pulling = signal(false);
-  const scrollY = signal(0);
   const search = librarySearch(() => lib.vault, query, lib.entries);
   const allNotes = () => lib.entries().filter(e => !e.isDir && /\.(md|markdown)$/i.test(e.name))
     .map(e => ({ path: e.path, title: titleFromName(e.name.normalize("NFC")), mtimeMs: e.mtimeMs }))
@@ -612,11 +694,9 @@ function LibraryPage(props: {
 
   return <View style={{ flex: 1, backgroundColor: c.paper }}>
     <View style={{ flex: 1 }}>
-      {props.ios ? <LibraryHeader scrollY={scrollY} busy={props.busy} onNewNote={newNote} onSettings={props.onSettings} /> : null}
       <Scroll testID="mobile-library-list" style={{ flex: 1 }} onRefresh={refresh} refreshing={pulling()}
-        onScroll={props.ios ? event => scrollY.set(Math.max(0, event.offset.y)) : undefined} scrollEventThrottle={16}
-        refreshIndicator={props.ios ? undefined : { height: 52 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
-        contentStyle={{ paddingTop: props.ios ? bottom().top + 44 + 48 + 8 : (statusVisible() ? 100 : 58) + bottom().top, paddingHorizontal: 16, paddingBottom: props.ios ? 96 : 108 + bottom().bottom }}>
+        refreshIndicator={{ height: 52 }} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
+        contentStyle={{ paddingTop: props.ios ? 8 : (statusVisible() ? 100 : 58) + bottom().top, paddingHorizontal: 16, paddingBottom: props.ios ? 100 + bottom().bottom : 108 + bottom().bottom }}>
         {!props.ios && notPulling() ? <PullIndicator percent={percent()} /> : null}
         {props.ios && statusVisible() ? <View style={{ marginBottom: 8 }}><SyncAccessory onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
           onRetry={() => { void props.onSync().catch(err => lib.error.set(String(err))); }} /></View> : null}
@@ -709,12 +789,7 @@ function LibraryPage(props: {
 
     </View>
 
-    {props.ios ? <TabBar items={[
-        { title: t("mobile.recent"), icon: "clock" },
-        { title: t("mobile.all"), icon: "folder" },
-        { title: t("mobile.favorites"), icon: "star" },
-      ]} selectedIndex={props.tab() === "all" ? 1 : props.tab() === "favorites" ? 2 : 0}
-      onChange={index => { Keyboard.dismiss(); props.onTab(index === 1 ? "all" : index === 2 ? "favorites" : "recent"); }} /> : null}
+    {props.ios ? <FloatingTabBar tab={props.tab} onTab={props.onTab} /> : null}
 
     {props.ios ? null : <View style={{ position: "absolute", left: 0, right: 0, bottom: keyboardFrame().height, paddingHorizontal: 20, paddingBottom: keyboardFrame().height ? 8 : 12 + bottom().bottom, flexDirection: "row", alignItems: "center", gap: 10 }}>
       <Button testID="mobile-new-folder" accessibilityLabel={t("mobile.newFolder")} disabled={props.busy} onPress={props.onNewFolder}
@@ -780,16 +855,19 @@ function emptyNotes() {
 function ReaderDock(props: { content: string; bottom: number; onOutline: () => void; onType: () => void }) {
   const c = mobileColors();
   const words = () => articleModel(props.content).stats.chars;
-  return <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 49 + props.bottom, paddingBottom: props.bottom, paddingHorizontal: 20,
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: 0.5, borderTopColor: c.thread,
-    backgroundColor: mobileIsDark() ? "rgba(0, 0, 0, 0.82)" : "rgba(255, 255, 255, 0.82)", backdropFilter: "blur(24px) saturate(180%)" }}>
-    <Button testID="mobile-outline" accessibilityLabel={t("inspector.outline")} onPress={props.onOutline} style={{ minWidth: 60, height: 49, justifyContent: "center" }}>
-      <Text style={{ fontSize: 17, color: c.accent }}>{t("inspector.outline")}</Text>
-    </Button>
-    <Text testID="mobile-word-count" style={{ fontSize: 13, fontWeight: 400, color: c.ink3 }}>{t("mobile.words", { n: words() })}</Text>
-    <Button testID="mobile-type" accessibilityLabel={t("settings.font.size")} onPress={props.onType} style={{ minWidth: 60, height: 49, alignItems: "flex-end", justifyContent: "center" }}>
-      <Text style={{ fontSize: 19, fontWeight: 500, color: c.accent }}>A</Text>
-    </Button>
+  return <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 16,
+    paddingBottom: Math.max(8, props.bottom - 10), alignItems: "center" }}>
+    <View style={{ width: "100%", height: 50, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between", ...glassStyle(25) }}>
+      <Button testID="mobile-outline" accessibilityLabel={t("inspector.outline")} onPress={props.onOutline}
+        style={{ minWidth: 64, height: 50, paddingHorizontal: 10, justifyContent: "center" }}>
+        <Text style={{ fontSize: 17, color: c.accent }}>{t("inspector.outline")}</Text>
+      </Button>
+      <Text testID="mobile-word-count" style={{ fontSize: 13, fontWeight: 400, color: c.ink3 }}>{t("mobile.words", { n: words() })}</Text>
+      <Button testID="mobile-type" accessibilityLabel={t("settings.font.size")} onPress={props.onType}
+        style={{ minWidth: 64, height: 50, paddingHorizontal: 10, alignItems: "flex-end", justifyContent: "center" }}>
+        <Text style={{ fontSize: 19, fontWeight: 500, color: c.accent }}>A</Text>
+      </Button>
+    </View>
   </View>;
 }
 
@@ -830,16 +908,32 @@ function ChoiceRow(props: { label: string; detail: string; icon: IconName; onPre
 
 function TypeSettings() {
   const c = mobileColors();
-  return <View style={{ gap: 20 }}>
-    {([{ title: "settings.font.reading", value: fontSize, set: applyFontSize }, { title: "settings.font.editorSize", value: editorFontSize, set: applyEditorFontSize }]).map(item =>
-      <View style={{ gap: 12 }}>
-        <Text style={{ fontSize: 13, color: c.ink3 }}>{t(item.title)}</Text>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Action id={`${item.title}-decrease`} label="A−" disabled={item.value() <= 12} onPress={() => item.set(item.value() - 1)} />
-          <Text style={{ color: c.ink, fontSize: 19 }}>{item.value()}</Text>
-          <Action id={`${item.title}-increase`} label="A+" disabled={item.value() >= 24} onPress={() => item.set(item.value() + 1)} />
+  const rows = [
+    { id: "reading", title: "settings.font.reading", value: fontSize, set: applyFontSize },
+    { id: "editor", title: "settings.font.editorSize", value: editorFontSize, set: applyEditorFontSize },
+  ];
+  return <View>
+    {rows.map((item, index) => <View>
+      <SectionTitle top={index === 0 ? 2 : 24}>{t(item.title)}</SectionTitle>
+      <SettingsGroup>
+        <View style={{ height: 48, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", backgroundColor: c.list }}>
+          <Button testID={`${item.title}-decrease`} accessibilityLabel="-1" disabled={item.value() <= 12} onPress={() => item.set(item.value() - 1)}
+            style={{ width: 52, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: c.paper, opacity: item.value() <= 12 ? 0.35 : 1 }}>
+            <Text style={{ fontSize: 17, fontWeight: 500, color: c.accent }}>A−</Text>
+          </Button>
+          <Text style={{ flex: 1, textAlign: "center", fontSize: 19, fontWeight: 500, color: c.ink }}>{item.value()}</Text>
+          <Button testID={`${item.title}-increase`} accessibilityLabel="+1" disabled={item.value() >= 24} onPress={() => item.set(item.value() + 1)}
+            style={{ width: 52, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: c.paper, opacity: item.value() >= 24 ? 0.35 : 1 }}>
+            <Text style={{ fontSize: 19, fontWeight: 500, color: c.accent }}>A+</Text>
+          </Button>
         </View>
-      </View>)}
+      </SettingsGroup>
+    </View>)}
+    <View style={{ marginTop: 24, paddingHorizontal: 4 }}>
+      <Text numberOfLines={3} style={{ width: "100%", fontSize: fontSize(), lineHeight: fontSize() * 1.55, color: c.ink2 }}>
+        {t("mobile.typeSample")}
+      </Text>
+    </View>
   </View>;
 }
 
@@ -847,17 +941,19 @@ function ThemeRow(props: { theme: (typeof MOBILE_THEMES)[number]; last?: boolean
   const c = mobileColors();
   const theme = props.theme;
   const active = mobileThemeId() === theme.id;
-  return <Button testID={`mobile-theme-${theme.id}`} onPress={() => applyTheme(theme.id)}
-    style={{ minHeight: 48, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 12,
-      backgroundColor: c.list }}>
-    <View style={{ width: 29, height: 29, borderRadius: 7, borderCurve: "continuous", alignItems: "center", justifyContent: "center",
-      backgroundColor: theme.art.paper, borderWidth: 0.5, borderColor: theme.id === "nord" ? "#3A3A3C" : c.thread }}>
-      <Text style={{ fontSize: 13, fontWeight: 600, letterSpacing: -0.2, color: theme.art.ink }}>Aa</Text>
-    </View>
-    <Text style={{ flex: 1, fontSize: 17, color: c.ink }}>{theme.name}</Text>
-    {active ? <Icon name="check" color={c.accent} size={18} /> : null}
-    {props.last ? null : <View style={{ position: "absolute", left: 57, right: 0, bottom: 0, height: 0.5, backgroundColor: c.thread }} />}
-  </Button>;
+  return <View>
+    <Button testID={`mobile-theme-${theme.id}`} onPress={() => applyTheme(theme.id)}
+      style={{ minHeight: 48, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 12,
+        backgroundColor: c.list }}>
+      <View style={{ width: 29, height: 29, borderRadius: 7, borderCurve: "continuous", alignItems: "center", justifyContent: "center",
+        backgroundColor: theme.art.paper, borderWidth: 0.5, borderColor: theme.id === "nord" ? "#3A3A3C" : c.thread }}>
+        <Text style={{ fontSize: 13, fontWeight: 600, letterSpacing: -0.2, color: theme.art.ink }}>Aa</Text>
+      </View>
+      <Text style={{ flex: 1, fontSize: 17, color: c.ink }}>{theme.name}</Text>
+      {active ? <Icon name="check" color={c.accent} size={18} /> : null}
+    </Button>
+    {props.last ? null : <RowDivider inset={57} />}
+  </View>;
 }
 
 function MobileSettings(props: { connected: boolean; onImport: () => void; onTrash: () => void; onStorage: () => void; onSync: () => void; onConflicts: () => void }) {
@@ -879,11 +975,11 @@ function MobileSettings(props: { connected: boolean; onImport: () => void; onTra
     <SettingsGroup>
       <SettingsRow id="mobile-storage-row" icon="cloud" title={props.connected ? t(providerLabelKey(connection()!.provider)) : t("mobile.notConnected")}
         detail={props.connected ? `${connection()!.remotePath || "/"} · ${t("mobile.offlineReady")}` : t("mobile.connectHint")}
-        value={props.connected ? t("storage.inUse") : undefined} onPress={props.onStorage} />
+        value={props.connected ? t("storage.inUse") : undefined} last={!props.connected && !syncRuntime.conflicts().length} onPress={props.onStorage} />
       {props.connected ? <SettingsRow id="mobile-sync-now" icon="arrows-clockwise" iconBg="#34C759" title={t("mobile.syncNow")}
-        detail={`${t("sync.synced")} · ${formatSyncMoment(syncRuntime.lastSyncAt())}`} onPress={props.onSync} /> : null}
+        detail={`${t("sync.synced")} · ${formatSyncMoment(syncRuntime.lastSyncAt())}`} last={!syncRuntime.conflicts().length} onPress={props.onSync} /> : null}
       {syncRuntime.conflicts().length ? <SettingsRow id="mobile-conflicts-row" icon="info" iconBg="#FF9500" title={t("sync.manageConflicts")}
-        value={String(syncRuntime.conflicts().length)} onPress={props.onConflicts} /> : null}
+        value={String(syncRuntime.conflicts().length)} last onPress={props.onConflicts} /> : null}
     </SettingsGroup>
 
     <SectionTitle>{t("mobile.sectionData")}</SectionTitle>
@@ -910,14 +1006,16 @@ function LanguageRow() {
   const current = () => languages.find(language => language.id === localePref())?.label ?? t("settings.locale.system");
   return <View>
     <SettingsRow id="mobile-language-toggle" title={t("settings.locale")} value={current()} onPress={() => open.set(!open())} />
-    {open() ? languages.map(language => <Button testID={`mobile-language-${language.id}`}
-      onPress={() => { setLocalePref(language.id); void saveLocale(language.id); open.set(false); }}
-      style={{ minHeight: 44, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-        backgroundColor: c.list }}>
-      <Text style={{ fontSize: 17, color: c.ink }}>{language.label}</Text>
-      {localePref() === language.id ? <Icon name="check" color={c.accent} size={18} /> : null}
-      <View style={{ position: "absolute", left: 16, right: 0, bottom: 0, height: 0.5, backgroundColor: c.thread }} />
-    </Button>) : null}
+    {open() ? languages.map(language => <View>
+      <Button testID={`mobile-language-${language.id}`}
+        onPress={() => { setLocalePref(language.id); void saveLocale(language.id); open.set(false); }}
+        style={{ minHeight: 44, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+          backgroundColor: c.list }}>
+        <Text style={{ fontSize: 17, color: c.ink }}>{language.label}</Text>
+        {localePref() === language.id ? <Icon name="check" color={c.accent} size={18} /> : null}
+      </Button>
+      <RowDivider />
+    </View>) : null}
   </View>;
 }
 

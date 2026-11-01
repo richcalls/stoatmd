@@ -306,5 +306,6 @@
   "mobile.offlineReady": "離線可讀寫",
   "mobile.conflict.keepLocalHint": "用本機版本覆蓋雲端。雲端改動會進入衝突副本。",
   "mobile.conflict.keepRemoteHint": "用雲端版本取代本機。本機改動會進入衝突副本。",
-  "mobile.conflict.keepBothHint": "保留兩份：原檔與衝突副本，由你稍後合併。"
+  "mobile.conflict.keepBothHint": "保留兩份：原檔與衝突副本，由你稍後合併。",
+  "mobile.typeSample": "寫作是把想法慢慢攤開，讓每一句都落在該落的位置。"
 }

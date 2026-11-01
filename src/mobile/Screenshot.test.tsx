@@ -30,8 +30,27 @@ test("iOS 当前界面截图", async () => {
   await app.screenshot("screenshots/ios-raw/04-outline.png");
   await app.press("id:mobile-panel-done");
   await app.waitFor("id:mobile-preview");
+
+  await app.press("id:mobile-actions");
+  await app.waitFor("id:mobile-rename");
+  await app.screenshot("screenshots/ios-raw/04b-actions.png");
+  await app.press("id:mobile-move");
+  await app.waitFor("id:mobile-move-to-root");
+  await app.screenshot("screenshots/ios-raw/04c-move.png");
+  await app.press("id:mobile-panel-done");
+  await app.waitFor("id:mobile-preview");
+  await app.press("id:mobile-actions");
+  await app.waitFor("id:mobile-rename");
+  await app.press("id:mobile-rename");
+  await app.waitFor("id:mobile-name");
+  await app.screenshot("screenshots/ios-raw/04d-rename.png");
+  await app.press("id:mobile-panel-done");
+  await app.waitFor("id:mobile-preview");
+
   await app.back();
   await app.waitFor("id:mobile-search");
+  await new Promise(resolve => setTimeout(resolve, 300));
+  await app.screenshot("screenshots/ios-raw/01c-after-back.png");
 
   await app.paste("id:mobile-search", { text: "写作" });
   await app.waitUntil(() => app.shows("id:mobile-note-想法/写作.md"));
@@ -42,6 +61,26 @@ test("iOS 当前界面截图", async () => {
   await app.press("id:mobile-settings");
   await app.waitFor("id:mobile-theme-paper");
   await app.screenshot("screenshots/ios-raw/06-settings-light.png");
+
+  await app.press("id:mobile-text-row");
+  await app.waitFor("id:settings.font.reading-decrease");
+  await app.screenshot("screenshots/ios-raw/06b-type.png");
+  await app.press("id:mobile-text-row");
+
+  await app.press("id:mobile-storage-row");
+  await new Promise(resolve => setTimeout(resolve, 600));
+  await app.screenshot("screenshots/ios-raw/06c-storage.png");
+  await app.press("id:mobile-panel-done");
+  await app.waitFor("id:mobile-search");
+  await app.press("id:mobile-settings");
+  await app.waitFor("id:mobile-trash");
+  await app.press("id:mobile-trash");
+  await new Promise(resolve => setTimeout(resolve, 500));
+  await app.screenshot("screenshots/ios-raw/06d-trash.png");
+  await app.press("id:mobile-panel-done");
+  await app.waitFor("id:mobile-search");
+  await app.press("id:mobile-settings");
+  await app.waitFor("id:mobile-theme-paper");
 
   await app.press("id:mobile-theme-nord");
   await new Promise(resolve => setTimeout(resolve, 350));

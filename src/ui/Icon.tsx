@@ -7,6 +7,7 @@ import caretDown from "../../assets/icons/caret-down.svg";
 import caretRight from "../../assets/icons/caret-right.svg";
 import check from "../../assets/icons/check.svg";
 import cloud from "../../assets/icons/cloud.svg";
+import clock from "../../assets/icons/clock.svg";
 import code from "../../assets/icons/code.svg";
 import compose from "../../assets/icons/compose.svg";
 import device from "../../assets/icons/device.svg";
@@ -62,6 +63,7 @@ export type IconName =
   | "info"
   | "list-tree"
   | "text-t"
+  | "clock"
   | "code"
   | "split"
   | "eye"
@@ -97,6 +99,7 @@ const MAP = {
   info,
   "list-tree": listTree,
   "text-t": textT,
+  clock,
   code,
   split,
   eye,

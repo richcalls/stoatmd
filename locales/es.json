@@ -306,5 +306,6 @@
   "mobile.offlineReady": "Listo sin conexión",
   "mobile.conflict.keepLocalHint": "Sobrescribir la nube con la versión de este dispositivo. Los cambios en la nube van a una copia de conflicto.",
   "mobile.conflict.keepRemoteHint": "Reemplazar este dispositivo con la versión de la nube. Los cambios locales van a una copia de conflicto.",
-  "mobile.conflict.keepBothHint": "Conservar ambos: el original y una copia de conflicto para unir después."
+  "mobile.conflict.keepBothHint": "Conservar ambos: el original y una copia de conflicto para unir después.",
+  "mobile.typeSample": "Escribir despliega una idea despacio, hasta que cada frase encuentra su lugar."
 }
