@@ -12,7 +12,7 @@ import {
   previewModel,
   resolveAnchor,
 } from "./previewModel";
-import { colors, themePreset, type ThemePreset } from "./theme";
+import { colors, themePreset, type ThemePalette, type ThemePreset } from "./theme";
 import { editorFontSize, editorLineHeight, fontSize, lineHeightPx, documentFontFamily, systemFonts } from "./typography";
 import type { ViewMode } from "./Toolbar";
 import {
@@ -50,15 +50,15 @@ const editorTextStyles = () => ({
 });
 
 /** 预览排版：Kami 文章样式（衬线、500 字重、引用无底色），字号随设置缩放。 */
-export const previewTextStyles = (): TextViewStyles => {
+export const previewTextStyles = (palette: ThemePalette = colors()): TextViewStyles => {
   const size = fontSize();
   const lh = lineHeightPx(size);
   const scale = kamiTypeScale(size);
   const mono = kamiMonoFamily(systemFonts());
-  const ink = documentColors();
+  const ink = documentColors(palette);
   return {
     root: {
-      color: colors().ink,
+      color: palette.ink,
       fontSize: size,
       lineHeight: lh,
       fontFamily: documentFontFamily(),
@@ -104,14 +104,14 @@ export const previewTextStyles = (): TextViewStyles => {
     },
     code: {
       color: ink.code,
-      backgroundColor: colors().codeBg,
+      backgroundColor: palette.codeBg,
       fontFamily: mono,
       fontSize: scale.code,
       borderRadius: 2,
       paddingHorizontal: 4,
     },
     codeBlock: {
-      backgroundColor: colors().list,
+      backgroundColor: palette.list,
       borderRadius: 5,
       paddingTop: 13,
       paddingBottom: 13,
@@ -128,13 +128,13 @@ export const previewTextStyles = (): TextViewStyles => {
     listMarker: { color: ink.marker },
     tableHead: { backgroundColor: "transparent" },
     tableHeaderCell: {
-      color: colors().ink2,
+      color: palette.ink2,
       fontWeight: 500,
       borderBottomWidth: 1,
-      borderBottomColor: colors().thread,
+      borderBottomColor: palette.thread,
     },
-    tableCell: { borderBottomWidth: 1, borderBottomColor: colors().thread },
-    rule: { borderTopColor: colors().thread },
+    tableCell: { borderBottomWidth: 1, borderBottomColor: palette.thread },
+    rule: { borderTopColor: palette.thread },
   };
 };
 

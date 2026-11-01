@@ -30,6 +30,14 @@ test("同步状态：网络与授权错误映射到可读文案，其他归为�
     .toBe("sync.error.generic");
 });
 
+test("同步状态：暂停时保留进度，继续后从同一个位置恢复", () => {
+  const status = syncStatus("paused", { done: 3, total: 10 }, null);
+  expect(status?.kind).toBe("paused");
+  expect(status?.key).toBe("mobile.syncPaused");
+  expect(status?.params).toEqual({ done: 3, total: 10 });
+  expect(status?.percent).toBe(30);
+});
+
 test("同步状态：已同步或没有错误时不出横幅", () => {
   expect(syncStatus("synced", { done: 1, total: 1 }, null)).toBe(null);
   expect(syncStatus("error", { done: 0, total: 0 }, null)).toBe(null);

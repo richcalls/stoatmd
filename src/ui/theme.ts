@@ -685,8 +685,15 @@ export function isDarkTheme(): boolean {
 }
 
 /** 当前主题的完整 token；UI 直接读它，主题切换时所有引用都会跟着更新。 */
+let paletteOverride: (() => ThemePalette) | null = null;
+
+/** iOS 壳层接管调色板：共享组件（同步设置等）在手机上同样使用 Cream×Glass。 */
+export function setPaletteOverride(read: (() => ThemePalette) | null): void {
+  paletteOverride = read;
+}
+
 export function colors(): ThemePalette {
-  return themePreset().palette;
+  return paletteOverride ? paletteOverride() : themePreset().palette;
 }
 
 /** 成功 / 冲突状态色（主题 token 没定义状态色，按明暗取通用值）。 */

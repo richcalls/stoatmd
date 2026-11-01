@@ -49,13 +49,15 @@ test("iPhone: theme, language and font settings persist after restarting", async
   const app = await open("./MobileShell.harness.tsx", phone);
   await app.press("id:mobile-settings");
   await app.press("id:mobile-theme-nord");
+  await app.press("id:mobile-text-row");
   await app.press("id:settings.font.reading-increase");
+  await app.press("id:mobile-language-toggle");
   await app.press("id:mobile-language-en");
   await app.waitUntil(() => app.storage()["prefs.locale"] === "en" && app.storage()["prefs.theme"] === "nord" && app.storage()["prefs.fontSize"] === "17");
   const again = await open("./MobileShell.harness.tsx", { ...phone, storage: app.storage() });
   await again.press("id:mobile-settings");
   expect(again.shows("text:Settings")).toBe(true);
-  expect(again.shows("text:17")).toBe(true);
+  expect(again.shows("text:Kami · 17 / 1.55")).toBe(true);
   expect(again.storage()["prefs.theme"]).toBe("nord");
 });
 
@@ -102,4 +104,46 @@ test("iPhone: move, recycle, restore and permanently delete a note", async () =>
   await app.press("text:永久删除");
   await app.press("id:mobile-erase-confirm");
   await app.waitFor("text:最近删除为空");
+}, 120_000);
+
+test("iPhone: 库页三 Tab、文件树、搜索与阅读底栏按 Cream×Glass 稿工作", async () => {
+  const app = await open("./MobileShell.harness.tsx", phone);
+  await app.waitFor("id:mobile-tab-recent");
+  expect(app.shows("text:还没有笔记")).toBe(true);
+
+  await app.press("id:mobile-new-folder");
+  await app.waitFor("id:mobile-name");
+  await app.paste("id:mobile-name", { text: "随笔" });
+  await app.submit("id:mobile-name");
+  await app.press("id:mobile-name-confirm");
+  await app.waitFor("id:mobile-folder-随笔");
+  await app.press("id:mobile-folder-随笔");
+  await app.press("id:mobile-new-note");
+  await app.waitFor("id:mobile-source");
+  await app.paste("id:mobile-source", { text: "# 写作的框架\n\n好的文章是结构的展开。" });
+  await app.waitUntil(() => app.texts().includes("已保存"));
+  await app.back();
+  await app.waitFor("id:mobile-note-随笔/untitled.md");
+
+  await app.press("id:mobile-tab-favorites");
+  await app.waitFor("id:mobile-favorites-soon");
+  expect(app.texts().includes("即将推出")).toBe(true);
+  expect(app.shows("id:mobile-note-随笔/untitled.md")).toBe(false);
+
+  await app.press("id:mobile-tab-all");
+  await app.waitFor("id:mobile-note-随笔/untitled.md");
+  await app.paste("id:mobile-search", { text: "写作的框架" });
+  await app.submit("id:mobile-search");
+  await app.waitFor("id:mobile-search-meta");
+  await app.waitFor("id:mobile-note-随笔/untitled.md");
+
+  await app.press("id:mobile-note-随笔/untitled.md");
+  await app.waitFor("id:mobile-preview");
+  expect(app.shows("id:mobile-outline")).toBe(true);
+  expect(app.shows("id:mobile-word-count")).toBe(true);
+  expect(app.shows("id:mobile-type")).toBe(true);
+  await app.press("id:mobile-edit");
+  await app.waitFor("id:mobile-source");
+  expect(app.shows("id:mobile-read")).toBe(true);
+  expect(app.shows("id:mobile-save-status")).toBe(true);
 }, 120_000);
