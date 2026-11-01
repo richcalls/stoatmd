@@ -143,6 +143,25 @@ test("iPhone: 库页三 Tab、文件树、搜索与阅读底栏工作", async ()
   expect(app.shows("id:mobile-outline")).toBe(true);
   expect(app.shows("id:mobile-word-count")).toBe(true);
   expect(app.shows("id:mobile-type")).toBe(true);
+  // 正文内查找：按块计数，命中后能上下跳。
+  await app.press("id:mobile-find-open");
+  await app.waitFor("id:mobile-find-input");
+  await app.paste("id:mobile-find-input", { text: "文章" });
+  await new Promise(resolve => setTimeout(resolve, 200));
+  expect(app.texts()).toContain("1 / 1");
+  await app.press("id:mobile-find-close");
+  expect(app.shows("id:mobile-find")).toBe(false);
+
+  // 笔记信息：字数、阅读时间、段落、标题与文件时间。
+  await app.press("id:mobile-actions");
+  await app.waitFor("id:mobile-info");
+  await app.press("id:mobile-info");
+  await new Promise(resolve => setTimeout(resolve, 200));
+  expect(app.texts()).toContain("字符数");
+  expect(app.texts()).toContain("段落");
+  expect(app.texts()).toContain("随笔/untitled.md");
+  await app.press("id:mobile-panel-done");
+
   await app.press("id:mobile-edit");
   await app.waitFor("id:mobile-source");
   expect(app.shows("id:mobile-read")).toBe(true);

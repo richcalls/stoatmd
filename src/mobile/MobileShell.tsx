@@ -7,7 +7,7 @@ import { syncRuntime } from "../sync/runtime";
 import { SyncSettings, formatSyncMoment } from "../ui/SyncSettings";
 import { providerLabelKey } from "../sync/runtime";
 import { Icon, type IconName } from "../ui/Icon";
-import { articleModel } from "../ui/articleModel";
+import { articleModel, noteFormat } from "../ui/articleModel";
 import { previewTextStyles } from "../ui/EditorWorkspace";
 import { displayBlock, renderMode } from "../ui/documentAppearance";
 import { findShortcuts } from "../ui/findShortcuts";
@@ -17,14 +17,14 @@ import { saveLocale } from "../ui/prefs";
 import { previewGap, previewModel, resolveAnchor } from "../ui/previewModel";
 import { applyTheme, setPaletteOverride } from "../ui/theme";
 import { LINE_HEIGHT_MAX, LINE_HEIGHT_MIN, LINE_HEIGHT_STEP, applyEditorFontSize, applyFontLineHeight, applyFontSize, editorFontSize, fontLineHeight, fontSize, lineHeightPx } from "../ui/typography";
-import { formatWhen, titleFromName } from "../ui/vaultModel";
+import { formatDateTime, formatWhen, titleFromName } from "../ui/vaultModel";
 import { mobileLibrary, type MobileLibrary } from "./library";
 import { flattenTree } from "./libraryTree";
 import { MOBILE_THEMES, glass, mobileColors, mobileIsDark, mobileThemeId } from "./palette";
 import { syncStatus } from "./syncStatus";
 
 type Route = { kind: "library" } | { kind: "document" };
-type Panel = "settings" | "storage" | "outline" | "type" | "actions" | "rename" | "folder" | "move" | "trash" | "erase" | "cloudConflicts" | null;
+type Panel = "settings" | "storage" | "outline" | "type" | "actions" | "info" | "rename" | "folder" | "move" | "trash" | "erase" | "cloudConflicts" | null;
 type Tab = "recent" | "all" | "favorites";
 
 /**
@@ -290,6 +290,8 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   const finding = signal(false);
   const findText = signal("");
   const findHit = signal(0);
+  // iPad 的「编辑 + 预览」同屏（对齐 Mac 的 split 模式），窄屏不提供。
+  const previewSplit = signal(false);
   // 大标题滚出屏幕后，用系统导航栏的小标题接住，和原生大标题收起一致。
   const libraryTitleCollapsed = signal(false);
   const selectedFolder = signal("");
@@ -373,8 +375,9 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   // iPad 外接键盘：对齐 Mac 的几个常用快捷键（新笔记 / 设置 / 编辑↔阅读）。
   keymap.bind("mod+n", () => { if (!busy()) newNote(selectedFolder()); }, { when: "always" });
   keymap.bind("mod+,", () => show("settings"), { when: "always" });
-  keymap.bind("mod+1", () => { if (lib.note()) { finding.set(false); editing.set(true); } }, { when: "always" });
-  keymap.bind("mod+3", () => { if (lib.note()) { Keyboard.dismiss(); finding.set(false); editing.set(false); void lib.flush(); } }, { when: "always" });
+  keymap.bind("mod+1", () => { if (lib.note()) { finding.set(false); previewSplit.set(false); editing.set(true); } }, { when: "always" });
+  keymap.bind("mod+2", () => { if (lib.note() && wide()) { finding.set(false); previewSplit.set(true); editing.set(true); } }, { when: "always" });
+  keymap.bind("mod+3", () => { if (lib.note()) { Keyboard.dismiss(); finding.set(false); previewSplit.set(false); editing.set(false); void lib.flush(); } }, { when: "always" });
   const onLink = (url: string) => {
     const index = resolveAnchor(model().anchors, url);
     if (index !== undefined) goToBlock(index);
@@ -463,7 +466,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   // 代价：系统项的文字跟设备语言走，app 内单独换语言时它会跟着设备而不是界面。
   const docToggle = () => {
     finding.set(false); findText.set(""); findHit.set(0);
-    if (editing()) { Keyboard.dismiss(); editing.set(false); void lib.flush(); } else editing.set(true);
+    if (editing()) { Keyboard.dismiss(); editing.set(false); previewSplit.set(false); void lib.flush(); } else editing.set(true);
   };
   const docToolbar = () => <Button testID={editing() ? "mobile-read" : "mobile-edit"}
     accessibilityLabel={editing() ? t("common.done") : t("mobile.edit")} onPress={docToggle}
@@ -490,6 +493,29 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
       error={errorBanner()} conflict={conflictBanner()} />
   </NavPageI>;
 
+  /** 源码编辑面板；分屏时左右各占一半，留白收窄。 */
+  const sourcePane = (compact: boolean) => <Input ref={(node) => { editor = node; selected = { start: 0, end: 0 }; }}
+    testID="mobile-source" readonly={busy()} value={lib.note()?.content ?? ""} multiline autoCorrect={false} autoCapitalize="none"
+    placeholder={t("mobile.writeHint")} onChange={lib.edit} onSelectionChange={range => { selected = range; }}
+    ios={{ inputAccessoryViewID: "markdown-tools", keyboardAppearance: mobileIsDark() ? "dark" : "light" }}
+    style={{ flex: 1, paddingTop: ios ? 14 : 66 + bottom().top, paddingHorizontal: compact ? 14 : 20, paddingBottom: 14, color: mobileColors().ink, backgroundColor: mobileColors().editor,
+      fontSize: editorFontSize() + 2, lineHeight: Math.round((editorFontSize() + 2) * 1.7), letterSpacing: 0.1 }} />;
+
+  /** 阅读面板；`dock` 为 false 时（分屏预览）不挂底部工具条。 */
+  const previewPane = (compact: boolean, dock: boolean) => <View style={{ flex: 1 }}>
+    <List ref={node => { reader = node; }} testID="mobile-preview" each={model().blocks} estimatedItemSize={model().estimatedItemSize}
+      contentStyle={{ paddingHorizontal: compact ? 16 : 24, paddingTop: ios ? 10 : 70 + bottom().top, paddingBottom: dock ? 104 + bottom().bottom : 24 + bottom().bottom }} style={{ flex: 1, backgroundColor: mobileColors().preview }}>
+      {(block, index) => <View style={{ paddingTop: previewGap(index() > 0 ? model().blocks[index() - 1] : undefined, block(), fontSize() / 15),
+        backgroundColor: finding() && currentBlock() === index() ? mobileColors().accentSoft : "transparent" }}>
+        <TextView document={{ blocks: [displayBlock(block(), renderMode())] }} selectable links="open" onLinkPress={event => onLink(event.url)} styles={readerStyles()} />
+      </View>}
+    </List>
+    {dock ? <ReaderDock content={lib.note()?.content ?? ""} bottom={bottom().bottom}
+      onOutline={() => show("outline")} onType={() => show("type")} onFind={openFind}
+      onSplit={ios && wide() ? () => { finding.set(false); previewSplit.set(true); editing.set(true); } : undefined}
+      onActions={ios ? () => show("actions") : undefined} /> : null}
+  </View>;
+
   // 分栏里的文档页没有返回键：左边列表常在，换笔记靠左边点选。
   const documentPage = (split: boolean) => <NavPageI testID="mobile-document-page" headerVisible={ios}
     title={ios ? docTitle() : undefined} headerBackVisible={ios && !split} headerTransparent={false}
@@ -504,24 +530,12 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
       {lib.recovered() ? <View testID="mobile-recovered" style={{ marginTop: ios ? 8 : 52 + bottom().top, padding: 12, backgroundColor: mobileColors().accentSoft }}><Text style={{ color: mobileColors().ink }}>{t("mobile.recovered")}</Text></View> : null}
       {conflictBanner()}
       {errorBanner()}
-      {editing() ? <Input ref={(node) => { editor = node; selected = { start: 0, end: 0 }; }}
-        testID="mobile-source" readonly={busy()} value={lib.note()?.content ?? ""} multiline autoCorrect={false} autoCapitalize="none"
-        placeholder={t("mobile.writeHint")} onChange={lib.edit} onSelectionChange={range => { selected = range; }}
-        ios={{ inputAccessoryViewID: "markdown-tools", keyboardAppearance: mobileIsDark() ? "dark" : "light" }}
-        style={{ flex: 1, paddingTop: ios ? 14 : 66 + bottom().top, paddingHorizontal: 20, paddingBottom: 14, color: mobileColors().ink, backgroundColor: mobileColors().editor,
-          fontSize: editorFontSize() + 2, lineHeight: Math.round((editorFontSize() + 2) * 1.7), letterSpacing: 0.1 }} /> :
-        <View style={{ flex: 1 }}>
-          <List ref={node => { reader = node; }} testID="mobile-preview" each={model().blocks} estimatedItemSize={model().estimatedItemSize}
-            contentStyle={{ paddingHorizontal: 24, paddingTop: ios ? 10 : 70 + bottom().top, paddingBottom: 104 + bottom().bottom }} style={{ flex: 1, backgroundColor: mobileColors().preview }}>
-            {(block, index) => <View style={{ paddingTop: previewGap(index() > 0 ? model().blocks[index() - 1] : undefined, block(), fontSize() / 15),
-              backgroundColor: finding() && currentBlock() === index() ? mobileColors().accentSoft : "transparent" }}>
-              <TextView document={{ blocks: [displayBlock(block(), renderMode())] }} selectable links="open" onLinkPress={event => onLink(event.url)} styles={readerStyles()} />
-            </View>}
-          </List>
-          <ReaderDock content={lib.note()?.content ?? ""} bottom={bottom().bottom}
-            onOutline={() => show("outline")} onType={() => show("type")} onFind={openFind}
-            onActions={ios ? () => show("actions") : undefined} />
-        </View>}
+      {editing() && wide() && previewSplit()
+        ? <View testID="mobile-doc-split" style={{ flex: 1, flexDirection: "row" }}>
+          <View style={{ flex: 1, borderRightWidth: 0.5, borderRightColor: mobileColors().thread }}>{sourcePane(true)}</View>
+          <View style={{ flex: 1 }}>{previewPane(true, false)}</View>
+        </View>
+        : editing() ? sourcePane(false) : previewPane(false, true)}
       <InputAccessoryView nativeID="markdown-tools" style={{ backgroundColor: mobileColors().paper }}>
         <View style={{ paddingHorizontal: 12, paddingTop: 4, paddingBottom: 8 }}>
           <View style={{ height: 46, paddingHorizontal: 6, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 2, ...glassStyle(16) }}>
@@ -570,7 +584,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
             : panel() === "storage" ? t("mobile.storageLocation") : panel() === "outline" ? t("inspector.outline") : panel() === "type" ? t("settings.font.size")
             : panel() === "folder" ? t("mobile.newFolder") : panel() === "rename" ? t("rename.title") : panel() === "move" ? t("mobile.move")
             : panel() === "cloudConflicts" ? t("sync.manageConflicts") : panel() === "trash" || panel() === "erase" ? t("mobile.trash")
-            : panel() === "actions" ? t("mobile.actions") : docTitle()}
+            : panel() === "actions" ? t("mobile.actions") : panel() === "info" ? t("info.stats") : docTitle()}
           </Text>
           <Button testID="mobile-panel-done" disabled={busy()} accessibilityLabel={t("common.done")} onPress={closePanel}
             style={{ marginLeft: "auto", height: 44, paddingHorizontal: 12, justifyContent: "center", opacity: busy() ? 0.45 : 1 }}>
@@ -660,12 +674,27 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
                 if (panel() === "folder") { await lib.createFolder(selectedFolder(), input()); tab.set("all"); closePanel(); }
                 else if (await lib.renameNote(input())) closePanel();
               }); }} />
+            </View> : panel() === "info" ? <View style={{ gap: 20 }}>
+              <SettingsGroup>
+                <InfoRow label={t("info.chars")} value={String(articleModel(lib.note()?.content ?? "").stats.chars)} />
+                <InfoRow label={t("info.readingTime")} value={articleModel(lib.note()?.content ?? "").stats.readingMinutes
+                  ? t("info.aboutMinutes", { n: articleModel(lib.note()?.content ?? "").stats.readingMinutes }) : t("info.minutes", { n: 0 })} />
+                <InfoRow label={t("info.paragraphs")} value={String(articleModel(lib.note()?.content ?? "").stats.paragraphs)} />
+                <InfoRow label={t("info.headings")} value={String(articleModel(lib.note()?.content ?? "").stats.headings)} last />
+              </SettingsGroup>
+              <SettingsGroup>
+                <InfoRow label={t("info.created")} value={formatDateTime(lib.note()?.createdMs ?? 0, locale())} />
+                <InfoRow label={t("info.modified")} value={formatDateTime(lib.note()?.mtimeMs ?? 0, locale())} />
+                <InfoRow label={t("info.format")} value={noteFormat(lib.note()?.path ?? "")} />
+                <InfoRow label={t("info.path")} value={lib.note()?.path ?? ""} last />
+              </SettingsGroup>
             </View> : panel() === "actions" ? <View style={{ gap: 16 }}>
               <Text numberOfLines={1} style={{ paddingHorizontal: 4, fontSize: 13, color: mobileColors().ink3 }}>{lib.note()?.path}</Text>
               <SettingsGroup>
                 <PanelRow id="mobile-rename" icon="pencil" title={t("rename.title")} onPress={() => { input.set(docTitle()); show("rename"); }} />
                 <PanelRow id="mobile-duplicate" icon="file-text" title={t("context.duplicate")} disabled={busy()} onPress={() => { void running(async () => { if (await lib.copy(t("context.duplicateSuffix"))) closePanel(); }); }} />
                 <PanelRow id="mobile-move" icon="folder" title={t("mobile.move")} disabled={busy()} onPress={() => { void running(async () => { await lib.refresh(); show("move"); }); }} />
+                <PanelRow id="mobile-info" icon="info" title={t("info.stats")} onPress={() => show("info")} />
                 <PanelRow id="mobile-export" icon="cloud" title={t("mobile.export")} disabled={busy()} last onPress={exportFile} />
               </SettingsGroup>
               <SettingsGroup>
@@ -1003,7 +1032,19 @@ function emptyNotes() {
   </View>;
 }
 
-function ReaderDock(props: { content: string; bottom: number; onOutline: () => void; onType: () => void; onFind?: () => void; onActions?: () => void }) {
+/** 信息面板的一行：左标签右值，和 iOS 分组表格一致。 */
+function InfoRow(props: { label: string; value: string; last?: boolean }) {
+  const c = mobileColors();
+  return <View>
+    <View style={{ minHeight: 44, paddingHorizontal: 16, paddingVertical: 10, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.list }}>
+      <Text style={{ flexShrink: 0, fontSize: 17, color: c.ink }}>{props.label}</Text>
+      <Text numberOfLines={2} style={{ flex: 1, textAlign: "right", fontSize: 15, color: c.ink2 }}>{props.value}</Text>
+    </View>
+    {props.last ? null : <RowDivider inset={16} />}
+  </View>;
+}
+
+function ReaderDock(props: { content: string; bottom: number; onOutline: () => void; onType: () => void; onFind?: () => void; onSplit?: () => void; onActions?: () => void }) {
   const c = mobileColors();
   const words = () => articleModel(props.content).stats.chars;
   return <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0,
@@ -1022,6 +1063,10 @@ function ReaderDock(props: { content: string; bottom: number; onOutline: () => v
         style={{ width: 48, height: 44, alignItems: "center", justifyContent: "center" }}>
         <Text style={{ fontSize: 18, fontWeight: 600, color: c.accent }}>Aa</Text>
       </Button>
+      {props.onSplit ? <Button testID="mobile-split-preview" accessibilityLabel={t("mode.split")} onPress={props.onSplit}
+        style={{ width: 48, height: 44, alignItems: "center", justifyContent: "center" }}>
+        <Icon name="split" color={c.accent} size={20} />
+      </Button> : null}
       {/* iOS 的导航栏右侧让给了「编辑 / 完成」，笔记的次要操作（重命名、复制、移动、
           导出、删除）落在这里，跟 Apple Notes 一样把文稿操作放在底部工具条上。 */}
       {props.onActions ? <Button testID="mobile-actions" accessibilityLabel={t("mobile.actions")} onPress={props.onActions}

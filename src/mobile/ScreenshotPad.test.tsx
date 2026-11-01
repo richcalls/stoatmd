@@ -53,6 +53,20 @@ test("iPad 横屏：左库右文两栏", async () => {
   await app.waitFor("id:mobile-theme-paper");
   await app.press("id:mobile-panel-done");
   await app.waitFor("id:mobile-preview");
+
+  // iPad 分屏：左边源码、右边实时预览（对齐 Mac 的 split 模式）。
+  await app.press("id:mobile-split-preview");
+  await app.waitFor("id:mobile-doc-split");
+  expect(app.shows("id:mobile-source")).toBe(true);
+  expect(app.shows("id:mobile-preview")).toBe(true);
+  await app.paste("id:mobile-source", { text: "# 分屏预览\n\n右边跟着变。" });
+  await app.waitUntil(() => app.texts().includes("右边跟着变。"), { timeout: 8000 });
+  await app.screenshot("screenshots/ios-raw/ipad-06-split-edit.png");
+  await app.keyboard.press("mod+3");
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(app.shows("id:mobile-doc-split")).toBe(false);
+  expect(app.shows("id:mobile-source")).toBe(false);
+  expect(app.shows("id:mobile-preview")).toBe(true);
 }, 120_000);
 
 test("iPad 竖屏：仍然是两栏", async () => {
