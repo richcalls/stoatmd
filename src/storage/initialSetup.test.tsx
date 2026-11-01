@@ -5,7 +5,7 @@ import { fixSyncConfigForTest } from "../sync/config";
 import type { SyncProvider } from "../sync/provider";
 import { syncRuntime } from "../sync/runtime";
 import { activateInitialStorage, storageMigration } from "./runtime";
-import { ACTIVE_KEY, activeStorage, storageBusy, type Location } from "./state";
+import { ACTIVE_KEY, activeStorage, readActiveStorage, storageBusy, type Location } from "./state";
 
 const config = { googleClientId: "", googleClientSecret: "", dropboxAppKey: "", dropboxAppSecret: "",
   dropboxRedirectPort: 53682, purchaseRequired: false, configPath: "" };
@@ -57,7 +57,13 @@ test("iOS 首次连接：直接绑定云盘文件夹并下载，不进入迁移"
   expect(record.cleanup).toBe(null);
   expect(storageMigration.phase()).toBe("idle");
   expect(storageBusy()).toBe(false);
-  Vault.open(activated).discardCache();
+  // Next launch reads the same record and reopens the offline cache directly.
+  const restored = await readActiveStorage();
+  expect(restored?.root).toBe(activated);
+  expect(restored?.connection?.remotePath).toBe("/Notes");
+  const reopened = Vault.reopenCache(activated);
+  expect(reopened.root).toBe(activated);
+  reopened.discardCache();
   await Storage.removeItem(ACTIVE_KEY);
   activeStorage.set(null);
 });
