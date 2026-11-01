@@ -528,7 +528,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     header={ios ? undefined : <LibraryNav connected={props.connected} statusVisible={!!syncStatus(syncRuntime.phase(), syncRuntime.progress(), shownSyncError())} onSettings={() => { Keyboard.dismiss(); show("settings"); }}
       onSync={() => { void sync(true).catch(err => lib.error.set(String(err))); }}
       onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
-      onRetry={() => { void sync().catch(err => lib.error.set(String(err))); }} />}
+      onRetry={() => { void sync(true).catch(err => lib.error.set(String(err))); }} />}
     headerRight={ios ? <Button testID="mobile-new-note" accessibilityLabel={t("note.new")} disabled={busy()}
       onPress={() => newNote(selectedFolder())} style={{ width: 1, height: 1, opacity: 0 }}><Text> </Text></Button> : undefined}
     ios={ios ? { headerRightSystemItem: "compose" } : undefined}
