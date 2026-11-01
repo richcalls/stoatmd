@@ -1,6 +1,4 @@
-import { themeId, themePreset, type ThemePalette } from "../ui/theme";
-
-export type MobileThemeId = "paper" | "nord" | "newsprint";
+import { THEMES, themeId, themePreset, type ThemeId, type ThemeMode, type ThemePalette } from "../ui/theme";
 
 export type GlassTokens = {
   fill: string;
@@ -11,122 +9,86 @@ export type GlassTokens = {
 };
 
 export type MobileTheme = {
-  id: MobileThemeId;
+  id: ThemeId;
   name: string;
+  mode: ThemeMode;
   palette: ThemePalette;
   glass: GlassTokens;
   /** 设置页的小缩略图：纸面 / 标题 / 正文 / 强调色。 */
   art: { paper: string; ink: string; muted: string; accent: string; code: string };
 };
 
-/** 浅色界面直接采用 iOS 系统语义色，不做自绘配色。 */
-const PAPER: MobileTheme = {
-  id: "paper",
-  name: "Paper",
-  palette: {
-    paper: "#F2F2F7",
-    sidebar: "#F2F2F7",
-    list: "#FFFFFF",
-    editor: "#FFFFFF",
-    preview: "#FFFFFF",
-    ink: "#000000",
-    ink2: "#6C6C70",
-    ink3: "#8E8E93",
-    thread: "#C6C6C8",
-    accent: "#007AFF",
-    accentInk: "#FFFFFF",
-    accentSoft: "#DCEBFF",
-    syntaxBold: "#A15C00",
-    quote: "#2F7D4F",
-    codeBg: "#F2F2F7",
-    searchBg: "rgba(118, 118, 128, 0.12)",
-  },
-  glass: {
-    fill: "rgba(255, 255, 255, 0.22)",
-    fillStrong: "rgba(255, 255, 255, 0.55)",
-    stroke: "rgba(255, 255, 255, 0.42)",
-    strokeDark: "rgba(0, 0, 0, 0.06)",
-    shadow: "0 12px 30px rgba(0, 0, 0, 0.10)",
-  },
-  art: { paper: "#FFFFFF", ink: "#000000", muted: "#8E8E93", accent: "#007AFF", code: "#A15C00" },
+/** 浅色主题的液态玻璃：白色半透明 + 极淡描边。 */
+const LIGHT_GLASS: GlassTokens = {
+  fill: "rgba(255, 255, 255, 0.22)",
+  fillStrong: "rgba(255, 255, 255, 0.55)",
+  stroke: "rgba(255, 255, 255, 0.42)",
+  strokeDark: "rgba(0, 0, 0, 0.06)",
+  shadow: "0 12px 30px rgba(0, 0, 0, 0.10)",
 };
 
-/** 夜间使用系统黑与 systemBlue，玻璃层只留很轻的边缘。 */
-const NORD: MobileTheme = {
-  id: "nord",
-  name: "Nord",
-  palette: {
-    paper: "#000000",
-    sidebar: "#000000",
-    list: "#1C1C1E",
-    editor: "#000000",
-    preview: "#000000",
-    ink: "#FFFFFF",
-    ink2: "#8E8E93",
-    ink3: "#8E8E93",
-    thread: "#38383A",
-    accent: "#0A84FF",
-    accentInk: "#FFFFFF",
-    accentSoft: "#0A2B4F",
-    syntaxBold: "#F0B35A",
-    quote: "#7DCB9A",
-    codeBg: "#1C1C1E",
-    searchBg: "rgba(118, 118, 128, 0.24)",
-  },
-  glass: {
-    fill: "rgba(28, 28, 30, 0.22)",
-    fillStrong: "rgba(28, 28, 30, 0.55)",
-    stroke: "rgba(255, 255, 255, 0.14)",
-    strokeDark: "rgba(0, 0, 0, 0.35)",
-    shadow: "0 16px 36px rgba(0, 0, 0, 0.45)",
-  },
-  art: { paper: "#1C1C1E", ink: "#FFFFFF", muted: "#98989F", accent: "#0A84FF", code: "#F0B35A" },
+/** 深色主题：几乎不反射光，只留很轻的边缘和更深的投影。 */
+const DARK_GLASS: GlassTokens = {
+  fill: "rgba(28, 28, 30, 0.22)",
+  fillStrong: "rgba(28, 28, 30, 0.55)",
+  stroke: "rgba(255, 255, 255, 0.14)",
+  strokeDark: "rgba(0, 0, 0, 0.35)",
+  shadow: "0 16px 36px rgba(0, 0, 0, 0.45)",
 };
 
-const NEWSPRINT: MobileTheme = {
-  id: "newsprint",
-  name: "Newsprint",
-  palette: {
-    paper: "#F2F2F7",
-    sidebar: "#F2F2F7",
-    list: "#FFFFFF",
-    editor: "#FFFFFF",
-    preview: "#FFFFFF",
-    ink: "#000000",
-    ink2: "#6C6C70",
-    ink3: "#8E8E93",
-    thread: "#C6C6C8",
-    accent: "#007AFF",
-    accentInk: "#FFFFFF",
-    accentSoft: "#DCEBFF",
-    syntaxBold: "#8A5A00",
-    quote: "#2F7D4F",
-    codeBg: "#F2F2F7",
-    searchBg: "rgba(118, 118, 128, 0.12)",
-  },
-  glass: {
-    fill: "rgba(255, 255, 255, 0.22)",
-    fillStrong: "rgba(255, 255, 255, 0.55)",
-    stroke: "rgba(255, 255, 255, 0.42)",
-    strokeDark: "rgba(0, 0, 0, 0.06)",
-    shadow: "0 12px 30px rgba(0, 0, 0, 0.10)",
-  },
-  art: { paper: "#FFFFFF", ink: "#000000", muted: "#8E8E93", accent: "#007AFF", code: "#8A5A00" },
-};
+/** 相对亮度，只用来决定「哪一面当页面底色、哪一面当卡片」。 */
+function luminance(hex: string): number {
+  const value = hex.replace("#", "");
+  if (value.length !== 6) return 1;
+  const channel = (offset: number) => {
+    const c = parseInt(value.slice(offset, offset + 2), 16) / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
+}
 
-/** 设置页展示的三套签名主题；其余主题在 iOS 上按明暗归到 Paper / Nord。 */
-export const MOBILE_THEMES: readonly MobileTheme[] = [PAPER, NORD, NEWSPRINT];
+/**
+ * iOS 的分组列表是「较暗的页面底 + 较亮的卡片」，而 macOS 主题的 paper / sidebar
+ * 明暗关系与明暗模式无关。这里按亮度挑出两面：暗的那面当页面底（paper），
+ * 亮的那面当卡片（list），浅色和深色主题都不会出现卡片比页面更暗的倒挂。
+ */
+function iosPalette(preset: ThemePalette): ThemePalette {
+  const paperIsDarker = luminance(preset.paper) <= luminance(preset.sidebar);
+  const paper = paperIsDarker ? preset.paper : preset.sidebar;
+  const list = paperIsDarker ? preset.sidebar : preset.paper;
+  return { ...preset, paper, sidebar: paper, list };
+}
+
+function mobileThemeOf(id: ThemeId): MobileTheme {
+  const preset = themePreset(id);
+  const palette = iosPalette(preset.palette);
+  return {
+    id: preset.id,
+    name: preset.name,
+    mode: preset.mode,
+    palette,
+    glass: preset.mode === "dark" ? DARK_GLASS : LIGHT_GLASS,
+    art: {
+      paper: palette.list,
+      ink: preset.palette.ink,
+      muted: preset.palette.ink3,
+      accent: preset.palette.accent,
+      code: preset.palette.syntaxBold,
+    },
+  };
+}
+
+/** 与 Mac 共用同一份 25 套主题，只在 iOS 上按分组列表的明暗关系重排两面。 */
+export const MOBILE_THEMES: readonly MobileTheme[] = THEMES.map(theme => mobileThemeOf(theme.id));
 
 const BY_ID = new Map(MOBILE_THEMES.map(theme => [theme.id, theme]));
 
-export function mobileThemeId(): MobileThemeId {
-  const id = themeId();
-  if (id === "newsprint") return "newsprint";
-  return themePreset(id).mode === "dark" ? "nord" : "paper";
+export function mobileThemeId(): ThemeId {
+  return themeId();
 }
 
 export function mobileTheme(): MobileTheme {
-  return BY_ID.get(mobileThemeId()) ?? PAPER;
+  return BY_ID.get(themeId()) ?? MOBILE_THEMES[0];
 }
 
 const PALETTE_KEYS = [
@@ -145,7 +107,7 @@ function live<T extends object>(keys: readonly (keyof T)[], read: () => T): T {
   return out;
 }
 
-/** iOS 一律使用 Cream×Glass 调色板；Mac 的 25 套主题不受影响。 */
+/** iOS 用同一份主题色板，按分组列表重排纸面与卡片两面。 */
 export function mobileColors(): ThemePalette {
   return live(PALETTE_KEYS, () => mobileTheme().palette);
 }
@@ -155,5 +117,5 @@ export function glass(): GlassTokens {
 }
 
 export function mobileIsDark(): boolean {
-  return mobileThemeId() === "nord";
+  return mobileTheme().mode === "dark";
 }

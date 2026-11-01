@@ -20,7 +20,7 @@ import { LINE_HEIGHT_MAX, LINE_HEIGHT_MIN, LINE_HEIGHT_STEP, applyEditorFontSize
 import { formatDateTime, formatWhen, titleFromName } from "../ui/vaultModel";
 import { mobileLibrary, type MobileLibrary } from "./library";
 import { flattenTree } from "./libraryTree";
-import { MOBILE_THEMES, glass, mobileColors, mobileIsDark, mobileThemeId } from "./palette";
+import { MOBILE_THEMES, glass, mobileColors, mobileIsDark, mobileThemeId, type MobileTheme } from "./palette";
 import { syncStatus } from "./syncStatus";
 
 type Route = { kind: "library" } | { kind: "document" };
@@ -880,11 +880,12 @@ function LibraryPage(props: {
         {q() ? <Text testID="mobile-search-meta" style={{ paddingHorizontal: props.ios ? 16 : 4, paddingTop: props.ios ? 4 : 0, paddingBottom: props.ios ? 6 : 4, fontSize: 12, fontWeight: 500, color: c.ink3 }}>{t("mobile.searchResult", { n: results().length })}</Text> : null}
         {props.ios && !props.wide ? null : <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 2, borderBottomWidth: 0.5, borderBottomColor: c.thread, paddingHorizontal: props.wide ? 16 : 2 }}>
           {([["recent", "mobile.recent"], ["all", "mobile.all"], ["favorites", "mobile.favorites"]] as const).map(([id, key]) => {
-            const active = props.tab() === id;
+            // 必须是函数：在 render 里算成常量会在切换 tab 后一直停在旧值。
+            const active = () => props.tab() === id;
             return <Button testID={`mobile-tab-${id}`} onPress={() => { Keyboard.dismiss(); props.onTab(id); }}
               style={{ height: 36, paddingHorizontal: 11, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontSize: 13, fontWeight: active ? 600 : 500, letterSpacing: -0.2, color: active ? c.ink : c.ink3 }}>{t(key)}</Text>
-              {active ? <View style={{ position: "absolute", left: 8, right: 8, bottom: 0, height: 2, borderTopLeftRadius: 2, borderTopRightRadius: 2, backgroundColor: c.accent }} /> : null}
+              <Text style={{ fontSize: 13, fontWeight: active() ? 600 : 500, letterSpacing: -0.2, color: active() ? c.ink : c.ink3 }}>{t(key)}</Text>
+              {active() ? <View style={{ position: "absolute", left: 8, right: 8, bottom: 0, height: 2, borderTopLeftRadius: 2, borderTopRightRadius: 2, backgroundColor: c.accent }} /> : null}
             </Button>;
           })}
           {/* 分栏没有底栏，设置入口放在这里。 */}
@@ -1177,23 +1178,31 @@ function TypeSettings() {
   </View>;
 }
 
-function ThemeRow(props: { theme: (typeof MOBILE_THEMES)[number]; last?: boolean }) {
-  const c = mobileColors();
+/** 主题卡片：三列一组，缩略图直接画三行「标题 + 正文」示意。 */
+function ThemeCard(props: { theme: MobileTheme }) {
   const theme = props.theme;
-  const active = mobileThemeId() === theme.id;
-  return <View>
-    <Button testID={`mobile-theme-${theme.id}`} onPress={() => applyTheme(theme.id)}
-      style={{ minHeight: 48, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 12,
-        backgroundColor: c.list }}>
-      <View style={{ width: 29, height: 29, borderRadius: 7, borderCurve: "continuous", alignItems: "center", justifyContent: "center",
-        backgroundColor: theme.art.paper, borderWidth: 0.5, borderColor: theme.id === "nord" ? "#3A3A3C" : c.thread }}>
-        <Text style={{ fontSize: 13, fontWeight: 600, letterSpacing: -0.2, color: theme.art.ink }}>Aa</Text>
-      </View>
-      <Text style={{ flex: 1, fontSize: 17, color: c.ink }}>{theme.name}</Text>
-      {active ? <Icon name="check" color={c.accent} size={18} /> : null}
-    </Button>
-    {props.last ? null : <RowDivider inset={57} />}
-  </View>;
+  // 同 tab：写成函数，切主题时选中边框和勾才会跟着走。
+  const active = () => mobileThemeId() === theme.id;
+  return <Button testID={`mobile-theme-${theme.id}`} accessibilityLabel={theme.name} onPress={() => applyTheme(theme.id)}
+    style={{ flex: 1, minWidth: 0, borderRadius: 12, borderCurve: "continuous", overflow: "hidden",
+      borderWidth: active() ? 2 : 0.5, borderColor: active() ? theme.palette.accent : theme.palette.thread }}>
+    <View style={{ height: 52, padding: 8, gap: 4, backgroundColor: theme.palette.editor }}>
+      <View style={{ alignSelf: "flex-start", width: "56%", height: 7, borderRadius: 3, backgroundColor: theme.art.ink, opacity: 0.85 }} />
+      <View style={{ width: "84%", height: 5, borderRadius: 2.5, backgroundColor: theme.art.muted, opacity: 0.65 }} />
+      <View style={{ width: "66%", height: 5, borderRadius: 2.5, backgroundColor: theme.art.muted, opacity: 0.45 }} />
+    </View>
+    <View style={{ paddingHorizontal: 8, paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: theme.palette.list }}>
+      <Text numberOfLines={1} style={{ flex: 1, fontSize: 12.5, fontWeight: 500, letterSpacing: -0.1, color: theme.palette.ink }}>{theme.name}</Text>
+      {active() ? <Icon name="check" color={theme.palette.accent} size={13} /> : null}
+    </View>
+  </Button>;
+}
+
+/** 主题按三列排，最后一排不足三个时用空位补齐，卡片宽度保持一致。 */
+function themeRows(): MobileTheme[][] {
+  const rows: MobileTheme[][] = [];
+  for (let index = 0; index < MOBILE_THEMES.length; index += 3) rows.push(MOBILE_THEMES.slice(index, index + 3));
+  return rows;
 }
 
 function MobileSettings(props: { connected: boolean; onImport: () => void; onTrash: () => void; onStorage: () => void; onSync: () => void; onConflicts: () => void }) {
@@ -1201,9 +1210,12 @@ function MobileSettings(props: { connected: boolean; onImport: () => void; onTra
   const connection = () => syncRuntime.connection();
   return <View>
     <SectionTitle top={2}>{t("settings.appearance")}</SectionTitle>
-    <SettingsGroup>
-      {MOBILE_THEMES.map((theme, index) => <ThemeRow theme={theme} last={index === MOBILE_THEMES.length - 1} />)}
-    </SettingsGroup>
+    <View testID="mobile-themes" style={{ paddingHorizontal: 16, gap: 8 }}>
+      {themeRows().map(row => <View style={{ flexDirection: "row", gap: 8 }}>
+        {row.map(theme => <ThemeCard theme={theme} />)}
+        {Array.from({ length: 3 - row.length }, () => <View style={{ flex: 1 }} />)}
+      </View>)}
+    </View>
 
     <SectionTitle>{t("mobile.sectionText")}</SectionTitle>
     <SettingsGroup>

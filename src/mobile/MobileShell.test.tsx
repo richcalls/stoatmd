@@ -111,6 +111,9 @@ test("iPhone: 库页三 Tab、文件树、搜索与阅读底栏工作", async ()
   const app = await open("./MobileShell.harness.tsx", phone);
   await app.waitFor("id:mobile-tab-recent");
   expect(app.shows("text:还没有笔记")).toBe(true);
+  // 选中 tab 的文字颜色要跟着切换（曾经因为把 active 算成常量而不刷新）。
+  expect(app.spanStyle("id:mobile-tab-recent >> text:最近").color).toBe("#1a1a1aff");
+  expect(app.spanStyle("id:mobile-tab-all >> text:全部").color).toBe("#6d6b65ff");
 
   await app.press("id:mobile-new-folder");
   await app.waitFor("id:mobile-name");
@@ -129,6 +132,8 @@ test("iPhone: 库页三 Tab、文件树、搜索与阅读底栏工作", async ()
   await app.press("id:mobile-tab-favorites");
   await app.waitFor("id:mobile-favorites-soon");
   expect(app.texts().includes("即将推出")).toBe(true);
+  expect(app.spanStyle("id:mobile-tab-favorites >> text:收藏").color).toBe("#1a1a1aff");
+  expect(app.spanStyle("id:mobile-tab-recent >> text:最近").color).toBe("#6d6b65ff");
   expect(app.shows("id:mobile-note-随笔/untitled.md")).toBe(false);
 
   await app.press("id:mobile-tab-all");
