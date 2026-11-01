@@ -51,13 +51,14 @@ test("iPhone: theme, language and font settings persist after restarting", async
   await app.press("id:mobile-theme-nord");
   await app.press("id:mobile-text-row");
   await app.press("id:settings.font.reading-increase");
+  await app.press("id:settings.font.lineHeight-increase");
   await app.press("id:mobile-language-toggle");
   await app.press("id:mobile-language-en");
-  await app.waitUntil(() => app.storage()["prefs.locale"] === "en" && app.storage()["prefs.theme"] === "nord" && app.storage()["prefs.fontSize"] === "17");
+  await app.waitUntil(() => app.storage()["prefs.locale"] === "en" && app.storage()["prefs.theme"] === "nord" && app.storage()["prefs.fontSize"] === "17" && app.storage()["prefs.fontLineHeight"] === "1.6");
   const again = await open("./MobileShell.harness.tsx", { ...phone, storage: app.storage() });
   await again.press("id:mobile-settings");
   expect(again.shows("text:Settings")).toBe(true);
-  expect(again.shows("text:Kami · 17 / 1.55")).toBe(true);
+  expect(again.shows("text:Kami · 17 / 1.60")).toBe(true);
   expect(again.storage()["prefs.theme"]).toBe("nord");
 });
 

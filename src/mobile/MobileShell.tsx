@@ -16,7 +16,7 @@ import { librarySearch } from "../ui/librarySearch";
 import { saveLocale } from "../ui/prefs";
 import { previewGap, previewModel, resolveAnchor } from "../ui/previewModel";
 import { applyTheme, setPaletteOverride } from "../ui/theme";
-import { applyEditorFontSize, applyFontSize, editorFontSize, fontSize, lineHeightPx } from "../ui/typography";
+import { LINE_HEIGHT_MAX, LINE_HEIGHT_MIN, LINE_HEIGHT_STEP, applyEditorFontSize, applyFontLineHeight, applyFontSize, editorFontSize, fontLineHeight, fontSize, lineHeightPx } from "../ui/typography";
 import { formatWhen, titleFromName } from "../ui/vaultModel";
 import { mobileLibrary, type MobileLibrary } from "./library";
 import { flattenTree } from "./libraryTree";
@@ -1096,29 +1096,31 @@ function ChoiceRow(props: { label: string; detail: string; icon: IconName; onPre
 
 function TypeSettings() {
   const c = mobileColors();
+  // 字号 +1/+1，行高 +0.05：与 Mac 的设置项和步长保持一致。
   const rows = [
-    { id: "reading", title: "settings.font.reading", value: fontSize, set: applyFontSize },
-    { id: "editor", title: "settings.font.editorSize", value: editorFontSize, set: applyEditorFontSize },
+    { id: "reading", title: "settings.font.reading", value: fontSize, set: applyFontSize, min: 12, max: 24, step: 1, show: (n: number) => String(n) },
+    { id: "editor", title: "settings.font.editorSize", value: editorFontSize, set: applyEditorFontSize, min: 12, max: 24, step: 1, show: (n: number) => String(n) },
+    { id: "line", title: "settings.font.lineHeight", value: fontLineHeight, set: applyFontLineHeight, min: LINE_HEIGHT_MIN, max: LINE_HEIGHT_MAX, step: LINE_HEIGHT_STEP, show: (n: number) => n.toFixed(2) },
   ];
   return <View>
     {rows.map((item, index) => <View>
       <SectionTitle top={index === 0 ? 2 : 24}>{t(item.title)}</SectionTitle>
       <SettingsGroup>
         <View style={{ height: 48, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", backgroundColor: c.list }}>
-          <Button testID={`${item.title}-decrease`} accessibilityLabel="-1" disabled={item.value() <= 12} onPress={() => item.set(item.value() - 1)}
-            style={{ width: 52, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: c.paper, opacity: item.value() <= 12 ? 0.35 : 1 }}>
-            <Text style={{ fontSize: 17, fontWeight: 500, color: c.accent }}>A−</Text>
+          <Button testID={`${item.title}-decrease`} accessibilityLabel={t("settings.font.decrease")} disabled={item.value() <= item.min + 0.001} onPress={() => item.set(item.value() - item.step)}
+            style={{ width: 52, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: c.paper, opacity: item.value() <= item.min + 0.001 ? 0.35 : 1 }}>
+            <Text style={{ fontSize: 17, fontWeight: 500, color: c.accent }}>−</Text>
           </Button>
-          <Text style={{ flex: 1, textAlign: "center", fontSize: 19, fontWeight: 500, color: c.ink }}>{item.value()}</Text>
-          <Button testID={`${item.title}-increase`} accessibilityLabel="+1" disabled={item.value() >= 24} onPress={() => item.set(item.value() + 1)}
-            style={{ width: 52, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: c.paper, opacity: item.value() >= 24 ? 0.35 : 1 }}>
-            <Text style={{ fontSize: 19, fontWeight: 500, color: c.accent }}>A+</Text>
+          <Text style={{ flex: 1, textAlign: "center", fontSize: 19, fontWeight: 500, color: c.ink }}>{item.show(item.value())}</Text>
+          <Button testID={`${item.title}-increase`} accessibilityLabel={t("settings.font.increase")} disabled={item.value() >= item.max - 0.001} onPress={() => item.set(item.value() + item.step)}
+            style={{ width: 52, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: c.paper, opacity: item.value() >= item.max - 0.001 ? 0.35 : 1 }}>
+            <Text style={{ fontSize: 19, fontWeight: 500, color: c.accent }}>+</Text>
           </Button>
         </View>
       </SettingsGroup>
     </View>)}
     <View style={{ marginTop: 24, paddingHorizontal: 4 }}>
-      <Text numberOfLines={3} style={{ width: "100%", fontSize: fontSize(), lineHeight: fontSize() * 1.55, color: c.ink2 }}>
+      <Text numberOfLines={3} style={{ width: "100%", fontSize: fontSize(), lineHeight: lineHeightPx(), color: c.ink2 }}>
         {t("mobile.typeSample")}
       </Text>
     </View>
@@ -1212,5 +1214,5 @@ function FontRow() {
 }
 
 function lineHeightRatio(): string {
-  return "1.55";
+  return fontLineHeight().toFixed(2);
 }
