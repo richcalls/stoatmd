@@ -40,6 +40,9 @@ export type FetchLike = (input: string | URL | Request, init?: RequestInit) => P
 /** 单次网络请求的上限：挂起的请求要变成可重试的错误，而不是永远停在「同步中」。 */
 export const REQUEST_TIMEOUT_MS = 60_000;
 
+/** 响应正文单独设上限：fetch 只等到响应头，正文读取可能无限挂起。 */
+export const BODY_TIMEOUT_MS = 120_000;
+
 export function fetchWithTimeout(
   fetchImpl: FetchLike,
   input: string | URL | Request,
@@ -58,6 +61,26 @@ export function fetchWithTimeout(
     fetchImpl(input, { ...init, signal: controller.signal }),
     timeout,
   ]).finally(() => clearTimeout(timer));
+}
+
+export function readBodyBytes(response: Response, timeoutMs: number = BODY_TIMEOUT_MS): Promise<Uint8Array> {
+  return readWithTimeout(async () => new Uint8Array(await response.arrayBuffer()), timeoutMs);
+}
+
+export function readBodyText(response: Response, timeoutMs: number = BODY_TIMEOUT_MS): Promise<string> {
+  return readWithTimeout(() => response.text(), timeoutMs);
+}
+
+export function readBodyJson<T>(response: Response, timeoutMs: number = BODY_TIMEOUT_MS): Promise<T> {
+  return readWithTimeout(async () => JSON.parse(await response.text()) as T, timeoutMs);
+}
+
+function readWithTimeout<T>(work: () => Promise<T>, timeoutMs: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((_resolve, reject) => {
+    timer = setTimeout(() => reject(new SyncError("network", "response body timed out")), timeoutMs);
+  });
+  return Promise.race([work(), timeout]).finally(() => clearTimeout(timer));
 }
 
 export type SyncProvider = {

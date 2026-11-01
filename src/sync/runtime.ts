@@ -34,6 +34,8 @@ import {
 const CONNECTION_KEY = "sync.connection";
 const BASE_KEY = "sync.base";
 const LAST_KEY = "sync.lastAt";
+/** 长同步中途落锚点的间隔，单位：完成动作数。 */
+const BASE_SAVE_EVERY = 10;
 
 export type SyncPhase =
   | "off"
@@ -345,6 +347,8 @@ export class SyncRuntime {
       await Storage.setItem(this.lastKey(), String(now));
       return result;
     } catch (err) {
+      // 失败前把已完成动作的锚点保存下来，下次同步只补剩余文件。
+      await this.persistBase().catch(() => {});
       const error: { kind: SyncErrorKind; message: string } =
         err instanceof SyncError
           ? { kind: err.kind, message: err.message }
@@ -470,11 +474,7 @@ export class SyncRuntime {
     };
 
     try {
-      const config = loadSyncConfig(true);
-      const session = this.sessionFor(conn.provider, config);
-      const bundle = await session.restore();
-      if (!bundle) throw new SyncError("auth", "authorization expired");
-      const remote = this.makeProvider(conn.provider, session);
+      const remote = await this.providerFor(conn.provider);
       const root = this.rootDir(conn);
 
       const local = buildLocalFiles(vault, this.base, true);
@@ -504,7 +504,11 @@ export class SyncRuntime {
         plan.conflicts.length;
       this.progress.set({ done: 0, total });
       let done = 0;
-      const tick = () => this.progress.set({ done: ++done, total });
+      // 长同步每完成 10 个动作落一次锚点：中断或被杀后重试不用从头再来。
+      const tick = async () => {
+        this.progress.set({ done: ++done, total });
+        if (done % BASE_SAVE_EVERY === 0) await this.persistBase();
+      };
 
       for (const action of plan.uploads) {
         const content = new Uint8Array(vault.readBytes(action.path));
@@ -521,7 +525,7 @@ export class SyncRuntime {
           hash: sha256Bytes(content),
         });
         result.uploaded += 1;
-        tick();
+        await tick();
       }
 
       for (const action of plan.downloads) {
@@ -538,7 +542,7 @@ export class SyncRuntime {
         });
         result.downloaded += 1;
         result.changedLocal.push(action.path);
-        tick();
+        await tick();
       }
 
       for (const action of plan.localDeletes) {
@@ -552,7 +556,7 @@ export class SyncRuntime {
         delete this.base.entries[action.path];
         result.deletedLocal += 1;
         result.changedLocal.push(action.path);
-        tick();
+        await tick();
       }
 
       if (plan.remoteDeletes.length > 0) {
@@ -574,7 +578,7 @@ export class SyncRuntime {
           });
           delete this.base.entries[action.path];
           result.deletedRemote += 1;
-          tick();
+          await tick();
         }
       }
 
@@ -586,12 +590,12 @@ export class SyncRuntime {
           localSize: action.local.size,
           hash: action.hash,
         });
-        tick();
+        await tick();
       }
 
       for (const path of plan.forgets) {
         delete this.base.entries[path];
-        tick();
+        await tick();
       }
 
       result.conflicts = plan.conflicts;
@@ -607,6 +611,8 @@ export class SyncRuntime {
       }
       return result;
     } catch (err) {
+      // 失败前把已完成动作的锚点保存下来，下次同步只补剩余文件。
+      await this.persistBase().catch(() => {});
       const error: { kind: SyncErrorKind; message: string } =
         err instanceof SyncError
           ? { kind: err.kind, message: err.message }
