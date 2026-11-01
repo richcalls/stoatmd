@@ -564,6 +564,15 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
       {lib.recovered() ? <View testID="mobile-recovered" style={{ marginTop: ios ? 8 : 52 + bottom().top, padding: 12, backgroundColor: mobileColors().accentSoft }}><Text style={{ color: mobileColors().ink }}>{t("mobile.recovered")}</Text></View> : null}
       {conflictBanner()}
       {errorBanner()}
+      {/* iPad 收起左栏后进入编辑，阅读页的底栏不见了；编辑态顶部留一条细栏，保证不用键盘也能把库叫回来。 */}
+      {wide() && libraryCollapsed() && editing() ? <View style={{ height: 40, paddingHorizontal: 10, flexDirection: "row", alignItems: "center",
+        borderBottomWidth: 0.5, borderBottomColor: mobileColors().thread, backgroundColor: mobileColors().editor }}>
+        <Button testID="mobile-edit-show-library" accessibilityLabel={t("mobile.showLibrary")} onPress={toggleLibrary}
+          style={{ height: 30, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 6, ...glassStyle(999) }}>
+          <Icon name="sidebar" color={mobileColors().accent} size={15} />
+          <Text style={{ fontSize: 13.5, color: mobileColors().accent }}>{t("mobile.showLibrary")}</Text>
+        </Button>
+      </View> : null}
       {editing() && wide() && previewSplit()
         ? <View testID="mobile-doc-split" style={{ flex: 1, flexDirection: "row" }}>
           <View style={{ flex: 1, borderRightWidth: 0.5, borderRightColor: mobileColors().thread }}>{sourcePane(true)}</View>

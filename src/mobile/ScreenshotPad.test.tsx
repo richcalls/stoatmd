@@ -95,8 +95,13 @@ test("iPad 横屏：左库右文两栏", async () => {
   expect(app.shows("id:mobile-split")).toBe(false);
   expect(app.shows("id:mobile-split-detail")).toBe(true);
   await app.screenshot("screenshots/ios-raw/ipad-07-collapsed.png");
-  await app.keyboard.press("mod+b");
+  // 收起状态进编辑：顶部留一个「显示笔记库」，不接键盘也能回来。
+  await app.keyboard.press("mod+1");
+  await app.waitFor("id:mobile-source");
+  expect(app.shows("id:mobile-edit-show-library")).toBe(true);
+  await app.press("id:mobile-edit-show-library");
   await app.waitFor("id:mobile-split");
+  expect(app.shows("id:mobile-edit-show-library")).toBe(false);
 }, 120_000);
 
 test("iPad 竖屏：仍然是两栏", async () => {
