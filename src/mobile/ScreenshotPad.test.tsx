@@ -51,6 +51,11 @@ test("iPad 横屏：左库右文两栏", async () => {
   await app.waitFor("id:mobile-preview");
   await app.keyboard.press("mod+,");
   await app.waitFor("id:mobile-theme-paper");
+  // 设置里的文稿配色：切到单色再切回来，截图留档。
+  await app.press("id:mobile-render-monochrome");
+  await new Promise(resolve => setTimeout(resolve, 200));
+  await app.screenshot("screenshots/ios-raw/ipad-09-settings.png");
+  await app.press("id:mobile-render-color");
   await app.press("id:mobile-panel-done");
   await app.waitFor("id:mobile-preview");
 

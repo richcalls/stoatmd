@@ -9,7 +9,7 @@ import { providerLabelKey } from "../sync/runtime";
 import { Icon, type IconName } from "../ui/Icon";
 import { articleModel, noteFormat } from "../ui/articleModel";
 import { previewTextStyles } from "../ui/EditorWorkspace";
-import { displayBlock, renderMode } from "../ui/documentAppearance";
+import { applyRenderMode, displayBlock, renderMode } from "../ui/documentAppearance";
 import { findShortcuts } from "../ui/findShortcuts";
 import { locale, localePref, setLocalePref, t, type LocalePref } from "../ui/i18n";
 import { librarySearch } from "../ui/librarySearch";
@@ -1262,6 +1262,21 @@ function MobileSettings(props: { connected: boolean; onImport: () => void; onTra
         {row.map(theme => <ThemeCard theme={theme} />)}
         {Array.from({ length: 3 - row.length }, () => <View style={{ flex: 1 }} />)}
       </View>)}
+    </View>
+    {/* 和 Mac 的设置同一项：主题只管界面，文稿配色单独决定正文里的标题、引用、链接和代码。 */}
+    <View testID="mobile-render-mode" style={{ marginTop: 12, marginHorizontal: 16 }}>
+      <View style={{ height: 34, padding: 3, flexDirection: "row", borderRadius: 9, borderCurve: "continuous",
+        backgroundColor: mobileIsDark() ? "rgba(118, 118, 128, 0.24)" : "rgba(118, 118, 128, 0.12)" }}>
+        {(["color", "monochrome"] as const).map(mode => {
+          const active = () => renderMode() === mode;
+          return <Button testID={`mobile-render-${mode}`} onPress={() => applyRenderMode(mode)}
+            style={{ flex: 1, borderRadius: 7, borderCurve: "continuous", alignItems: "center", justifyContent: "center",
+              backgroundColor: active() ? c.list : "transparent", borderWidth: active() ? 0.5 : 0, borderColor: c.thread }}>
+            <Text style={{ fontSize: 13, fontWeight: active() ? 600 : 500, letterSpacing: -0.1, color: active() ? c.ink : c.ink2 }}>{t(`settings.renderMode.${mode}`)}</Text>
+          </Button>;
+        })}
+      </View>
+      <Text style={{ marginTop: 6, paddingHorizontal: 2, fontSize: 12, lineHeight: 16, color: c.ink3 }}>{t("settings.renderMode.desc")}</Text>
     </View>
 
     <SectionTitle>{t("mobile.sectionText")}</SectionTitle>

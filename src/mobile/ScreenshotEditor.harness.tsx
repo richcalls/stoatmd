@@ -3,6 +3,7 @@ import { MobileShell } from "./MobileShell";
 import { mobileLibrary } from "./library";
 import { memoryVault } from "./testVault";
 import { restoreLocale } from "../ui/i18n";
+import { restoreRenderMode } from "../ui/documentAppearance";
 import { restoreTheme } from "../ui/theme";
 import { restoreTypography } from "../ui/typography";
 
@@ -22,7 +23,7 @@ put("写作.md", "写作", 3);
 
 const library = mobileLibrary(memory.vault);
 
-void Promise.all([restoreLocale(), restoreTheme(), restoreTypography()]).then(async () => {
+void Promise.all([restoreLocale(), restoreTheme(), restoreTypography(), restoreRenderMode()]).then(async () => {
   await library.refresh();
   await library.openNote("开始使用.md");
   mount(() => <MobileShell library={library} />);

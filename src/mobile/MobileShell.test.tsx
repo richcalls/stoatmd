@@ -61,17 +61,22 @@ test("iPhone: theme, language and font settings persist after restarting", async
   const app = await open("./MobileShell.harness.tsx", phone);
   await app.press("id:mobile-settings");
   await app.press("id:mobile-theme-nord");
+  await app.press("id:mobile-render-monochrome");
   await app.press("id:mobile-text-row");
   await app.press("id:settings.font.reading-increase");
   await app.press("id:settings.font.lineHeight-increase");
   await app.press("id:mobile-language-toggle");
   await app.press("id:mobile-language-en");
-  await app.waitUntil(() => app.storage()["prefs.locale"] === "en" && app.storage()["prefs.theme"] === "nord" && app.storage()["prefs.fontSize"] === "17" && app.storage()["prefs.fontLineHeight"] === "1.6");
+  await app.waitUntil(() => app.storage()["prefs.locale"] === "en" && app.storage()["prefs.theme"] === "nord" && app.storage()["prefs.renderMode"] === "monochrome" && app.storage()["prefs.fontSize"] === "17" && app.storage()["prefs.fontLineHeight"] === "1.6");
   const again = await open("./MobileShell.harness.tsx", { ...phone, storage: app.storage() });
   await again.press("id:mobile-settings");
   expect(again.shows("text:Settings")).toBe(true);
   expect(again.shows("text:Kami · 17 / 1.60")).toBe(true);
   expect(again.storage()["prefs.theme"]).toBe("nord");
+  // 重启后文稿配色仍是单色：选中的分段和未选中的颜色不同。
+  expect(again.shows("id:mobile-render-mode")).toBe(true);
+  expect(again.spanStyle("id:mobile-render-monochrome >> text:Monochrome").color)
+    .not.toBe(again.spanStyle("id:mobile-render-color >> text:Color").color);
 });
 
 test("iPhone: move, recycle, restore and permanently delete a note", async () => {

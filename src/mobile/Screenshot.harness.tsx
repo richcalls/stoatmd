@@ -3,6 +3,7 @@ import { MobileShell } from "./MobileShell";
 import { mobileLibrary } from "./library";
 import { memoryVault } from "./testVault";
 import { restoreLocale } from "../ui/i18n";
+import { restoreRenderMode } from "../ui/documentAppearance";
 import { restoreTheme } from "../ui/theme";
 import { restoreTypography } from "../ui/typography";
 
@@ -96,6 +97,6 @@ for (let index = 1; index <= 20; index += 1) {
   put(`随笔/随笔 ${index}.md`, `# 随笔 ${index}\n\n第 ${index} 篇随手记。`, 10 + index);
 }
 
-void Promise.all([restoreLocale(), restoreTheme(), restoreTypography()]).then(() => {
+void Promise.all([restoreLocale(), restoreTheme(), restoreTypography(), restoreRenderMode()]).then(() => {
   mount(() => <MobileShell library={mobileLibrary(memory.vault)} settingsTap />);
 });
