@@ -79,6 +79,31 @@ test("iPhone: theme, language and font settings persist after restarting", async
     .not.toBe(again.spanStyle("id:mobile-render-color >> text:Color").color);
 });
 
+test("iPhone: 左滑笔记露出删除按钮，删进最近删除还能恢复", async () => {
+  const app = await open("./MobileShell.harness.tsx", phone);
+  await app.press("id:mobile-new-note");
+  await app.waitFor("id:mobile-source");
+  await app.paste("id:mobile-source", { text: "会被滑走" });
+  await app.waitUntil(() => app.texts().includes("已保存"));
+  await app.back();
+  await app.waitFor("id:mobile-note-untitled.md");
+
+  // 横向左滑：纵向仍归滚动视图，横向超过阈值才露出删除。
+  await app.drag("id:mobile-note-untitled.md", { x: -120 });
+  await app.waitFor("id:mobile-swipe-delete-untitled.md");
+  await app.press("id:mobile-swipe-delete-untitled.md");
+  await app.waitUntil(() => !app.shows("id:mobile-note-untitled.md"), { timeout: 8000 });
+
+  // 删除是可恢复的：最近删除里能拿回来。
+  await app.press("id:mobile-settings");
+  await app.press("id:mobile-trash");
+  await app.waitFor("id:mobile-restore-untitled.md");
+  await app.press("id:mobile-restore-untitled.md");
+  await app.waitUntil(() => !app.shows("id:mobile-restore-untitled.md"), { timeout: 8000 });
+  await app.press("id:mobile-panel-done");
+  await app.waitFor("id:mobile-note-untitled.md");
+}, 120_000);
+
 test("iPhone: move, recycle, restore and permanently delete a note", async () => {
   const app = await open("./MobileShell.harness.tsx", phone);
   await app.press("id:mobile-new-folder");

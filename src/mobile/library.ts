@@ -195,16 +195,19 @@ export function mobileLibrary(vault: LocalVault) {
       return { path: e.path, original: parts.slice(2).join("/"), deletedAt: Number(parts[1].split("-")[0]) };
     }).sort((a, b) => b.deletedAt - a.deletedAt));
   };
-  const recycle = async () => {
-    if (!await flush() || !note()) return false;
-    const current = note()!;
-    const target = `${TRASH}/${Date.now()}-${Math.random().toString(36).slice(2)}/${current.path}`;
+  /** 把任意一篇笔记移进最近删除；滑动手势用它，不要求先在右栏打开。 */
+  const recyclePath = async (path: string) => {
+    if (note()?.path === path && !await flush()) return false;
+    const target = `${TRASH}/${Date.now()}-${Math.random().toString(36).slice(2)}/${path}`;
     await vault.ensureDir(target.split("/").slice(0, -1).join("/"));
-    await vault.rename(current.path, target);
-    note.set(null);
-    recovered.set(false);
+    await vault.rename(path, target);
+    if (note()?.path === path) { note.set(null); recovered.set(false); }
     await refresh();
     return true;
+  };
+  const recycle = async () => {
+    const current = note();
+    return current ? recyclePath(current.path) : false;
   };
   const restore = async (path: string, suffix: string) => {
     await loadTrash();
@@ -240,6 +243,6 @@ export function mobileLibrary(vault: LocalVault) {
     return true;
   };
   return { vault, entries, note, error, conflict, saving, recovered, recycled, dirty, refresh, flush, edit, openNote, createNote, renameNote, copy, reload, createFolder,
-    recover, reconcile, move, loadTrash, recycle, restore, removePermanently, importNote };
+    recover, reconcile, move, loadTrash, recycle, recyclePath, restore, removePermanently, importNote };
 }
 export type MobileLibrary = ReturnType<typeof mobileLibrary>;

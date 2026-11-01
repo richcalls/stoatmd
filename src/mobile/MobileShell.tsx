@@ -1,4 +1,4 @@
-import { Keyboard, List, Scroll, Text, View, cleanup, computed, effect, keymap, keyboardFrame, platform, safeAreaInsets, signal, windowSize, type JSX, type YNode } from "nsh";
+import { Keyboard, List, Scroll, Text, View, cleanup, computed, createAnimatedValue, effect, keymap, keyboardFrame, platform, safeAreaInsets, signal, windowSize, type JSX, type YNode } from "nsh";
 import { Button, Dialog, Input, NavPage, NavStack, TextView, createNavStack } from "nsh/base";
 import { InputAccessoryView, TabBar } from "nsh/mobile";
 import { MobileFiles, Vault } from "stoatmd/native";
@@ -519,7 +519,8 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }} style={{ backgroundColor: ios ? mobileColors().list : mobileColors().paper }}>
     <LibraryPage library={lib} connected={props.connected} busy={busy()} ios={ios} wide={wide()}
       selectedPath={() => lib.note()?.path ?? ""} favorites={() => favoriteSet()}
-      onOpen={openNote} onSync={sync} onSettings={() => show("settings")} settingsOpen={() => panel() === "settings"} settingsTap={props.settingsTap}
+      onOpen={openNote} onRecycle={path => { void running(async () => { await lib.recyclePath(path); }); }}
+      onSync={sync} onSettings={() => show("settings")} settingsOpen={() => panel() === "settings"} settingsTap={props.settingsTap}
       tab={tab} onTab={next => tab.set(next)} folder={selectedFolder} onFolder={path => selectedFolder.set(path)}
       onNewNote={newNote} onNewFolder={() => { selectedFolder.set(""); input.set(""); show("folder"); }}
       onTitleCollapsed={collapsed => libraryTitleCollapsed.set(collapsed)}
@@ -771,7 +772,7 @@ const SETTINGS_TAB = TABS.length;
  * 系统的 UITabBar：Liquid Glass、SF Symbol 与安全区都由 UIKit 负责，
  * tab 的标题和图标按平台的叫法给它（iOS 是 SF Symbol 名）。
  */
-function NativeTabBar(props: { tab: () => Tab; onTab: (next: Tab) => void; settingsOpen: () => boolean; onSettings: () => void }) {
+function NativeTabBar(props: { tab: () => Tab; onTab: (next: Tab) => void; onReselect: () => void; settingsOpen: () => boolean; onSettings: () => void }) {
   const bottom = safeAreaInsets();
   const items = [
     { title: t("mobile.recent"), icon: "clock" },
@@ -800,7 +801,9 @@ function NativeTabBar(props: { tab: () => Tab; onTab: (next: Tab) => void; setti
       Keyboard.dismiss();
       if (index === SETTINGS_TAB) { props.onSettings(); return; }
       const next = TABS[index];
-      if (!next || next === props.tab()) return;
+      if (!next) return;
+      // 再点一次当前 tab 走系统的「回到顶部」，否则这一下看起来像是没反应。
+      if (next === props.tab()) { props.onReselect(); return; }
       props.onTab(next);
     }} />;
 }
@@ -818,6 +821,8 @@ function LibraryPage(props: {
   /** 收藏的路径集合：收藏 Tab 按它过滤。 */
   favorites: () => Readonly<Record<string, boolean>>;
   onOpen: (path: string) => void;
+  /** 左滑删除：把任意一篇笔记移进最近删除。 */
+  onRecycle: (path: string) => void;
   onSync: () => Promise<void>;
   onSettings: () => void;
   settingsOpen: () => boolean;
@@ -836,6 +841,8 @@ function LibraryPage(props: {
   const c = mobileColors();
   const bottom = safeAreaInsets();
   const query = signal("");
+  // 底栏再点当前 tab 时滚回列表顶部（系统的 reselect 行为）。
+  let listScroll: { scrollTo(options: { y?: number; animated?: boolean }): void } | null = null;
   const expanded = signal<Set<string>>(new Set());
   const pulling = signal(false);
   const titleCollapsed = signal(false);
@@ -855,6 +862,9 @@ function LibraryPage(props: {
     return Array.from(paths).map(path => known.get(path)).filter(Boolean) as ReturnType<typeof allNotes>;
   };
   const tree = () => flattenTree(lib.entries(), expanded());
+  // 同一时间只滑开一行；点别的行或再点自己都会收回去。
+  const swipeOpen = signal("");
+  const swipe = { open: () => swipeOpen(), setOpen: (path: string) => swipeOpen.set(path), close: () => swipeOpen.set(""), onRecycle: props.onRecycle };
   const toggleFolder = (path: string) => {
     props.onFolder(props.folder() === path ? "" : path);
     expanded.update(current => {
@@ -862,6 +872,28 @@ function LibraryPage(props: {
       if (next.has(path)) next.delete(path); else next.add(path);
       return next;
     });
+  };
+  // 全部 Tab 的文件行同样能左滑删除（文件夹行不参与）。
+  const treeNote = (row: ReturnType<typeof tree>[number]) => {
+    const button = () => <Button testID={`mobile-note-${row.path}`} disabled={props.busy}
+      onPress={() => {
+        Keyboard.dismiss();
+        if (swipe.open() === row.path) { swipe.close(); return; }
+        swipe.close();
+        props.onOpen(row.path);
+      }}
+      style={{ minHeight: props.ios ? 48 : 40, paddingHorizontal: props.ios ? 16 : undefined, paddingLeft: row.depth * 18 + (props.ios ? 16 : 0), paddingRight: 16, flexDirection: "row", alignItems: "center", gap: 8,
+        backgroundColor: row.path === props.selectedPath() ? c.accentSoft : props.ios ? c.list : "transparent", borderBottomWidth: props.ios ? 0 : 0.5, borderBottomColor: c.thread }}>
+      <View style={{ width: 22, height: 22 }} />
+      <View style={{ width: 26, height: 26, borderRadius: 7, alignItems: "center", justifyContent: "center", backgroundColor: c.searchBg }}>
+        <Icon name="file-text" color={c.ink2} size={14} />
+      </View>
+      <Text numberOfLines={1} style={{ flex: 1, fontFamily: props.ios ? undefined : "monospace", fontSize: props.ios ? 17 : 13, fontWeight: 400, color: c.ink }}>{props.ios ? row.title : row.name}</Text>
+      <Text style={{ fontSize: props.ios ? 15 : 11.5, color: c.ink3 }}>{formatWhen(row.mtimeMs, locale())}</Text>
+    </Button>;
+    return platform.os === "ios" && swipe
+      ? <SwipeRow path={row.path} selected={row.path === props.selectedPath()} swipe={swipe} render={button} />
+      : button();
   };
   // The compose button creates in the folder selected in 全部; 最近修改 has no folder.
   const composeFolder = () => props.tab() === "all" ? props.folder() : "";
@@ -909,7 +941,7 @@ function LibraryPage(props: {
 
   return <View style={{ flex: 1, backgroundColor: props.ios ? c.list : c.paper }}>
     <View style={{ flex: 1 }}>
-      <Scroll testID="mobile-library-list" style={{ flex: 1, backgroundColor: props.ios ? c.list : undefined }} onRefresh={refresh} refreshing={pulling()}
+      <Scroll ref={node => { listScroll = node; }} testID="mobile-library-list" style={{ flex: 1, backgroundColor: props.ios ? c.list : undefined }} onRefresh={refresh} refreshing={pulling()}
         onScroll={event => {
           const collapsed = event.offset.y > 40;
           if (collapsed === titleCollapsed()) return;
@@ -951,7 +983,7 @@ function LibraryPage(props: {
 
       {q() ? <View>
         <View>
-          {results().map((note, index) => noteRow(note, snippetFor(note.path), props.onOpen, props.ios, index === results().length - 1, props.wide && note.path === props.selectedPath()))}
+          {results().map((note, index) => noteRow(note, snippetFor(note.path), props.onOpen, props.ios, index === results().length - 1, props.wide && note.path === props.selectedPath(), swipe))}
         </View>
         {!results().length && !search.pending() ? <Text style={{ paddingVertical: 40, textAlign: "center", color: c.ink3, fontSize: 15 }}>{t("search.empty")}</Text> : null}
         {search.pending() ? <Text style={{ paddingVertical: 20, textAlign: "center", color: c.ink3 }}>{t("mobile.searching")}</Text> : null}
@@ -960,7 +992,7 @@ function LibraryPage(props: {
           <Text style={{ fontSize: 13, fontWeight: 400, color: c.ink2 }}>{t("mobile.recentGroup")}</Text>
         </View>
         <View>
-          {allNotes().slice(0, 40).map((note, index) => noteRow(note, snippetFor(note.path), props.onOpen, props.ios, index === Math.min(allNotes().length, 40) - 1, props.wide && note.path === props.selectedPath()))}
+          {allNotes().slice(0, 40).map((note, index) => noteRow(note, snippetFor(note.path), props.onOpen, props.ios, index === Math.min(allNotes().length, 40) - 1, props.wide && note.path === props.selectedPath(), swipe))}
         </View>
         {!allNotes().length ? emptyNotes() : null}
       </View> : props.tab() === "all" ? <View style={{ paddingTop: props.ios ? 2 : 6 }}>
@@ -983,17 +1015,7 @@ function LibraryPage(props: {
           </View>
           <Text numberOfLines={1} style={{ flex: 1, fontSize: props.ios ? 17 : 16, fontWeight: props.ios ? 400 : 500, letterSpacing: 0, color: c.ink }}>{row.name}</Text>
           <Text style={{ fontSize: 15, color: c.ink3 }}>{row.count}</Text>
-        </Button> : <Button testID={`mobile-note-${row.path}`} disabled={props.busy}
-          onPress={() => { Keyboard.dismiss(); props.onOpen(row.path); }}
-          style={{ minHeight: props.ios ? 48 : 40, paddingHorizontal: props.ios ? 16 : undefined, paddingLeft: row.depth * 18 + (props.ios ? 16 : 0), paddingRight: 16, flexDirection: "row", alignItems: "center", gap: 8,
-            backgroundColor: row.path === props.selectedPath() ? c.accentSoft : props.ios ? c.list : "transparent", borderBottomWidth: props.ios ? 0 : 0.5, borderBottomColor: c.thread }}>
-          <View style={{ width: 22, height: 22 }} />
-          <View style={{ width: 26, height: 26, borderRadius: 7, alignItems: "center", justifyContent: "center", backgroundColor: c.searchBg }}>
-            <Icon name="file-text" color={c.ink2} size={14} />
-          </View>
-          <Text numberOfLines={1} style={{ flex: 1, fontFamily: props.ios ? undefined : "monospace", fontSize: props.ios ? 17 : 13, fontWeight: 400, color: c.ink }}>{props.ios ? row.title : row.name}</Text>
-          <Text style={{ fontSize: props.ios ? 15 : 11.5, color: c.ink3 }}>{formatWhen(row.mtimeMs, locale())}</Text>
-        </Button>}
+        </Button> : treeNote(row)}
         {props.ios && index < tree().length - 1 ? <RowDivider inset={16 + row.depth * 18 + 56} /> : null}
         </View>)}
         </View>
@@ -1010,7 +1032,7 @@ function LibraryPage(props: {
             <Text style={{ fontSize: 13, fontWeight: 400, color: c.ink2 }}>{t("mobile.favorites")}</Text>
           </View>
           {favoriteNotes().map((note, index, list) =>
-            noteRow(note, snippetFor(note.path), props.onOpen, props.ios, index === list.length - 1, props.wide && note.path === props.selectedPath()))}
+            noteRow(note, snippetFor(note.path), props.onOpen, props.ios, index === list.length - 1, props.wide && note.path === props.selectedPath(), swipe))}
         </View> : <View testID="mobile-favorites-empty" style={{ minHeight: 260, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 28, paddingVertical: 24 }}>
           <Icon name="star" color={c.ink3} size={40} />
           <Text style={{ marginTop: 6, fontSize: 17, fontWeight: 600, letterSpacing: -0.35, color: c.ink }}>{t("mobile.favoritesEmpty")}</Text>
@@ -1021,7 +1043,8 @@ function LibraryPage(props: {
 
     </View>
 
-    {props.ios && !props.wide ? <NativeTabBar tab={props.tab} onTab={props.onTab} settingsOpen={props.settingsOpen} onSettings={props.onSettings} /> : null}
+    {props.ios && !props.wide ? <NativeTabBar tab={props.tab} onTab={props.onTab} settingsOpen={props.settingsOpen} onSettings={props.onSettings}
+      onReselect={() => listScroll?.scrollTo({ y: 0, animated: true })} /> : null}
 
     {props.ios ? null : <View style={{ position: "absolute", left: 0, right: 0, bottom: keyboardFrame().height, paddingHorizontal: 20, paddingBottom: keyboardFrame().height ? 8 : 12 + bottom().bottom, flexDirection: "row", alignItems: "center", gap: 10 }}>
       <Button testID="mobile-new-folder" accessibilityLabel={t("mobile.newFolder")} disabled={props.busy} onPress={props.onNewFolder}
@@ -1062,20 +1085,71 @@ function LibraryNav(props: { connected: boolean; statusVisible: boolean; onSetti
   </View>;
 }
 
-function noteRow(note: { path: string; title: string; mtimeMs: number }, snippet: string, onOpen: (path: string) => void, ios = false, last = false, selected = false) {
+type SwipeState = { open: () => string; setOpen: (path: string) => void; close: () => void; onRecycle: (path: string) => void };
+
+/**
+ * iOS 的列表滑动删除：nsh 没有 `trailingSwipeActions`，但 `pan` 会在
+ * 主线程把横向拖动喂给动画值，`panActivation` 又保证纵向仍然交给滚动视图。
+ * 内容左滑超过 64pt 后停住，露出右侧 88pt 的删除按钮；一次只开一行。
+ */
+function SwipeRow(props: { path: string; selected: boolean; swipe: SwipeState; render: () => JSX.Element }) {
+  const c = mobileColors();
+  const drag = createAnimatedValue(0);
+  const open = () => props.swipe.open() === props.path;
+  // 别的行被滑开时，这一行自动收回去。
+  effect(() => { if (!open()) void drag.timing(0, { duration: 160 }); });
+  const settle = (event: { valueX?: number }) => {
+    if ((event.valueX ?? 0) <= -64) {
+      // 先把这一行标成滑开（渲染出删除按钮），再把内容收拢到按钮宽度。
+      props.swipe.setOpen(props.path);
+      void drag.timing(-88, { duration: 160 });
+    } else {
+      void drag.timing(0, { duration: 160 });
+    }
+  };
+  return <View style={{ overflow: "hidden" }}>
+    {open() ? <Button testID={`mobile-swipe-delete-${props.path}`} accessibilityLabel={t("mobile.recycle")}
+      onPress={() => { props.swipe.close(); props.swipe.onRecycle(props.path); }}
+      style={{ position: "absolute", top: 0, bottom: 0, right: 0, width: 88, alignItems: "center", justifyContent: "center", gap: 4,
+        backgroundColor: mobileIsDark() ? "#FF453A" : "#FF3B30" }}>
+      <Icon name="trash" color="#FFFFFF" size={19} />
+      <Text style={{ fontSize: 12, fontWeight: 500, color: "#FFFFFF" }}>{t("mobile.recycle")}</Text>
+    </Button> : null}
+    <View
+      style={{ transform: [{ translateX: drag }], backgroundColor: props.selected ? c.accentSoft : c.list }}
+      {...(open() ? {} : {
+        // 手势要挂在外层容器，不能挂在 Button 自己身上：nsh 的 pan 在按钮节点上不触发，
+        // 放在父 View 上时子按钮的 press 仍然正常（实测见 PanProbe）。
+        pan: { x: drag },
+        panActivation: { activeOffsetX: 10, failOffsetY: 10 },
+        onPanEnd: settle,
+      })}>
+      {props.render()}
+    </View>
+  </View>;
+}
+
+function noteRow(note: { path: string; title: string; mtimeMs: number }, snippet: string, onOpen: (path: string) => void, ios = false, last = false, selected = false, swipe?: SwipeState) {
   const c = mobileColors();
   const folder = note.path.includes("/") ? note.path.split("/").slice(0, -1).join(" / ") : "";
   const secondary = snippet || folder;
+  const row = () => <Button testID={`mobile-note-${note.path}`} onPress={() => {
+      Keyboard.dismiss();
+      if (swipe && swipe.open() === note.path) { swipe.close(); return; }
+      if (swipe) swipe.close();
+      onOpen(note.path);
+    }}
+    style={{ minHeight: ios ? 64 : 58, paddingVertical: 10, paddingHorizontal: ios ? 16 : 4, gap: 3,
+      backgroundColor: selected ? c.accentSoft : ios ? c.list : "transparent", borderBottomWidth: ios ? 0 : 0.5, borderBottomColor: c.thread }}>
+    <Text numberOfLines={1} style={{ fontSize: ios ? 17 : 16, fontWeight: ios ? 600 : 590, letterSpacing: ios ? -0.2 : -0.25, color: c.ink }}>{note.title}</Text>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+      <Text numberOfLines={1} style={{ flex: 1, fontSize: ios ? 15 : 12, color: c.ink2 }}>{secondary}</Text>
+      <Text style={{ fontSize: ios ? 15 : 11, color: c.ink3 }}>{formatWhen(note.mtimeMs, locale())}</Text>
+    </View>
+  </Button>;
   return <View>
-    <Button testID={`mobile-note-${note.path}`} onPress={() => { Keyboard.dismiss(); onOpen(note.path); }}
-      style={{ minHeight: ios ? 64 : 58, paddingVertical: 10, paddingHorizontal: ios ? 16 : 4, gap: 3,
-        backgroundColor: selected ? c.accentSoft : ios ? c.list : "transparent", borderBottomWidth: ios ? 0 : 0.5, borderBottomColor: c.thread }}>
-      <Text numberOfLines={1} style={{ fontSize: ios ? 17 : 16, fontWeight: ios ? 600 : 590, letterSpacing: ios ? -0.2 : -0.25, color: c.ink }}>{note.title}</Text>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-        <Text numberOfLines={1} style={{ flex: 1, fontSize: ios ? 15 : 12, color: c.ink2 }}>{secondary}</Text>
-        <Text style={{ fontSize: ios ? 15 : 11, color: c.ink3 }}>{formatWhen(note.mtimeMs, locale())}</Text>
-      </View>
-    </Button>
+    {/* 滑动删除是 iOS 的列表行为，和是否用原生底栏无关。 */}
+    {platform.os === "ios" && swipe ? <SwipeRow path={note.path} selected={selected} swipe={swipe} render={row} /> : row()}
     {ios && !last ? <RowDivider inset={16} /> : null}
   </View>;
 }
