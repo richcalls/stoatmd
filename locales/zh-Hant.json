@@ -310,5 +310,6 @@
   "mobile.favoriteAdd": "收藏",
   "mobile.favoriteRemove": "取消收藏",
   "mobile.showLibrary": "顯示筆記庫",
-  "mobile.hideLibrary": "隱藏筆記庫"
+  "mobile.hideLibrary": "隱藏筆記庫",
+  "mobile.renderModeHint": "閱讀檢視裡區分標題、引用、連結與程式碼；單色只保留層級。"
 }

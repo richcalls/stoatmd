@@ -310,5 +310,6 @@
   "mobile.favoriteAdd": "즐겨찾기",
   "mobile.favoriteRemove": "즐겨찾기 해제",
   "mobile.showLibrary": "보관함 보기",
-  "mobile.hideLibrary": "보관함 숨기기"
+  "mobile.hideLibrary": "보관함 숨기기",
+  "mobile.renderModeHint": "읽기 보기에서 제목, 인용, 링크, 코드를 색으로 구분합니다. 단색은 계층만 남깁니다."
 }

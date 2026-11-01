@@ -310,5 +310,6 @@
   "mobile.favoriteAdd": "Favorito",
   "mobile.favoriteRemove": "Quitar de favoritos",
   "mobile.showLibrary": "Mostrar biblioteca",
-  "mobile.hideLibrary": "Ocultar biblioteca"
+  "mobile.hideLibrary": "Ocultar biblioteca",
+  "mobile.renderModeHint": "En lectura, el color distingue títulos, citas, enlaces y código; el monocromo solo conserva la jerarquía."
 }

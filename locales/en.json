@@ -310,5 +310,6 @@
   "mobile.favoriteAdd": "Favorite",
   "mobile.favoriteRemove": "Remove Favorite",
   "mobile.showLibrary": "Show Library",
-  "mobile.hideLibrary": "Hide Library"
+  "mobile.hideLibrary": "Hide Library",
+  "mobile.renderModeHint": "In reading view, color distinguishes headings, quotes, links and code; monochrome keeps only hierarchy."
 }

@@ -310,5 +310,6 @@
   "mobile.favoriteAdd": "お気に入り",
   "mobile.favoriteRemove": "お気に入りを解除",
   "mobile.showLibrary": "ライブラリを表示",
-  "mobile.hideLibrary": "ライブラリを隠す"
+  "mobile.hideLibrary": "ライブラリを隠す",
+  "mobile.renderModeHint": "閲覧ビューで見出し・引用・リンク・コードを色分けします。モノクロでは階層のみ残ります。"
 }

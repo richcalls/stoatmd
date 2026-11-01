@@ -1285,7 +1285,7 @@ function MobileSettings(props: { connected: boolean; onImport: () => void; onTra
           </Button>;
         })}
       </View>
-      <Text style={{ marginTop: 6, paddingHorizontal: 2, fontSize: 12, lineHeight: 16, color: c.ink3 }}>{t("settings.renderMode.desc")}</Text>
+      <Text style={{ marginTop: 6, paddingHorizontal: 2, fontSize: 12, lineHeight: 16, color: c.ink3 }}>{t("mobile.renderModeHint")}</Text>
     </View>
 
     <SectionTitle>{t("mobile.sectionText")}</SectionTitle>

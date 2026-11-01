@@ -310,5 +310,6 @@
   "mobile.favoriteAdd": "Favorit",
   "mobile.favoriteRemove": "Favorit entfernen",
   "mobile.showLibrary": "Bibliothek einblenden",
-  "mobile.hideLibrary": "Bibliothek ausblenden"
+  "mobile.hideLibrary": "Bibliothek ausblenden",
+  "mobile.renderModeHint": "In der Leseansicht unterscheiden Farben Überschriften, Zitate, Links und Code; Monochrom behält nur die Hierarchie."
 }

@@ -310,5 +310,6 @@
   "mobile.favoriteAdd": "收藏",
   "mobile.favoriteRemove": "取消收藏",
   "mobile.showLibrary": "显示笔记库",
-  "mobile.hideLibrary": "隐藏笔记库"
+  "mobile.hideLibrary": "隐藏笔记库",
+  "mobile.renderModeHint": "阅读视图里区分标题、引用、链接与代码；单色只保留层级。"
 }
