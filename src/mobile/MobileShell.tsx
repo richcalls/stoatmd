@@ -189,7 +189,8 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; onStorag
     void (async () => {
       if (props.connected && Date.now() - lastCloudCheck >= 15_000) {
         lastCloudCheck = Date.now();
-        await sync();
+        // 同步可能持续很久；不阻塞列表刷新，下载中的笔记会陆续出现。
+        void sync().catch(err => lib.error.set(String(err)));
       }
       await (current?.kind === "document" ? lib.reconcile() : lib.refresh());
     })().catch(err => lib.error.set(String(err))).finally(() => { reconciling = false; });

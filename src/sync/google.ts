@@ -3,6 +3,8 @@ import {
   SyncError,
   networkError,
   providerStatusError,
+  readBodyBytes,
+  readBodyText,
   type FetchLike,
   type RemoteDir,
   type SyncProvider,
@@ -86,8 +88,8 @@ export class GoogleDriveProvider implements SyncProvider {
   async downloadBytes(file: RemoteFile): Promise<Uint8Array> {
     const response = await this.request(
       `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}?alt=media`, {}, undefined);
-    if (!response.ok) throw providerStatusError(response.status, await response.text());
-    return new Uint8Array(await response.arrayBuffer());
+    if (!response.ok) throw providerStatusError(response.status, await readBodyText(response));
+    return readBodyBytes(response);
   }
 
   async upload(
@@ -142,8 +144,8 @@ export class GoogleDriveProvider implements SyncProvider {
     const metadata = await this.request(
       `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}?fields=id,version,modifiedTime,size`, {}, undefined);
     if (metadata.status === 404) return;
-    if (!metadata.ok) throw providerStatusError(metadata.status, await metadata.text());
-    const current = JSON.parse(await metadata.text()) as GoogleItem;
+    if (!metadata.ok) throw providerStatusError(metadata.status, await readBodyText(metadata));
+    const current = JSON.parse(await readBodyText(metadata)) as GoogleItem;
     if (revOf(current) !== file.rev) throw new RemoteConflictError("remote file changed before delete", file.path);
     const etag = metadata.headers.get("ETag");
     // Preserve the source when Drive cannot supply a conditional deletion token.
@@ -154,7 +156,7 @@ export class GoogleDriveProvider implements SyncProvider {
       "application/json",
     );
     if (response.status === 404) return;
-    if (!response.ok) throw providerStatusError(response.status, await response.text());
+    if (!response.ok) throw providerStatusError(response.status, await readBodyText(response));
   }
 
   private async walk(
@@ -279,7 +281,7 @@ export class GoogleDriveProvider implements SyncProvider {
     contentType?: string,
   ): Promise<T> {
     const response = await this.request(url, init, contentType);
-    const text = await response.text();
+    const text = await readBodyText(response);
     if (!response.ok) throw providerStatusError(response.status, text);
     try {
       return JSON.parse(text) as T;
@@ -290,7 +292,7 @@ export class GoogleDriveProvider implements SyncProvider {
 
   private async text(url: string | URL): Promise<string> {
     const response = await this.request(url, {}, undefined);
-    const body = await response.text();
+    const body = await readBodyText(response);
     if (!response.ok) throw providerStatusError(response.status, body);
     return body;
   }

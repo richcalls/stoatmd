@@ -1,7 +1,7 @@
 import type { SyncConfigDto } from "stoatmd/native";
 import { credentialsFor } from "./config";
 import { codeChallenge, createCodeVerifier, randomState } from "./hash";
-import { SyncError, type FetchLike } from "./provider";
+import { SyncError, readBodyJson, readBodyText, type FetchLike } from "./provider";
 import type { ProviderId } from "./types";
 
 export type TokenBundle = {
@@ -42,9 +42,9 @@ const GOOGLE: ProviderOAuth = {
       { headers: { Authorization: `Bearer ${accessToken}` } },
     );
     if (!response.ok) return null;
-    const data = (await response.json()) as {
+    const data = await readBodyJson<{
       user?: { displayName?: string; emailAddress?: string };
-    };
+    }>(response);
     return data.user?.emailAddress || data.user?.displayName || null;
   },
 };
@@ -70,10 +70,10 @@ const DROPBOX: ProviderOAuth = {
       body: "null",
     });
     if (!response.ok) return null;
-    const data = (await response.json()) as {
+    const data = await readBodyJson<{
       email?: string;
       name?: { display_name?: string };
-    };
+    }>(response);
     return data.email || data.name?.display_name || null;
   },
 };
@@ -207,7 +207,7 @@ async function requestToken(
     const message = err instanceof Error ? err.message : String(err);
     throw new SyncError("network", message);
   }
-  const text = await response.text();
+  const text = await readBodyText(response);
   if (!response.ok) {
     let detail = text;
     try {

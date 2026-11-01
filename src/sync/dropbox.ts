@@ -3,6 +3,8 @@ import {
   SyncError,
   networkError,
   providerStatusError,
+  readBodyBytes,
+  readBodyText,
   type FetchLike,
   type RemoteDir,
   type SyncProvider,
@@ -135,8 +137,8 @@ export class DropboxProvider implements SyncProvider {
         },
       },
     );
-    if (!response.ok) throw dropboxError(response.status, await response.text());
-    return new Uint8Array(await response.arrayBuffer());
+    if (!response.ok) throw dropboxError(response.status, await readBodyText(response));
+    return readBodyBytes(response);
   }
 
   async upload(
@@ -177,7 +179,7 @@ export class DropboxProvider implements SyncProvider {
         body: content,
       },
     );
-    const body = await response.text();
+    const body = await readBodyText(response);
     if (!response.ok) {
       const error = dropboxError(response.status, body);
       if (response.status === 409) throw new RemoteConflictError("remote file changed", path);
@@ -193,7 +195,7 @@ export class DropboxProvider implements SyncProvider {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path: file.id, parent_rev: file.rev }),
     });
-    const body = await response.text();
+    const body = await readBodyText(response);
     if (response.ok) return;
     if (response.status === 409 && body.includes("path_lookup/not_found")) return;
     throw dropboxError(response.status, body);
@@ -243,7 +245,7 @@ export class DropboxProvider implements SyncProvider {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path, autorename: false }),
     });
-    const body = await response.text();
+    const body = await readBodyText(response);
     if (response.ok) {
       const parsed = JSON.parse(body) as { metadata?: DropboxMetadata };
       return parsed.metadata ?? {};
@@ -262,7 +264,7 @@ export class DropboxProvider implements SyncProvider {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path }),
     });
-    const body = await response.text();
+    const body = await readBodyText(response);
     if (response.status === 409 && body.includes("not_found")) return null;
     if (!response.ok) throw dropboxError(response.status, body);
     return JSON.parse(body) as DropboxMetadata;
@@ -274,7 +276,7 @@ export class DropboxProvider implements SyncProvider {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const text = await response.text();
+    const text = await readBodyText(response);
     if (!response.ok) throw dropboxError(response.status, text);
     try {
       return JSON.parse(text) as T;
