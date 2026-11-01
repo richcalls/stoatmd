@@ -11,6 +11,7 @@
 - 文件内搜索：编辑区右上角紧凑浮窗，macOS `⌘F`，Windows/Linux `Ctrl+F`；匹配高亮与计数，`Enter` / `Shift+Enter` 循环跳转，`Esc` 关闭并返回编辑器。系统结果快捷键为 macOS `⌘G` / `⇧⌘G`、Windows/Linux `F3` / `Shift+F3`；纯预览模式发起搜索时展开分栏显示匹配源码。
 - 分栏时**编辑区与预览 60fps 双向滚动同步，丝滑跟手**（硬性验收标准）
 - 预览默认采用 [Kami](https://github.com/tw93/kami) 文章排版（衬线正文、克制留白）；配色内置 **25 套 [Otty](https://otty.sh) 主题**（默认 Paper，9 浅色 / 16 深色），设置 → 外观即切即换（归属见 `THIRD_PARTY_NOTICES.md`）
+- **macOS** UI 图标用 [Phosphor Icons](https://phosphoricons.com/) **Regular**（`assets/icons/`，`src/ui/Icon.tsx` 以 fill + `tintColor` 着色）；场景映射见 [UI v1 设计说明 · 附录](docs/ui-v1/DESIGN-NOTES.md#附录--phosphor-映射短表)。**iOS 用 SF Symbols**，不用 Phosphor
 - 设置使用独立的 macOS 原生窗口，支持系统红黄绿按钮、拖动、调整大小、全屏与窗口平铺；关闭设置后主窗口继续工作。
 - 设置 → 外观 → **文稿配色**：默认彩色，标题、引用、链接与代码随主题着色；单色保留字号、字重与排版层级。源码与预览即时切换，偏好在重启后恢复。
 - macOS 提供本地 / Dropbox / Google Drive，切换时迁移并校验，原数据默认保留；**iOS 仅 Dropbox / Google Drive**（无本地库入口，也不做本地库迁移）
@@ -165,6 +166,7 @@ macOS 的 `purchaseRequired` 默认 `true`，免费状态开放本地。`STOATMD
 
 ## 第三方
 
+- **macOS** 界面图标取自 [Phosphor Icons](https://phosphoricons.com/) Regular（MIT License，Copyright (c) 2023 Phosphor Icons）；映射见 [UI v1 设计说明 · 附录](docs/ui-v1/DESIGN-NOTES.md#附录--phosphor-映射短表)。iOS 图标用系统 SF Symbols，不使用 Phosphor。
 - 默认文章排版移植自 [Kami](https://github.com/tw93/kami)（MIT License，Copyright (c) 2026 Tw93）。
 - 25 套外观主题取自 [Otty](https://otty.sh) 的内置主题（Apache-2.0，Copyright © 2026 appmakes），其中 Nord / Catppuccin / Dracula / Gruvbox / Solarized / Tokyo Night 等配色来自各自作者。
 - 完整许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
