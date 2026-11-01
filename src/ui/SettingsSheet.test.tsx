@@ -73,10 +73,10 @@ test("设置：字号边界禁用按钮，损坏的偏好恢复默认", async ()
   expect(invalid.shows("id:font-size >> text:16")).toBe(true);
 });
 
-test("设置：内容填满窗口，系统负责标题栏和关闭按钮", async () => {
+test("设置：窗口 chrome 走统一栏，不额外画关闭按钮", async () => {
   const app = await open("./SettingsSheet.harness.tsx", desktop);
   expect(app.shows("id:settings-window")).toBe(true);
-  expect(app.shows("id:settings-window-bar")).toBe(false);
+  expect(app.shows("id:settings-window-bar")).toBe(true);
   expect(app.shows("id:settings-close")).toBe(false);
 });
 

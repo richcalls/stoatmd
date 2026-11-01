@@ -2,10 +2,11 @@ import { uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
 import { Image, List, Scroll, Text, View, cleanup, effect, keymap, signal } from "nsh";
 import { Button, Input, Popover, Radio, RadioGroup } from "nsh/base";
 import { titleBar } from "nsh/desktop";
+import { WINDOW_BAR_HEIGHT } from "./Toolbar";
 import { APP_LOGOS, applyAppLogo, appLogo, logoAsset } from "./appLogo";
 import { Icon, type IconName } from "./Icon";
 import { applyRenderMode, renderMode, type RenderMode } from "./documentAppearance";
-import { controlFocusStyle, controlHoverStyle, controlPressStyle } from "./chrome";
+import { controlFocusStyle, controlHoverStyle, controlPressStyle, chromeColors } from "./chrome";
 import { localePref, setLocalePref, t, type LocalePref } from "./i18n";
 import { saveLocale } from "./prefs";
 import { storageBusy } from "../storage/state";
@@ -604,8 +605,28 @@ export function SettingsSheet(props: Props) {
       <View
         testID="settings-window"
         accessibilityLabel={t("settings.title")}
-        style={{ flex: 1, flexDirection: "row", minHeight: 0, position: "relative", backgroundColor: colors().paper }}
+        style={{ flex: 1, flexDirection: "column", minHeight: 0, backgroundColor: colors().paper }}
       >
+        {/* 与主窗口同一套统一窗口栏：系统标题栏隐藏，红绿灯浮在这条栏上。 */}
+        <View
+          testID="settings-window-bar"
+          desktop={{ windowDrag: true }}
+          style={{
+            height: Math.max(titleBar().height, WINDOW_BAR_HEIGHT),
+            flexShrink: 0,
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: colors().sidebar,
+            backgroundImage: chromeColors().shellFinish,
+          }}
+        >
+          <View style={{ width: titleBar().left + 8, flexShrink: 0 }} />
+          <View style={{ flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center" }}>
+            <Text numberOfLines={1} style={{ fontSize: uiTextSize(13), fontWeight: "600", color: colors().ink2 }}>{t("settings.title")}</Text>
+          </View>
+          <View style={{ width: titleBar().left + 8, flexShrink: 0 }} />
+        </View>
+        <View style={{ flex: 1, flexDirection: "row", minHeight: 0 }}>
         <View
           style={{
             width: SETTINGS_SIDEBAR_WIDTH,
@@ -613,7 +634,7 @@ export function SettingsSheet(props: Props) {
             backgroundColor: colors().sidebar,
             borderRightWidth: 1,
             borderRightColor: colors().thread,
-            paddingTop: titleBar().height + 12,
+            paddingTop: 12,
             paddingBottom: 12,
             paddingHorizontal: 10,
             gap: 2,
@@ -662,7 +683,7 @@ export function SettingsSheet(props: Props) {
 
         <Scroll
           style={{ flex: 1 }}
-          contentStyle={{ paddingHorizontal: 28, paddingTop: titleBar().height + 24, paddingBottom: 32 }}
+          contentStyle={{ paddingHorizontal: 28, paddingTop: 24, paddingBottom: 32 }}
         >
           <View style={{ gap: 22, width: "100%", maxWidth: CONTENT_MAX_WIDTH }}>
             <If when={props.tab === "appearance"}>
@@ -913,13 +934,7 @@ export function SettingsSheet(props: Props) {
             </If>
           </View>
         </Scroll>
-        <If when={titleBar().height > 0}>
-          <View
-            testID="settings-window-drag"
-            desktop={{ windowDrag: true }}
-            style={{ position: "absolute", top: 0, left: 0, right: 0, height: titleBar().height }}
-          />
-        </If>
+        </View>
       </View>
     </If>
   );

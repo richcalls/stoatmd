@@ -1,4 +1,5 @@
 import { host, signal } from "nsh";
+import { Window } from "nsh/desktop";
 import { SettingsWindow } from "stoatmd/native";
 import { storageMigration } from "../storage/runtime";
 import { settingsStorage } from "./settingsStorage";
@@ -9,6 +10,8 @@ import { unwrapSettingsSync, type SettingsSyncResult } from "./settingsSync";
 
 /** Secondary window root. The host channel forwards work to the main engine. */
 export function SettingsApp() {
+  // 与主窗口相同的统一窗口栏：系统标题栏隐藏，红绿灯浮在应用画的栏上。
+  Window.setTitleBar("hidden", 34);
   const initial = host.params.state as unknown as SettingsState;
   const state = signal(initial);
   const open = signal(true);
