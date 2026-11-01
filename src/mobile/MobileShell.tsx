@@ -1,4 +1,4 @@
-import { Keyboard, List, Scroll, Text, View, cleanup, computed, effect, keyboardFrame, platform, safeAreaInsets, signal, windowSize, type JSX, type YNode } from "nsh";
+import { Keyboard, List, Scroll, Text, View, cleanup, computed, effect, keymap, keyboardFrame, platform, safeAreaInsets, signal, windowSize, type JSX, type YNode } from "nsh";
 import { Button, Dialog, Input, NavPage, NavStack, TextView, createNavStack } from "nsh/base";
 import { InputAccessoryView, TabBar } from "nsh/mobile";
 import { MobileFiles, Vault } from "stoatmd/native";
@@ -10,6 +10,7 @@ import { Icon, type IconName } from "../ui/Icon";
 import { articleModel } from "../ui/articleModel";
 import { previewTextStyles } from "../ui/EditorWorkspace";
 import { displayBlock, renderMode } from "../ui/documentAppearance";
+import { findShortcuts } from "../ui/findShortcuts";
 import { locale, localePref, setLocalePref, t, type LocalePref } from "../ui/i18n";
 import { librarySearch } from "../ui/librarySearch";
 import { saveLocale } from "../ui/prefs";
@@ -285,6 +286,10 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   const busy = () => operationBusy() || storageBusy();
   const editing = signal(true);
   const tab = signal<Tab>(props.initialTab ?? "recent");
+  // 正文内查找：iOS 没有 Mac 的 Editor 搜索面板，阅读视图自己按块查。
+  const finding = signal(false);
+  const findText = signal("");
+  const findHit = signal(0);
   // 大标题滚出屏幕后，用系统导航栏的小标题接住，和原生大标题收起一致。
   const libraryTitleCollapsed = signal(false);
   const selectedFolder = signal("");
@@ -304,7 +309,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     if (await lib.createNote(folder)) { editing.set(true); if (!wide()) nav.push({ kind: "document" }); }
   }); };
   const openNote = (path: string) => { void running(async () => {
-    if (await lib.openNote(path)) { editing.set(false); if (!wide()) nav.push({ kind: "document" }); }
+    if (await lib.openNote(path)) { finding.set(false); findText.set(""); findHit.set(0); editing.set(false); if (!wide()) nav.push({ kind: "document" }); }
   }); };
   const back = () => { void running(async () => {
     if (await lib.flush()) { Keyboard.dismiss(); await lib.refresh(); nav.pop(); }
@@ -324,6 +329,52 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   };
   const model = () => previewModel(lib.note()?.content ?? "", { fontSize: fontSize(), lineHeight: lineHeightPx() });
   const goToBlock = (index: number) => { reader?.scrollToIndex({ index, animated: true, viewPosition: 0 }); };
+  /** 阅读视图的查找：一次命中一条，记它落在哪个顶层块（只看正文，不含 Markdown 标记）。 */
+  const findHits = computed(() => {
+    const query = findText().trim().toLocaleLowerCase();
+    const hits: { block: number }[] = [];
+    if (!finding() || !query) return hits;
+    model().blocks.forEach((block, index) => {
+      const text = TextView.plainText({ blocks: [block] }).toLocaleLowerCase();
+      let at = text.indexOf(query);
+      while (at >= 0 && hits.length < 500) { hits.push({ block: index }); at = text.indexOf(query, at + query.length); }
+    });
+    return hits;
+  });
+  const currentBlock = () => { const hit = findHits()[findHit()]; return hit ? hit.block : -1; };
+  const goToHit = (index: number) => {
+    const total = findHits().length;
+    if (!total) return;
+    const next = ((index % total) + total) % total;
+    findHit.set(next);
+    reader?.scrollToIndex({ index: findHits()[next].block, animated: true, viewPosition: 0.2 });
+  };
+  const openFind = () => {
+    if (!lib.note()) return;
+    Keyboard.dismiss();
+    finding.set(true);
+    if (findText() && findHits().length) goToHit(0);
+  };
+  const closeFind = () => { finding.set(false); findText.set(""); findHit.set(0); };
+  const queryFind = (query: string) => {
+    findText.set(query);
+    findHit.set(0);
+    if (query.trim() && findHits().length) goToHit(0);
+  };
+  const findKeys = findShortcuts();
+  keymap.bind(findKeys.open, openFind, { when: "always" });
+  keymap.bind(findKeys.next, () => { if (finding()) goToHit(findHit() + 1); }, { when: "always" });
+  keymap.bind(findKeys.previous, () => { if (finding()) goToHit(findHit() - 1); }, { when: "always" });
+  effect(() => {
+    if (!finding()) return;
+    const off = keymap.bind("escape", closeFind, { when: "always" });
+    cleanup(off);
+  });
+  // iPad 外接键盘：对齐 Mac 的几个常用快捷键（新笔记 / 设置 / 编辑↔阅读）。
+  keymap.bind("mod+n", () => { if (!busy()) newNote(selectedFolder()); }, { when: "always" });
+  keymap.bind("mod+,", () => show("settings"), { when: "always" });
+  keymap.bind("mod+1", () => { if (lib.note()) { finding.set(false); editing.set(true); } }, { when: "always" });
+  keymap.bind("mod+3", () => { if (lib.note()) { Keyboard.dismiss(); finding.set(false); editing.set(false); void lib.flush(); } }, { when: "always" });
   const onLink = (url: string) => {
     const index = resolveAnchor(model().anchors, url);
     if (index !== undefined) goToBlock(index);
@@ -411,6 +462,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   // 系统项则由 nsh 直接派发到槽位里那个按钮，不依赖导航栏的命中测试。
   // 代价：系统项的文字跟设备语言走，app 内单独换语言时它会跟着设备而不是界面。
   const docToggle = () => {
+    finding.set(false); findText.set(""); findHit.set(0);
     if (editing()) { Keyboard.dismiss(); editing.set(false); void lib.flush(); } else editing.set(true);
   };
   const docToolbar = () => <Button testID={editing() ? "mobile-read" : "mobile-edit"}
@@ -461,12 +513,13 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
         <View style={{ flex: 1 }}>
           <List ref={node => { reader = node; }} testID="mobile-preview" each={model().blocks} estimatedItemSize={model().estimatedItemSize}
             contentStyle={{ paddingHorizontal: 24, paddingTop: ios ? 10 : 70 + bottom().top, paddingBottom: 104 + bottom().bottom }} style={{ flex: 1, backgroundColor: mobileColors().preview }}>
-            {(block, index) => <View style={{ paddingTop: previewGap(index() > 0 ? model().blocks[index() - 1] : undefined, block(), fontSize() / 15) }}>
+            {(block, index) => <View style={{ paddingTop: previewGap(index() > 0 ? model().blocks[index() - 1] : undefined, block(), fontSize() / 15),
+              backgroundColor: finding() && currentBlock() === index() ? mobileColors().accentSoft : "transparent" }}>
               <TextView document={{ blocks: [displayBlock(block(), renderMode())] }} selectable links="open" onLinkPress={event => onLink(event.url)} styles={readerStyles()} />
             </View>}
           </List>
           <ReaderDock content={lib.note()?.content ?? ""} bottom={bottom().bottom}
-            onOutline={() => show("outline")} onType={() => show("type")}
+            onOutline={() => show("outline")} onType={() => show("type")} onFind={openFind}
             onActions={ios ? () => show("actions") : undefined} />
         </View>}
       <InputAccessoryView nativeID="markdown-tools" style={{ backgroundColor: mobileColors().paper }}>
@@ -482,6 +535,9 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
           </View>
         </View>
       </InputAccessoryView>
+      {finding() ? <MobileFindBar query={findText()} total={findHits().length}
+        current={findHits().length ? findHit() : -1} onQuery={queryFind}
+        onNext={() => goToHit(findHit() + 1)} onPrevious={() => goToHit(findHit() - 1)} onClose={closeFind} /> : null}
     </View>
   </NavPageI>;
 
@@ -947,7 +1003,7 @@ function emptyNotes() {
   </View>;
 }
 
-function ReaderDock(props: { content: string; bottom: number; onOutline: () => void; onType: () => void; onActions?: () => void }) {
+function ReaderDock(props: { content: string; bottom: number; onOutline: () => void; onType: () => void; onFind?: () => void; onActions?: () => void }) {
   const c = mobileColors();
   const words = () => articleModel(props.content).stats.chars;
   return <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0,
@@ -958,6 +1014,10 @@ function ReaderDock(props: { content: string; bottom: number; onOutline: () => v
         <Icon name="list-tree" color={c.accent} size={20} />
       </Button>
       <Text testID="mobile-word-count" style={{ minWidth: 78, textAlign: "center", fontSize: 13, fontWeight: 400, color: c.ink3 }}>{t("mobile.words", { n: words() })}</Text>
+      {props.onFind ? <Button testID="mobile-find-open" accessibilityLabel={t("find.open")} onPress={props.onFind}
+        style={{ width: 48, height: 44, alignItems: "center", justifyContent: "center" }}>
+        <Icon name="magnifying-glass" color={c.accent} size={20} />
+      </Button> : null}
       <Button testID="mobile-type" accessibilityLabel={t("settings.font.size")} onPress={props.onType}
         style={{ width: 48, height: 44, alignItems: "center", justifyContent: "center" }}>
         <Text style={{ fontSize: 18, fontWeight: 600, color: c.accent }}>Aa</Text>
@@ -969,6 +1029,33 @@ function ReaderDock(props: { content: string; bottom: number; onOutline: () => v
         <Icon name="more" color={c.accent} size={20} />
       </Button> : null}
     </View>
+  </View>;
+}
+
+/** 阅读视图的查找条：浮在正文顶部，不挡导航栏。 */
+function MobileFindBar(props: { query: string; total: number; current: number; onQuery: (query: string) => void; onNext: () => void; onPrevious: () => void; onClose: () => void }) {
+  const c = mobileColors();
+  const step = (id: string, label: string, text: string, onPress: () => void) =>
+    <Button testID={id} accessibilityLabel={label} disabled={props.total === 0} onPress={onPress}
+      style={{ width: 36, height: 40, alignItems: "center", justifyContent: "center", opacity: props.total === 0 ? 0.35 : 1 }}>
+      <Text style={{ fontSize: 17, color: c.accent }}>{text}</Text>
+    </Button>;
+  return <View testID="mobile-find" style={{ position: "absolute", top: 8, left: 10, right: 10, height: 48, paddingLeft: 12, paddingRight: 2,
+    flexDirection: "row", alignItems: "center", gap: 2, ...glassStyle(14), zIndex: 10 }}>
+    <Icon name="magnifying-glass" color={c.ink3} size={16} />
+    <Input testID="mobile-find-input" accessibilityLabel={t("find.placeholder")} placeholder={t("find.placeholder")}
+      value={props.query} onChange={props.onQuery} autoFocus autoCorrect={false} autoCapitalize="none"
+      returnKeyType="search" onSubmit={props.onNext}
+      style={{ flex: 1, minWidth: 0, height: 36, fontSize: 15, color: c.ink, backgroundColor: "transparent" }} />
+    <Text testID="mobile-find-count" numberOfLines={1} style={{ flexShrink: 0, fontSize: 12.5, color: c.ink3 }}>
+      {props.query ? (props.total ? t("find.count", { current: props.current + 1, total: props.total }) : t("find.noResults")) : ""}
+    </Text>
+    {step("mobile-find-previous", t("find.previous"), "↑", props.onPrevious)}
+    {step("mobile-find-next", t("find.next"), "↓", props.onNext)}
+    <Button testID="mobile-find-close" accessibilityLabel={t("find.close")} onPress={props.onClose}
+      style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
+      <Icon name="x" color={c.ink2} size={15} />
+    </Button>
   </View>;
 }
 

@@ -20,6 +20,39 @@ test("iPad 横屏：左库右文两栏", async () => {
   // 打开笔记后右上角应切到 Edit（系统栏按钮跟着编辑态走）。
   expect(app.shows("id:mobile-edit")).toBe(true);
   await app.screenshot("screenshots/ios-raw/ipad-02-reader.png");
+
+  // 正文内查找：底栏放大镜打开，输入后给出命中数并滚到命中块。
+  await app.press("id:mobile-find-open");
+  await app.waitFor("id:mobile-find-input");
+  await app.paste("id:mobile-find-input", { text: "写作" });
+  await new Promise(resolve => setTimeout(resolve, 400));
+  expect(app.texts()).toContain("1 / 2");
+  await app.screenshot("screenshots/ios-raw/ipad-05-find.png");
+  await app.press("id:mobile-find-next");
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(app.texts()).toContain("2 / 2");
+  await app.press("id:mobile-find-close");
+  await app.waitFor("id:mobile-preview");
+  expect(app.shows("id:mobile-find")).toBe(false);
+
+  // iPad 接键盘时，⌘F 也能起查找，Esc 关掉。
+  await app.keyboard.press("mod+f");
+  await app.waitFor("id:mobile-find-input");
+  expect(app.shows("id:mobile-find")).toBe(true);
+  await app.keyboard.press("escape");
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(app.shows("id:mobile-find")).toBe(false);
+
+  // ⌘N 新建笔记直接进编辑，⌘3 回到阅读，⌘, 开设置。
+  await app.keyboard.press("mod+n");
+  await app.waitFor("id:mobile-source");
+  expect(app.shows("id:mobile-source")).toBe(true);
+  await app.keyboard.press("mod+3");
+  await app.waitFor("id:mobile-preview");
+  await app.keyboard.press("mod+,");
+  await app.waitFor("id:mobile-theme-paper");
+  await app.press("id:mobile-panel-done");
+  await app.waitFor("id:mobile-preview");
 }, 120_000);
 
 test("iPad 竖屏：仍然是两栏", async () => {
