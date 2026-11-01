@@ -43,6 +43,8 @@
   "sync.manageConflicts": "Konflikte lösen",
   "sync.firstSync": "Erste Synchronisierung…",
   "sync.error.network": "Netzwerk nicht verfügbar. Lokales Bearbeiten läuft weiter; Sync versucht es automatisch erneut.",
+  "sync.error.rateLimited": "Der Cloudspeicher drosselt Anfragen. Die Synchronisierung versucht es später erneut; lokale Bearbeitung läuft weiter.",
+  "sync.error.remote": "Der Cloudspeicher antwortet nicht. Die Synchronisierung versucht es später erneut; lokale Bearbeitung läuft weiter.",
   "sync.error.connectNetwork": "Der Cloud-Dienst ist nicht erreichbar. Prüfe deine Netzwerkverbindung und verbinde dich erneut.",
   "sync.error.auth": "Autorisierung abgelaufen. Bitte verbinde das Laufwerk erneut.",
   "sync.error.config": "Cloud-Client-Zugangsdaten fehlen. Schließe zuerst die Entwicklereinrichtung ab.",

@@ -36,32 +36,10 @@ const DARK_GLASS: GlassTokens = {
   shadow: "0 16px 36px rgba(0, 0, 0, 0.45)",
 };
 
-/** 相对亮度，只用来决定「哪一面当页面底色、哪一面当卡片」。 */
-function luminance(hex: string): number {
-  const value = hex.replace("#", "");
-  if (value.length !== 6) return 1;
-  const channel = (offset: number) => {
-    const c = parseInt(value.slice(offset, offset + 2), 16) / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
-}
-
-/**
- * iOS 的分组列表是「较暗的页面底 + 较亮的卡片」，而 macOS 主题的 paper / sidebar
- * 明暗关系与明暗模式无关。这里按亮度挑出两面：暗的那面当页面底（paper），
- * 亮的那面当卡片（list），浅色和深色主题都不会出现卡片比页面更暗的倒挂。
- */
-function iosPalette(preset: ThemePalette): ThemePalette {
-  const paperIsDarker = luminance(preset.paper) <= luminance(preset.sidebar);
-  const paper = paperIsDarker ? preset.paper : preset.sidebar;
-  const list = paperIsDarker ? preset.sidebar : preset.paper;
-  return { ...preset, paper, sidebar: paper, list };
-}
-
 function mobileThemeOf(id: ThemeId): MobileTheme {
   const preset = themePreset(id);
-  const palette = iosPalette(preset.palette);
+  // 和 Mac 共用同一份色板，不做任何明暗重排：同一个主题在两边是同一组颜色。
+  const palette = preset.palette;
   return {
     id: preset.id,
     name: preset.name,
@@ -78,7 +56,7 @@ function mobileThemeOf(id: ThemeId): MobileTheme {
   };
 }
 
-/** 与 Mac 共用同一份 25 套主题，只在 iOS 上按分组列表的明暗关系重排两面。 */
+/** 与 Mac 共用同一份 25 套主题与色板，iOS 不另做映射。 */
 export const MOBILE_THEMES: readonly MobileTheme[] = THEMES.map(theme => mobileThemeOf(theme.id));
 
 const BY_ID = new Map(MOBILE_THEMES.map(theme => [theme.id, theme]));
@@ -107,7 +85,7 @@ function live<T extends object>(keys: readonly (keyof T)[], read: () => T): T {
   return out;
 }
 
-/** iOS 用同一份主题色板，按分组列表重排纸面与卡片两面。 */
+/** iOS 与 Mac 使用同一份主题色板。 */
 export function mobileColors(): ThemePalette {
   return live(PALETTE_KEYS, () => mobileTheme().palette);
 }

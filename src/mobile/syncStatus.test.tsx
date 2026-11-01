@@ -30,6 +30,19 @@ test("同步状态：网络与授权错误映射到可读文案，其他归为�
     .toBe("sync.error.generic");
 });
 
+test("同步状态：限流、5xx 与超时不说成「网络不可用」", () => {
+  expect(syncStatus("error", { done: 0, total: 0 }, { kind: "network", message: "HTTP 429" })?.key)
+    .toBe("sync.error.rateLimited");
+  expect(syncStatus("error", { done: 0, total: 0 }, { kind: "network", message: "HTTP 503" })?.key)
+    .toBe("sync.error.remote");
+  expect(syncStatus("error", { done: 0, total: 0 }, { kind: "network", message: "request timed out" })?.key)
+    .toBe("sync.error.remote");
+  expect(syncStatus("error", { done: 0, total: 0 }, { kind: "network", message: "response body timed out" })?.key)
+    .toBe("sync.error.remote");
+  expect(syncStatus("error", { done: 0, total: 0 }, { kind: "network", message: "HTTP 503 response" })?.key)
+    .toBe("sync.error.remote");
+});
+
 test("同步状态：暂停时保留进度，继续后从同一个位置恢复", () => {
   const status = syncStatus("paused", { done: 3, total: 10 }, null);
   expect(status?.kind).toBe("paused");

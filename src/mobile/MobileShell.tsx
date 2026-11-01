@@ -4,6 +4,7 @@ import { InputAccessoryView, TabBar } from "nsh/mobile";
 import { MobileFiles, Vault } from "stoatmd/native";
 import { activeStorage, readActiveStorage, writeActiveStorage, storageBusy } from "../storage/state";
 import { syncRuntime } from "../sync/runtime";
+import type { SyncErrorKind } from "../sync/provider";
 import { SyncSettings, formatSyncMoment } from "../ui/SyncSettings";
 import { providerLabelKey } from "../sync/runtime";
 import { Icon, type IconName } from "../ui/Icon";
@@ -24,6 +25,11 @@ import { MOBILE_THEMES, glass, mobileColors, mobileIsDark, mobileThemeId, type M
 import { syncStatus } from "./syncStatus";
 
 type Route = { kind: "library" } | { kind: "document" };
+type SyncErrorView = { kind: SyncErrorKind; message: string };
+/** 自动拉取间隔：和 Mac 的 SYNC_PULL_MS 一样是 90 秒。 */
+const SYNC_PULL_MS = 90_000;
+/** 自动同步连续失败几次，才把网络错误显示到界面上（约 7.5 分钟）。 */
+const SYNC_ERROR_AFTER = 5;
 type Panel = "settings" | "storage" | "outline" | "type" | "actions" | "info" | "rename" | "folder" | "move" | "trash" | "erase" | "cloudConflicts" | null;
 type Tab = "recent" | "all" | "favorites";
 
@@ -162,8 +168,8 @@ function PrimaryButton(props: { id?: string; label: string; disabled?: boolean; 
 }
 
 /** 同步 accessory：同步中可暂停，暂停可继续，失败可重试；只出现在库页。 */
-function SyncAccessory(props: { onPause: () => void; onResume: () => void; onRetry: () => void }) {
-  const current = syncStatus(syncRuntime.phase(), syncRuntime.progress(), syncRuntime.error());
+function SyncAccessory(props: { error?: SyncErrorView | null; onPause: () => void; onResume: () => void; onRetry: () => void }) {
+  const current = syncStatus(syncRuntime.phase(), syncRuntime.progress(), props.error === undefined ? syncRuntime.error() : props.error);
   if (!current) return null;
   const c = mobileColors();
   const paused = current.kind === "paused";
@@ -433,10 +439,20 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     await dismissPanel();
     await MobileFiles.exportMarkdown(current.path.split("/").pop()!, current.content);
   }); };
-  const sync = async () => {
+  // 自动同步失败（网络抖动、切前后台、系统取消请求）先不打扰用户：
+  // 连续失败 SYNC_ERROR_AFTER 次才显示网络错误；手动同步失败立即显示。
+  const syncFails = signal(0);
+  const sync = async (manual = false) => {
     if (!props.connected || !await lib.flush()) return;
     await syncRuntime.syncNow();
+    const failure = syncRuntime.error();
+    syncFails.set(!failure || failure.kind !== "network" ? 0 : manual ? SYNC_ERROR_AFTER : syncFails() + 1);
     await lib.reconcile();
+  };
+  const shownSyncError = (): SyncErrorView | null => {
+    const failure = syncRuntime.error();
+    if (!failure) return null;
+    return failure.kind === "network" && syncFails() < SYNC_ERROR_AFTER ? null : failure;
   };
   let reconciling = false;
   let lastCloudCheck = 0;
@@ -445,7 +461,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     reconciling = true;
     const current = nav.routes()[nav.routes().length - 1];
     void (async () => {
-      if (props.connected && Date.now() - lastCloudCheck >= 15_000) {
+      if (props.connected && Date.now() - lastCloudCheck >= SYNC_PULL_MS) {
         lastCloudCheck = Date.now();
         // 同步可能持续很久；不阻塞列表刷新，下载中的笔记会陆续出现。
         void sync().catch(err => lib.error.set(String(err)));
@@ -509,8 +525,8 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
 
   const libraryPage = () => <NavPageI testID="mobile-library-page"
     headerVisible={ios} title={ios ? (libraryTitleCollapsed() ? (tab() === "favorites" ? t("mobile.favorites") : t("mobile.library")) : "") : undefined}
-    header={ios ? undefined : <LibraryNav connected={props.connected} statusVisible={!!syncStatus(syncRuntime.phase(), syncRuntime.progress(), syncRuntime.error())} onSettings={() => { Keyboard.dismiss(); show("settings"); }}
-      onSync={() => { void sync().catch(err => lib.error.set(String(err))); }}
+    header={ios ? undefined : <LibraryNav connected={props.connected} statusVisible={!!syncStatus(syncRuntime.phase(), syncRuntime.progress(), shownSyncError())} onSettings={() => { Keyboard.dismiss(); show("settings"); }}
+      onSync={() => { void sync(true).catch(err => lib.error.set(String(err))); }}
       onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
       onRetry={() => { void sync().catch(err => lib.error.set(String(err))); }} />}
     headerRight={ios ? <Button testID="mobile-new-note" accessibilityLabel={t("note.new")} disabled={busy()}
@@ -520,7 +536,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     <LibraryPage library={lib} connected={props.connected} busy={busy()} ios={ios} wide={wide()}
       selectedPath={() => lib.note()?.path ?? ""} favorites={() => favoriteSet()}
       onOpen={openNote} onRecycle={path => { void running(async () => { await lib.recyclePath(path); }); }}
-      onSync={sync} onSettings={() => show("settings")} settingsOpen={() => panel() === "settings"} settingsTap={props.settingsTap}
+      onSync={() => sync(true)} syncError={shownSyncError} onSettings={() => show("settings")} settingsOpen={() => panel() === "settings"} settingsTap={props.settingsTap}
       tab={tab} onTab={next => tab.set(next)} folder={selectedFolder} onFolder={path => selectedFolder.set(path)}
       onNewNote={newNote} onNewFolder={() => { selectedFolder.set(""); input.set(""); show("folder"); }}
       onTitleCollapsed={collapsed => libraryTitleCollapsed.set(collapsed)}
@@ -824,6 +840,8 @@ function LibraryPage(props: {
   /** 左滑删除：把任意一篇笔记移进最近删除。 */
   onRecycle: (path: string) => void;
   onSync: () => Promise<void>;
+  /** 要显示在同步 accessory 里的错误：自动同步的偶发网络失败会被压掉。 */
+  syncError: () => SyncErrorView | null;
   onSettings: () => void;
   settingsOpen: () => boolean;
   settingsTap?: boolean;
@@ -910,7 +928,7 @@ function LibraryPage(props: {
     return progress.total > 0 ? Math.round(progress.done / progress.total * 100) : 0;
   };
   const notPulling = () => pulling();
-  const statusVisible = () => !pulling() && !!syncStatus(syncRuntime.phase(), syncRuntime.progress(), syncRuntime.error());
+  const statusVisible = () => !pulling() && !!syncStatus(syncRuntime.phase(), syncRuntime.progress(), props.syncError());
   const snippets = signal<Record<string, string>>({});
   const loadingSnippets = new Set<string>();
   const snippetFor = (path: string) => snippets()[path] ?? "";
@@ -961,7 +979,7 @@ function LibraryPage(props: {
           {props.settingsTap ? <Button testID="mobile-settings" accessibilityLabel={t("settings.title")} onPress={props.onSettings}
             style={{ position: "absolute", top: 0, right: 0, width: 44, height: 44 }}><Text> </Text></Button> : null}
         </View> : null}
-        {props.ios && statusVisible() ? <View style={{ marginHorizontal: 16, marginBottom: 8 }}><SyncAccessory onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
+        {props.ios && statusVisible() ? <View style={{ marginHorizontal: 16, marginBottom: 8 }}><SyncAccessory error={props.syncError()} onPause={() => syncRuntime.pauseSync()} onResume={() => syncRuntime.resumeSync()}
           onRetry={() => { void props.onSync().catch(err => lib.error.set(String(err))); }} /></View> : null}
         {q() ? <Text testID="mobile-search-meta" style={{ paddingHorizontal: props.ios ? 16 : 4, paddingTop: props.ios ? 4 : 0, paddingBottom: props.ios ? 6 : 4, fontSize: 12, fontWeight: 500, color: c.ink3 }}>{t("mobile.searchResult", { n: results().length })}</Text> : null}
         {props.ios && !props.wide ? null : <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 2, borderBottomWidth: 0.5, borderBottomColor: c.thread, paddingHorizontal: props.wide ? 16 : 2 }}>

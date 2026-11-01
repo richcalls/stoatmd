@@ -43,6 +43,8 @@
   "sync.manageConflicts": "Resolver conflictos",
   "sync.firstSync": "Primera sincronización…",
   "sync.error.network": "Red no disponible. La edición local continúa; la sincronización reintentará automáticamente.",
+  "sync.error.rateLimited": "El almacenamiento en la nube está limitando las solicitudes. La sincronización lo reintentará automáticamente; la edición local continúa.",
+  "sync.error.remote": "El almacenamiento en la nube no responde. La sincronización lo reintentará automáticamente; la edición local continúa.",
   "sync.error.connectNetwork": "No se pudo conectar con el servicio en la nube. Comprueba tu conexión y vuelve a intentarlo.",
   "sync.error.auth": "La autorización caducó. Vuelve a conectar la unidad.",
   "sync.error.config": "Faltan las credenciales del cliente en la nube. Completa primero la configuración de desarrollador.",
