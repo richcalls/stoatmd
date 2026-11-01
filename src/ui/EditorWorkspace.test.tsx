@@ -162,3 +162,10 @@ test("EditorWorkspace：搜索即时使用编辑器中的未保存正文", async
   await app.keyboard.press("cmd+f");
   expect(app.texts()).toContain("No results");
 });
+
+test("EditorWorkspace：预览里的外链点击后交给系统打开", async () => {
+  const app = await open("./EditorWorkspace.harness.tsx", { width: 1000, height: 900, platform: "macos" });
+  await app.press("id:mode-preview");
+  await app.press("text:链接 link");
+  expect(app.openedUrls()).toContain("https://example.com");
+});

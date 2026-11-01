@@ -16,6 +16,9 @@
     "host": [
       "settings"
     ],
+    "openUrl": {
+      "schemes": ["https", "http", "mailto", "tel"]
+    },
     "statusBar": true
   },
   "theme": "theme.json",
