@@ -45,7 +45,7 @@
 
 ## 主题（摘要）
 
-设置 → 外观：**25 套 Otty 内置主题**（**9 light + 16 dark**），只换颜色 token，默认 **Paper**。含纯白 **Floating Card**（`#FFFFFF`）。完整 hex 见 [`src/ui/theme.ts`](../../src/ui/theme.ts)；不必为每套出图。旧 12 套偏好会自动映射到最接近的新主题。
+设置 → 外观：**20 套 Rex 主题**（10 浅色 / 10 深色），只换颜色 token，默认 **Merino Light**。正文和代码使用中性色，标题和链接保留轻量强调色。完整 token 见 [`src/ui/theme.ts`](../../src/ui/theme.ts)。
 
 ## 提供商矩阵摘要
 

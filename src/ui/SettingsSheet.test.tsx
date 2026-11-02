@@ -10,7 +10,7 @@ test("设置：文稿配色即时保存，重启恢复，切主题后保留模�
   await app.press("id:render-mode-monochrome");
   await app.waitUntil(() => app.storage()["prefs.renderMode"] === "monochrome");
   expect(app.spanStyle("id:render-mode-monochrome >> text:单色渲染").fontWeight).toBe(600);
-  await app.press("id:theme-aurora-borealis");
+  await app.press("id:theme-silver-point-dark");
   expect(app.storage()["prefs.renderMode"]).toBe("monochrome");
 
   const again = await open("./SettingsSheet.harness.tsx", { ...desktop, storage: app.storage() });
@@ -90,13 +90,13 @@ test("设置：Esc 只收起浮窗", async () => {
 
 test("设置：关闭快捷键收起面板，重开后保留即时保存的主题", async () => {
   const app = await open("./SettingsSheet.harness.tsx", { ...desktop, platform: "macos" });
-  await app.press("id:theme-aurora-borealis");
-  await app.waitUntil(() => app.storage()["prefs.theme"] === "aurora-borealis");
+  await app.press("id:theme-silver-point-dark");
+  await app.waitUntil(() => app.storage()["prefs.theme"] === "silver-point-dark");
   await app.keyboard.press("mod+w");
   await app.waitUntil(() => app.texts().includes("closed"));
   await app.press("id:reopen");
   expect(app.shows("id:settings-window")).toBe(true);
-  expect(app.storage()["prefs.theme"]).toBe("aurora-borealis");
+  expect(app.storage()["prefs.theme"]).toBe("silver-point-dark");
 });
 
 test("设置：字体下拉打开时 Esc 只收起下拉，浮窗保留", async () => {
@@ -110,15 +110,16 @@ test("设置：字体下拉打开时 Esc 只收起下拉，浮窗保留", async 
   expect(app.texts()).toContain("open");
 });
 
-test("设置：12 套主题可选并持久化", async () => {
+test("设置：20 套 Rex 主题可选并持久化", async () => {
   const app = await open("./SettingsSheet.harness.tsx", desktop);
-  expect(app.shows("id:theme-everest")).toBe(true);
-  expect(app.shows("id:theme-aurora-borealis")).toBe(true);
-  expect(app.shows("id:theme-tokyo")).toBe(true);
+  expect(app.shows("id:theme-merino-light")).toBe(true);
+  expect(app.shows("id:theme-silver-point-dark")).toBe(true);
+  expect(app.shows("id:theme-alpine-milk")).toBe(true);
+  expect(app.shows("id:theme-static-noir")).toBe(true);
 
-  await app.press("id:theme-aurora-borealis");
-  await app.waitUntil(() => app.storage()["prefs.theme"] === "aurora-borealis");
-  expect(app.storage()["prefs.theme"]).toBe("aurora-borealis");
+  await app.press("id:theme-silver-point-dark");
+  await app.waitUntil(() => app.storage()["prefs.theme"] === "silver-point-dark");
+  expect(app.storage()["prefs.theme"]).toBe("silver-point-dark");
 });
 
 test("同步：未连接展示两家网盘；缺客户端凭据时明确提示且不进入授权", async () => {
@@ -275,8 +276,8 @@ test("设置：应用图标默认织线白鼬，可切换到敏捷剪影并持�
   expect(app.texts()).toContain("thread");
 
   // 暗色主题下切图标：应用图标走炭底版本（原生调用不抛错）。
-  await app.press("id:theme-aurora-borealis");
-  await app.waitUntil(() => app.storage()["prefs.theme"] === "aurora-borealis");
+  await app.press("id:theme-silver-point-dark");
+  await app.waitUntil(() => app.storage()["prefs.theme"] === "silver-point-dark");
   await app.press("id:logo-agile");
   await app.waitUntil(() => app.storage()["prefs.appLogo"] === "agile");
   expect(app.texts()).toContain("agile");

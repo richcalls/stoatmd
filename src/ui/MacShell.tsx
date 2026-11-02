@@ -776,13 +776,15 @@ export function MacShell() {
       {
         label: t("menu.edit"),
         submenu: [
-          { role: "undo", shortcut: "mod+z" },
-          { role: "redo", shortcut: "mod+shift+z" },
+          // Let focused native text controls consume editing shortcuts first.
+          // The EditorWorkspace fallback handles the custom Editor surface.
+          { role: "undo", shortcut: "mod+z", when: "auto" },
+          { role: "redo", shortcut: "mod+shift+z", when: "auto" },
           { type: "separator" },
-          { role: "cut", shortcut: "mod+x" },
-          { role: "copy", shortcut: "mod+c" },
-          { role: "paste", shortcut: "mod+v" },
-          { role: "selectAll", shortcut: "mod+a" },
+          { role: "cut", shortcut: "mod+x", when: "auto" },
+          { role: "copy", shortcut: "mod+c", when: "auto" },
+          { role: "paste", shortcut: "mod+v", when: "auto" },
+          { role: "selectAll", shortcut: "mod+a", when: "auto" },
           { type: "separator" },
           { label: t("find.open"), shortcut: findKeys.open, disabled: !searchEnabled(), onSelect: () => requestFind("open") },
           { label: t("find.next"), shortcut: findKeys.next, disabled: !searchEnabled(), onSelect: () => requestFind("next") },

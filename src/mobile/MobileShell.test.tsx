@@ -1,7 +1,7 @@
 import { expect, open, test } from "nsh/test";
 import { themePreset } from "../ui/theme";
 
-const lightTheme = themePreset("everest").palette;
+const lightTheme = themePreset("merino-light").palette;
 const phone = { platform: "ios" as const, width: 390, height: 844, locale: "zh-CN", safeArea: { top: 47, right: 0, bottom: 34, left: 0 } };
 
 test("iPhone: create a folder and note, save Chinese text, read, rename and duplicate", async () => {
@@ -62,19 +62,19 @@ test("iPhone: create a folder and note, save Chinese text, read, rename and dupl
 test("iPhone: theme, language and font settings persist after restarting", async () => {
   const app = await open("./MobileShell.harness.tsx", phone);
   await app.press("id:mobile-settings");
-  await app.press("id:mobile-theme-aurora-borealis");
+  await app.press("id:mobile-theme-silver-point-dark");
   await app.press("id:mobile-render-monochrome");
   await app.press("id:mobile-text-row");
   await app.press("id:settings.font.reading-increase");
   await app.press("id:settings.font.lineHeight-increase");
   await app.press("id:mobile-language-toggle");
   await app.press("id:mobile-language-en");
-  await app.waitUntil(() => app.storage()["prefs.locale"] === "en" && app.storage()["prefs.theme"] === "aurora-borealis" && app.storage()["prefs.renderMode"] === "monochrome" && app.storage()["prefs.fontSize"] === "17" && app.storage()["prefs.fontLineHeight"] === "1.6");
+  await app.waitUntil(() => app.storage()["prefs.locale"] === "en" && app.storage()["prefs.theme"] === "silver-point-dark" && app.storage()["prefs.renderMode"] === "monochrome" && app.storage()["prefs.fontSize"] === "17" && app.storage()["prefs.fontLineHeight"] === "1.6");
   const again = await open("./MobileShell.harness.tsx", { ...phone, storage: app.storage() });
   await again.press("id:mobile-settings");
   expect(again.shows("text:Settings")).toBe(true);
   expect(again.shows("text:Kami · 17 / 1.60")).toBe(true);
-  expect(again.storage()["prefs.theme"]).toBe("aurora-borealis");
+  expect(again.storage()["prefs.theme"]).toBe("silver-point-dark");
   // 重启后文稿配色仍是单色：选中的分段和未选中的颜色不同。
   expect(again.shows("id:mobile-render-mode")).toBe(true);
   expect(again.spanStyle("id:mobile-render-monochrome >> text:Monochrome").color)

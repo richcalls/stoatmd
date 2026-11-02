@@ -107,22 +107,22 @@
 
 `05-mac-settings` 主题网格：**示意**；完整色号与模式以本节「主题预设」为准。**不必**为每套主题重出 PNG。
 
-## 当前主题预设（25 套 Otty · light / dark）
+## 当前主题预设（Rex 20 套 · 10 light / 10 dark）
 
-> **2026-10-30 起**：v1 自绘的 12 套色板已由 **[Otty](https://otty.sh) 内置主题**替换，默认 **Paper**。完整 token（含 `accentInk`、语法色与搜索底）以 [`src/ui/theme.ts`](../../src/ui/theme.ts) 为准；下方 v1 色号仅作历史记录。
+> **2026-11-03 起**：主题采用本机 Rex Beta 主题目录中的 20 套内置色值，默认 `Merino Light`。完整 token（含 `accentInk`、语法色与搜索底）以 [`src/ui/theme.ts`](../../src/ui/theme.ts) 为准；下方旧色号仅作历史记录。
 
 入口：**设置 → 外观**。交互不变：网格卡片 · 顶部圆形色预览 · 主题原名 · 选中描边；每套标明 mode，整表替换 token。
 
-- **Light（9）**：Paper（默认）、Newsprint、April、One Light、Solarized Light、Ayu Light、Glass Light、Floating Card（纯白）、Pink
-- **Dark（16）**：Nord、Tokyo Night、Catppuccin Mocha、Dracula、Gruvbox Dark、One Dark、Solarized Dark、Rosé Pine、Monokai Classic、Night、Owl、Seafoam Pastel、April Dark、Ayu Dark、Acrylic Dark、Glass Dark
+- **Light（10）**：Merino Light（默认）、Alpine Milk、Buttercream Diner、Coastal Linen、Glacier Mint、Ivory Gallery、Lavender Postcard、Newsprint Fog、Orchard Breeze、Porcelain Morning
+- **Dark（10）**：Silver Point Dark、Abyssal Trench、Cobalt Foundry、Heliotrope Haze、Ink Meridian、Merino Dark、Midnight Tundra、Petrol Lagoon、Static Noir、Velvet Dusk
 
 映射与对比度：
 
 - 底色 / 侧栏 / 列表面板取自主题的 terminal background 与 panel / sidebar 段；缺少时按前景混色派生。
 - 正文、次级、弱文字与强调色在纸面 / 侧栏 / 列表面板上均校准到 **≥4.5:1**（WCAG AA，回归测试见 `src/ui/theme.test.tsx`）。
 - `accentInk` 为强调色背景上的文字色：亮强调色用近黑，深强调色用白，保证按钮可读。
-- 语法色：标题 = accent；粗体标记 = ANSI yellow；引用 = ANSI green；行内代码 / 搜索底取面板 surface 或前景淡混色。
-- 旧 id 自动映射（如 `weave-paper`→`paper`、`pure-white`→`floating-card`、`warm-charcoal`→`night`）；未知值回落 Paper。
+- 语法色：标题与链接使用 accent；粗体标记、引用和行内代码使用中性色；代码块保持中性面板底。
+- 未知主题值回落 Merino Light。
 
 ## 主题预设（v1 历史 · 12 套，已被替换）
 

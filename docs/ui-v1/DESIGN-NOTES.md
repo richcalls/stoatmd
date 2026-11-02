@@ -30,7 +30,7 @@ Mac 两栏主界面（浅/深）+ 折叠态 + iPhone 编辑 + Mac 设置（主�
 | 11 | overview 屏号标签 | `01 · MAC…` 序号装饰 | 去掉序号，保留可读屏名 |
 | 12 | 文档 | 仅 DESIGN-NOTES | 补 `PRODUCT.md` + `DESIGN.md` |
 
-约定（仍有效）：默认 **Paper** 浅色 / **Nord** 深色（25 套 Otty 主题）、Mac 默认分栏、非 WYSIWYG。**同步已升正式**（不再灰显）；文案中文示意、结构出海多语言。
+约定（仍有效）：默认 **Merino Light** 浅色，主题提供 Rex 的 20 套预设（10 浅色 / 10 深色）、Mac 默认分栏、非 WYSIWYG。**同步已升正式**（不再灰显）；文案中文示意、结构出海多语言。
 
 ## 交付清单
 
@@ -106,7 +106,7 @@ Mac 两栏主界面（浅/深）+ 折叠态 + iPhone 编辑 + Mac 设置（主�
 - Mac 顶栏：`Code` / `Split` / `Eye` | `TextT` / `Gear`——**去掉 Palette**
 - TextT → 字体相关；主题仅从 Gear → 设置
 - `05-mac-settings` 替换原 `05-mac-theme`：左导航（外观 / 字体 / 同步）+ 主题网格（示意）+ 字体（下拉/字号/行高/预览）；**已砍 MCP**（无自有服务器、远程无法挂本地 MCP）
-- 主题完整色号见 `src/ui/theme.ts`（25 套 Otty 含 **Floating Card** 纯白）；设置网格 PNG **不必**随色板重出
+- 主题完整色号见 `src/ui/theme.ts`（Rex 的 20 套预设）；设置网格 PNG **不必**随色板重出
 
 
 ## 三栏折叠（本轮 · 正海反馈）
@@ -155,7 +155,7 @@ Mac 两栏主界面（浅/深）+ 折叠态 + iPhone 编辑 + Mac 设置（主�
 
 ## 决策记录 · 默认文章排版改用 Kami（forecho · 2026-10-30）
 
-> 2026-10-30 后续：默认色板已由 **Otty 25 套主题**替换，Kami 仅保留文章排版 / 字体节奏；见文末「主题替换为 Otty 25 套」。
+> 2026-11-03 后续：默认色板改为 **Rex 主题**，当前提供 20 套预设；Kami 仅保留文章排版 / 字体节奏；正文、引用和代码使用中性色，标题和链接保留轻量强调色。
 
 - 默认预览文章样式移植自 **[Kami](https://github.com/tw93/kami)**（MIT；归属见 `THIRD_PARTY_NOTICES.md`）。
 - 默认色板换成 Kami 羊皮纸 `#F5F4ED` + 墨蓝 `#1B365D`；主题 id `weave-paper` 保留，旧偏好不失效，显示名改为「Kami 羊皮纸」。
@@ -188,13 +188,13 @@ Mac 两栏主界面（浅/深）+ 折叠态 + iPhone 编辑 + Mac 设置（主�
 - 相对时间（今天 / 昨天 / N 分钟前）改走文案表，日期与时刻用各语言的 Intl 写法（如 `2. Jan.`、`1月2日`）。
 - 冲突徽标由「数字 + 单词」改为整句模板 `{n}`，避免韩语等语序不自然。
 
-## 决策记录 · 主题替换为 Otty 25 套（forecho · 2026-10-30）
+## 决策记录 · 主题扩展为 Rex 20 套（forecho · 2026-11-03）
 
-- 弃用 v1 自绘的 12 套色板，改为 **25 套 [Otty](https://otty.sh) 内置主题**（9 light + 16 dark），默认 **Paper**；完整 token 在 `src/ui/theme.ts`。
-- 颜色取自 Otty 的 terminal / token / panel 段；缺少 UI token 的按对比度派生：正文、次级、弱文字与强调色在纸面 / 侧栏 / 列表面板上均 ≥4.5:1（WCAG AA）。
-- 新增 `accentInk`：亮强调色上配近黑文字、深强调色上配白字，避免白字对比不足；设置、同步与空态按钮统一读它。
-- 旧 12 套 id 自动映射到最接近的新主题（`weave-paper`→`paper`、`pure-white`→`floating-card`、`warm-charcoal`→`night` 等），未知值回落 Paper；八语言文案移除旧主题名。
-- 归属见 `THIRD_PARTY_NOTICES.md`（Otty Apache-2.0 与各经典配色作者）；Kami 仅保留文章排版与字体节奏。
+- 主题采用本机 Rex Beta 的 20 套内置颜色（10 浅色 / 10 深色），默认 Merino Light；完整 token 在 `src/ui/theme.ts`。
+- 界面 surface 使用 Rex 的中性灰阶层次；正文、引用、行内代码和代码块使用中性色，标题和链接保留轻量强调色。
+- `accentInk` 继续为强调色背景提供可读文字色；设置、同步与空态按钮统一读取它。
+- 软件尚未发布，直接移除旧主题 id，不保留兼容映射；未知值回落 Merino Light。
+- 颜色归属见 `THIRD_PARTY_NOTICES.md`；Kami 仅保留文章排版与字体节奏。
 
 ## 决策记录 · 设置改为可拖动浮窗（forecho · 2026-10-30）
 
