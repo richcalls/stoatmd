@@ -15,6 +15,7 @@ const MENU_KEYS = [
   "context.open",
   "context.reveal",
   "context.copyPath",
+  "context.copyCloudPath",
   "context.copyRelativePath",
   "context.rename",
   "context.duplicate",
