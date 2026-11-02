@@ -1,6 +1,6 @@
 # StoatMD — full brief for AI agents
 
-StoatMD is an agent-friendly Markdown notebook built around one split: agents write the notes, and the person reads them. The library is a plain folder of `.md` files that both a local agent and a human can reach, carried between devices by the user's own Google Drive or Dropbox.
+StoatMD is a Markdown notebook for making notes with an agent. Agent and human read and write the same plain folder: the agent drafts and files, the person reads, edits, and continues the work. The library is a folder of `.md` files that both a local agent and a human can reach, carried between devices by the user's own Google Drive or Dropbox.
 
 ## Positioning
 

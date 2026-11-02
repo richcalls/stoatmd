@@ -16,6 +16,7 @@ export interface NoteCopy {
 export interface SiteCopy {
   meta: { title: string; description: string };
   nav: { why: string; features: string; pricing: string; download: string; cta: string };
+  theme: { label: string; system: string; light: string; dark: string };
   hero: {
     kicker: string;
     title: string;
@@ -89,15 +90,16 @@ export interface SiteCopy {
 
 const en: SiteCopy = {
   meta: {
-    title: "StoatMD — Your agents write the notes. You read them.",
+    title: "StoatMD — A notebook you make with your agent.",
     description:
-      "An agent-friendly Markdown notebook. Agents write into a plain folder; you read it on Mac or iPhone. Sync through your own Google Drive or Dropbox. Desktop free, iPhone one-time purchase. No subscription.",
+      "A Markdown notebook made for working with agents. Agent and human read and write the same plain folder; continue on Mac or iPhone. Sync through your own Google Drive or Dropbox. Desktop free, iPhone one-time purchase. No subscription.",
   },
   nav: { why: "Why", features: "Features", pricing: "Pricing", download: "Download", cta: "Download for Mac" },
+  theme: { label: "Theme", system: "Auto", light: "Light", dark: "Dark" },
   hero: {
     kicker: "FIELD LOG / 2026",
-    title: "Your agents write the notes. You read them.",
-    lead: "StoatMD is a Markdown notebook built around that split. Agents write into a folder you own; you open the same folder to read, edit, and decide what matters.",
+    title: "Make notes with your agent. A notebook built for that.",
+    lead: "StoatMD is a Markdown notebook made for working alongside an agent. Agents write into a folder you own; you open the same folder to read, edit, and continue the work together.",
     primary: "Download for Mac — free",
     secondary: "iPhone — one-time purchase · not listed yet",
     note: "Desktop free, including sync. No subscription, no account, no iCloud.",
@@ -116,12 +118,12 @@ const en: SiteCopy = {
         author: "AGENT",
         date: "2026-11-02",
         words: "428 words",
-        summary: "Why the reading surface matters more than the writing surface.",
+        summary: "Why the notebook has to work for two people writing the same folder.",
         body: [
-          "Most note apps are built for the moment of writing. This one is built for the moment after: when the agent has finished, the sources are filed, and a person sits down to read.",
+          "Most note apps assume one person writing. This one is built for two: the agent drafts, you read and edit, and either of you picks the thread back up in the same folder.",
           "The note stays a plain Markdown file. The app adds a quiet reading surface, a source view, and a file tree that agents can write to without a bridge.",
         ],
-        quote: "The agent writes the log. The person reads the evidence.",
+        quote: "The agent drafts. You add the judgment. Same folder.",
         list: ["Keep the source visible", "Keep the reading surface quiet", "Keep every file portable"],
         ending: "Filed under: reading, agents, plain text.",
       },
@@ -165,7 +167,7 @@ const en: SiteCopy = {
       { n: "01", title: "Agent writes", body: "A local agent writes Markdown straight into the folder. No MCP bridge, no export step." },
       { n: "02", title: "Folder holds", body: "Plain files, ordinary names, offline by default. The folder is the source of truth." },
       { n: "03", title: "Cloud carries", body: "Google Drive or Dropbox syncs the same folder to your other devices and to remote agents." },
-      { n: "04", title: "You read", body: "Open the library on Mac or iPhone. Read, edit, or ask the agent for the next pass." },
+      { n: "04", title: "You continue", body: "Open the library on Mac or iPhone. Read, edit, or hand the next pass back to the agent." },
     ],
     providers: "Google Drive / Dropbox",
     caption: "The same folder for the agent, the cloud, and you.",
@@ -185,8 +187,8 @@ const en: SiteCopy = {
   },
   features: {
     kicker: "IN THE LOG",
-    title: "Built for the morning after.",
-    body: "The agent has written. Now the notebook has to be worth reading.",
+    title: "Built for the second pass.",
+    body: "The agent has written a first pass. Now the two of you keep going.",
     items: [
       { n: "01", title: "Plain .md, no database", body: "Every note is a file you can open, diff, move, or hand to another tool." },
       { n: "02", title: "Source, split, read", body: "See the Markdown, the rendered page, or both. The reading view gets the space." },
@@ -240,15 +242,16 @@ const en: SiteCopy = {
 
 const zhHans: SiteCopy = {
   meta: {
-    title: "StoatMD — Agent 写笔记，你来读",
+    title: "StoatMD — 和 Agent 一起做笔记",
     description:
-      "一款 Agent 友好的 Markdown 笔记本。Agent 往你自己的文件夹里写，你在 Mac 或 iPhone 上读。用 Google Drive 或 Dropbox 同步。桌面版免费，iPhone 一次买断，无订阅。",
+      "一款为和 Agent 一起做笔记而设计的 Markdown 笔记本。Agent 和你读写同一个普通文件夹，在 Mac 或 iPhone 上接着往下做。用 Google Drive 或 Dropbox 同步。桌面版免费，iPhone 一次买断，无订阅。",
   },
   nav: { why: "为什么", features: "功能", pricing: "定价", download: "下载", cta: "下载 Mac 版" },
+  theme: { label: "主题", system: "跟随系统", light: "浅色", dark: "深色" },
   hero: {
     kicker: "工作日志 / 2026",
-    title: "Agent 写笔记。你来读。",
-    lead: "StoatMD 是一款围绕这个分工做的 Markdown 笔记本。Agent 往你的文件夹里写，你打开同一个文件夹阅读、编辑、判断什么值得留下。",
+    title: "和 Agent 一起做笔记。专为此设计的笔记本。",
+    lead: "StoatMD 是一款为「和 Agent 一起做笔记」而设计的 Markdown 笔记本。Agent 往你的文件夹里写，你打开同一个文件夹阅读、编辑、接着往下做。",
     primary: "下载 Mac 版 — 免费",
     secondary: "iPhone — 一次买断 · 尚未上架",
     note: "桌面版免费，含云盘同步。无订阅、无账号、不绑 iCloud。",
@@ -267,12 +270,12 @@ const zhHans: SiteCopy = {
         author: "AGENT",
         date: "2026-11-02",
         words: "428 字",
-        summary: "为什么阅读界面比写作界面更重要。",
+        summary: "为什么笔记本要容得下两个作者，写同一个文件夹。",
         body: [
-          "大多数笔记应用是为写作那一刻做的。这一款是为之后那一刻做的：Agent 已经写完，资料已经归档，人坐下来读。",
+          "大多数笔记应用默认只有一个人在写。这一款是为两个人做的：Agent 先起稿，你来读、来改，然后你们中的任何一个都能在同一个文件夹里接着往下写。",
           "笔记始终是普通的 Markdown 文件。应用补上安静的阅读界面、源码视图，以及 Agent 能直接写入的文件树——不需要 MCP 桥。",
         ],
-        quote: "Agent 写日志，人读证据。",
+        quote: "Agent 起稿，你来判断。同一个文件夹。",
         list: ["让源码可见", "让阅读界面安静", "让每个文件都能带走"],
         ending: "归档于：阅读、Agent、纯文本。",
       },
@@ -316,7 +319,7 @@ const zhHans: SiteCopy = {
       { n: "01", title: "Agent 写入", body: "本机 Agent 直接把 Markdown 写进文件夹。不挂 MCP，不做导出。" },
       { n: "02", title: "文件夹持有", body: "普通文件、普通文件名，默认离线可用。文件夹就是真相源。" },
       { n: "03", title: "云盘搬运", body: "Google Drive 或 Dropbox 把同一个文件夹同步到其他设备和远程 Agent。" },
-      { n: "04", title: "你来阅读", body: "在 Mac 或 iPhone 上打开库，读、改，或让 Agent 再来一轮。" },
+      { n: "04", title: "接着往下做", body: "在 Mac 或 iPhone 上打开库，读、改，或把下一轮交回给 Agent。" },
     ],
     providers: "Google Drive / Dropbox",
     caption: "Agent、云盘和你，共用同一个文件夹。",
@@ -336,8 +339,8 @@ const zhHans: SiteCopy = {
   },
   features: {
     kicker: "日志内页",
-    title: "为第二天早上而做。",
-    body: "Agent 已经写完。现在，笔记本得值得读。",
+    title: "为第二遍而做。",
+    body: "Agent 写完了第一遍。接下来，你们一起往下做。",
     items: [
       { n: "01", title: "普通 .md，没有数据库", body: "每条笔记都是文件：能打开、能 diff、能搬走，也能交给别的工具。" },
       { n: "02", title: "源码、分栏、阅读", body: "看 Markdown、看排版，或两者并排。阅读视图拿到最大的空间。" },
@@ -391,15 +394,16 @@ const zhHans: SiteCopy = {
 
 const zhHant: SiteCopy = {
   meta: {
-    title: "StoatMD — Agent 寫筆記，你來讀",
+    title: "StoatMD — 和 Agent 一起做筆記",
     description:
-      "一款 Agent 友善的 Markdown 筆記本。Agent 往你自己的資料夾裡寫，你在 Mac 或 iPhone 上讀。用 Google Drive 或 Dropbox 同步。桌面版免費，iPhone 一次買斷，無訂閱。",
+      "一款為和 Agent 一起做筆記而設計的 Markdown 筆記本。Agent 和你讀寫同一個普通資料夾，在 Mac 或 iPhone 上接著往下做。用 Google Drive 或 Dropbox 同步。桌面版免費，iPhone 一次買斷，無訂閱。",
   },
   nav: { why: "為什麼", features: "功能", pricing: "定價", download: "下載", cta: "下載 Mac 版" },
+  theme: { label: "主題", system: "跟隨系統", light: "淺色", dark: "深色" },
   hero: {
     kicker: "工作日誌 / 2026",
-    title: "Agent 寫筆記。你來讀。",
-    lead: "StoatMD 是一款圍繞這個分工打造的 Markdown 筆記本。Agent 往你的資料夾裡寫，你打開同一個資料夾閱讀、編輯、判斷什麼值得留下。",
+    title: "和 Agent 一起做筆記。專為此設計的筆記本。",
+    lead: "StoatMD 是一款為「和 Agent 一起做筆記」而設計的 Markdown 筆記本。Agent 往你的資料夾裡寫，你打開同一個資料夾閱讀、編輯、接著往下做。",
     primary: "下載 Mac 版 — 免費",
     secondary: "iPhone — 一次買斷 · 尚未上架",
     note: "桌面版免費，含雲端硬碟同步。無訂閱、無帳號、不綁 iCloud。",
@@ -418,12 +422,12 @@ const zhHant: SiteCopy = {
         author: "AGENT",
         date: "2026-11-02",
         words: "428 字",
-        summary: "為什麼閱讀介面比寫作介面更重要。",
+        summary: "為什麼筆記本要容得下兩個作者，寫同一個資料夾。",
         body: [
-          "大多數筆記應用是為寫作那一刻做的。這一款是為之後那一刻做的：Agent 已經寫完，資料已經歸檔，人坐下來讀。",
+          "大多數筆記應用預設只有一個人在寫。這一款是為兩個人做的：Agent 先起稿，你來讀、來改，然後你們中的任何一個都能在同一個資料夾裡接著往下寫。",
           "筆記始終是普通的 Markdown 檔案。應用補上安靜的閱讀介面、原始碼檢視，以及 Agent 能直接寫入的檔案樹——不需要 MCP 橋。",
         ],
-        quote: "Agent 寫日誌，人讀證據。",
+        quote: "Agent 起稿，你來判斷。同一個資料夾。",
         list: ["讓原始碼可見", "讓閱讀介面安靜", "讓每個檔案都能帶走"],
         ending: "歸檔於：閱讀、Agent、純文字。",
       },
@@ -467,7 +471,7 @@ const zhHant: SiteCopy = {
       { n: "01", title: "Agent 寫入", body: "本機 Agent 直接把 Markdown 寫進資料夾。不掛 MCP，不做匯出。" },
       { n: "02", title: "資料夾持有", body: "普通檔案、普通檔名，預設離線可用。資料夾就是真相來源。" },
       { n: "03", title: "雲端搬運", body: "Google Drive 或 Dropbox 把同一個資料夾同步到其他裝置和遠端 Agent。" },
-      { n: "04", title: "你來閱讀", body: "在 Mac 或 iPhone 上打開庫，讀、改，或讓 Agent 再來一輪。" },
+      { n: "04", title: "接著往下做", body: "在 Mac 或 iPhone 上打開庫，讀、改，或把下一輪交回給 Agent。" },
     ],
     providers: "Google Drive / Dropbox",
     caption: "Agent、雲端硬碟和你，共用同一個資料夾。",
@@ -487,8 +491,8 @@ const zhHant: SiteCopy = {
   },
   features: {
     kicker: "日誌內頁",
-    title: "為第二天早上而做。",
-    body: "Agent 已經寫完。現在，筆記本得值得讀。",
+    title: "為第二遍而做。",
+    body: "Agent 寫完了第一遍。接下來，你們一起往下做。",
     items: [
       { n: "01", title: "普通 .md，沒有資料庫", body: "每條筆記都是檔案：能打開、能 diff、能搬走，也能交給別的工具。" },
       { n: "02", title: "原始碼、分欄、閱讀", body: "看 Markdown、看排版，或兩者並排。閱讀檢視拿到最大的空間。" },
@@ -542,15 +546,16 @@ const zhHant: SiteCopy = {
 
 const ja: SiteCopy = {
   meta: {
-    title: "StoatMD — エージェントが書き、あなたが読む",
+    title: "StoatMD — エージェントと一緒にノートをつくる",
     description:
-      "エージェントに優しい Markdown ノートブック。エージェントがあなたのフォルダに書き、あなたは Mac や iPhone で読みます。Google Drive または Dropbox で同期。デスクトップ版は無料、iPhone 版は買い切り。サブスクなし。",
+      "エージェントと一緒にノートをつくるための Markdown ノートブック。エージェントとあなたが同じフォルダを読み書きし、Mac や iPhone で続きを進めます。Google Drive または Dropbox で同期。デスクトップ版は無料、iPhone 版は買い切り。サブスクなし。",
   },
   nav: { why: "理由", features: "機能", pricing: "料金", download: "ダウンロード", cta: "Mac 版をダウンロード" },
+  theme: { label: "テーマ", system: "システム", light: "ライト", dark: "ダーク" },
   hero: {
     kicker: "フィールドログ / 2026",
-    title: "エージェントが書き、あなたが読む。",
-    lead: "StoatMD は、その役割分担のために作られた Markdown ノートブックです。エージェントがあなたのフォルダに書き、あなたは同じフォルダを開いて読み、編集し、残すべきものを決めます。",
+    title: "エージェントと一緒にノートをつくる。そのためのノートブック。",
+    lead: "StoatMD は、エージェントと一緒にノートをつくるための Markdown ノートブックです。エージェントがあなたのフォルダに書き、あなたは同じフォルダを開いて読み、編集し、続きを進めます。",
     primary: "Mac 版をダウンロード — 無料",
     secondary: "iPhone — 買い切り · 未掲載",
     note: "デスクトップ版は同期込みで無料。サブスクなし、アカウントなし、iCloud なし。",
@@ -569,12 +574,12 @@ const ja: SiteCopy = {
         author: "AGENT",
         date: "2026-11-02",
         words: "428 語",
-        summary: "書く画面より、読む画面のほうが重要な理由。",
+        summary: "ひとつのフォルダを二人で書くためのノートブックである理由。",
         body: [
-          "多くのノートアプリは「書く瞬間」のために作られています。これは「その次」のために作られています。エージェントが書き終え、資料が整理され、人が座って読む瞬間です。",
+          "多くのノートアプリは、一人で書くことを前提にしています。これは二人のために作られています。エージェントが下書きし、あなたが読み、直し、どちらでも同じフォルダで続きを進められます。",
           "ノートは普通の Markdown ファイルのまま。アプリは静かな読書面、ソース表示、エージェントが直接書き込めるファイルツリーを足します。MCP ブリッジは不要です。",
         ],
-        quote: "エージェントがログを書き、人が証拠を読む。",
+        quote: "エージェントが下書きし、あなたが判断する。同じフォルダで。",
         list: ["ソースを見えるままに", "読書面を静かに", "どのファイルも持ち運べる"],
         ending: "分類：読書、エージェント、プレーンテキスト。",
       },
@@ -618,7 +623,7 @@ const ja: SiteCopy = {
       { n: "01", title: "エージェントが書く", body: "ローカルのエージェントが Markdown を直接フォルダに書きます。MCP ブリッジも書き出しも不要。" },
       { n: "02", title: "フォルダが保つ", body: "普通のファイル、普通の名前、既定でオフライン。フォルダが真実の源です。" },
       { n: "03", title: "クラウドが運ぶ", body: "Google Drive か Dropbox が同じフォルダを他の端末とリモートのエージェントへ同期します。" },
-      { n: "04", title: "あなたが読む", body: "Mac か iPhone でライブラリを開き、読み、編集し、次のパスをエージェントに頼みます。" },
+      { n: "04", title: "あなたが続ける", body: "Mac か iPhone でライブラリを開き、読み、編集し、次のパスをエージェントに戻します。" },
     ],
     providers: "Google Drive / Dropbox",
     caption: "エージェント、クラウド、あなたが同じフォルダを使う。",
@@ -638,8 +643,8 @@ const ja: SiteCopy = {
   },
   features: {
     kicker: "ログの内側",
-    title: "翌朝のために作る。",
-    body: "エージェントはもう書いた。あとは、読む価値のあるノートブックにするだけです。",
+    title: "二度目のために作る。",
+    body: "エージェントが最初の一稿を書きました。ここからは、二人で続けます。",
     items: [
       { n: "01", title: "普通の .md、データベースなし", body: "すべてのノートはファイル。開く、diff する、移動する、他のツールに渡す。" },
       { n: "02", title: "ソース、分割、読書", body: "Markdown とレイアウト、または両方。読書ビューが最大の面積を持ちます。" },
@@ -693,15 +698,16 @@ const ja: SiteCopy = {
 
 const ko: SiteCopy = {
   meta: {
-    title: "StoatMD — 에이전트가 쓰고, 당신이 읽습니다",
+    title: "StoatMD — 에이전트와 함께 노트를 만드세요",
     description:
-      "에이전트 친화적인 Markdown 노트북. 에이전트가 당신의 폴더에 쓰고, 당신은 Mac이나 iPhone에서 읽습니다. Google Drive 또는 Dropbox로 동기화. 데스크톱 무료, iPhone 일회 구매. 구독 없음.",
+      "에이전트와 함께 노트를 만들기 위한 Markdown 노트북. 에이전트와 사람이 같은 폴더를 읽고 쓰며, Mac이나 iPhone에서 이어서 작업합니다. Google Drive 또는 Dropbox로 동기화. 데스크톱 무료, iPhone 일회 구매. 구독 없음.",
   },
   nav: { why: "이유", features: "기능", pricing: "가격", download: "다운로드", cta: "Mac 버전 다운로드" },
+  theme: { label: "테마", system: "시스템", light: "라이트", dark: "다크" },
   hero: {
     kicker: "필드 로그 / 2026",
-    title: "에이전트가 쓰고, 당신이 읽습니다.",
-    lead: "StoatMD는 그 역할 분담을 위해 만든 Markdown 노트북입니다. 에이전트가 당신의 폴더에 쓰고, 당신은 같은 폴더를 열어 읽고 편집하며 무엇을 남길지 결정합니다.",
+    title: "에이전트와 함께 노트를 만드세요. 그를 위해 만든 노트북.",
+    lead: "StoatMD는 에이전트와 함께 노트를 만들기 위해 설계된 Markdown 노트북입니다. 에이전트가 당신의 폴더에 쓰고, 당신은 같은 폴더를 열어 읽고 편집하며 작업을 이어갑니다.",
     primary: "Mac 버전 다운로드 — 무료",
     secondary: "iPhone — 일회 구매 · 아직 미등록",
     note: "데스크톱은 동기화까지 무료. 구독 없음, 계정 없음, iCloud 없음.",
@@ -720,12 +726,12 @@ const ko: SiteCopy = {
         author: "AGENT",
         date: "2026-11-02",
         words: "428 단어",
-        summary: "쓰는 화면보다 읽는 화면이 더 중요한 이유.",
+        summary: "하나의 폴더를 두 사람이 함께 쓰기 위한 노트북인 이유.",
         body: [
-          "대부분의 노트 앱은 쓰는 순간을 위해 만들어집니다. 이 앱은 그다음 순간을 위해 만들어집니다. 에이전트가 다 썼고, 자료가 정리됐고, 사람이 앉아서 읽는 순간입니다.",
+          "대부분의 노트 앱은 한 사람이 쓰는 것을 전제로 합니다. 이 앱은 두 사람을 위해 만들어졌습니다. 에이전트가 초안을 쓰고, 당신이 읽고 고친 뒤, 둘 중 누구든 같은 폴더에서 이어서 작업합니다.",
           "노트는 평범한 Markdown 파일로 남습니다. 앱은 조용한 읽기 화면, 소스 보기, 에이전트가 브리지 없이 바로 쓸 수 있는 파일 트리를 더합니다.",
         ],
-        quote: "에이전트가 로그를 쓰고, 사람이 증거를 읽는다.",
+        quote: "에이전트가 초안을 쓰고, 당신이 판단한다. 같은 폴더에서.",
         list: ["소스를 보이게", "읽기 화면은 조용하게", "모든 파일을 가지고 갈 수 있게"],
         ending: "분류: 읽기, 에이전트, 일반 텍스트.",
       },
@@ -769,7 +775,7 @@ const ko: SiteCopy = {
       { n: "01", title: "에이전트가 쓴다", body: "로컬 에이전트가 Markdown을 폴더에 바로 씁니다. MCP 브리지도, 내보내기도 없습니다." },
       { n: "02", title: "폴더가 보관한다", body: "평범한 파일, 평범한 이름, 기본 오프라인. 폴더가 진실의 원천입니다." },
       { n: "03", title: "클라우드가 옮긴다", body: "Google Drive나 Dropbox가 같은 폴더를 다른 기기와 원격 에이전트에 동기화합니다." },
-      { n: "04", title: "당신이 읽는다", body: "Mac이나 iPhone에서 라이브러리를 열고 읽고 편집하며, 에이전트에게 다음 작업을 맡깁니다." },
+      { n: "04", title: "당신이 이어간다", body: "Mac이나 iPhone에서 라이브러리를 열고 읽고 편집하며, 다음 작업을 에이전트에게 다시 맡깁니다." },
     ],
     providers: "Google Drive / Dropbox",
     caption: "에이전트, 클라우드, 당신이 같은 폴더를 씁니다.",
@@ -789,8 +795,8 @@ const ko: SiteCopy = {
   },
   features: {
     kicker: "로그 안쪽",
-    title: "다음 날 아침을 위해.",
-    body: "에이전트는 이미 썼습니다. 이제 노트북이 읽을 만해야 합니다.",
+    title: "두 번째 패스를 위해.",
+    body: "에이전트가 첫 번째 초안을 썼습니다. 이제 둘이 함께 이어갑니다.",
     items: [
       { n: "01", title: "평범한 .md, 데이터베이스 없음", body: "모든 노트는 파일입니다. 열고, diff하고, 옮기고, 다른 도구에 넘길 수 있습니다." },
       { n: "02", title: "소스, 분할, 읽기", body: "Markdown과 렌더링, 또는 둘 다. 읽기 보기가 가장 큰 공간을 가집니다." },
@@ -844,15 +850,16 @@ const ko: SiteCopy = {
 
 const de: SiteCopy = {
   meta: {
-    title: "StoatMD — Agenten schreiben die Notizen. Du liest sie.",
+    title: "StoatMD — Notizen, die du mit deinem Agenten machst.",
     description:
-      "Ein agentenfreundliches Markdown-Notizbuch. Agenten schreiben in einen einfachen Ordner; du liest ihn auf Mac oder iPhone. Synchronisierung über dein eigenes Google Drive oder Dropbox. Desktop kostenlos, iPhone einmaliger Kauf. Kein Abo.",
+      "Ein Markdown-Notizbuch für die gemeinsame Arbeit mit Agenten. Agent und Mensch lesen und schreiben denselben Ordner; weiterarbeiten auf Mac oder iPhone. Synchronisierung über dein eigenes Google Drive oder Dropbox. Desktop kostenlos, iPhone einmaliger Kauf. Kein Abo.",
   },
   nav: { why: "Warum", features: "Funktionen", pricing: "Preise", download: "Download", cta: "Mac-Version laden" },
+  theme: { label: "Darstellung", system: "System", light: "Hell", dark: "Dunkel" },
   hero: {
     kicker: "FELDTAGEBUCH / 2026",
-    title: "Agenten schreiben die Notizen. Du liest sie.",
-    lead: "StoatMD ist ein Markdown-Notizbuch für genau diese Arbeitsteilung. Agenten schreiben in einen Ordner, der dir gehört; du öffnest denselben Ordner, liest, bearbeitest und entscheidest, was bleibt.",
+    title: "Mach Notizen mit deinem Agenten. Ein Notizbuch für genau das.",
+    lead: "StoatMD ist ein Markdown-Notizbuch für die Arbeit mit einem Agenten. Agenten schreiben in einen Ordner, der dir gehört; du öffnest denselben Ordner, liest, bearbeitest und arbeitest weiter.",
     primary: "Mac-Version laden — kostenlos",
     secondary: "iPhone — einmaliger Kauf · noch nicht gelistet",
     note: "Desktop kostenlos, inklusive Sync. Kein Abo, kein Konto, kein iCloud.",
@@ -871,12 +878,12 @@ const de: SiteCopy = {
         author: "AGENT",
         date: "2026-11-02",
         words: "428 Wörter",
-        summary: "Warum die Leseoberfläche wichtiger ist als die Schreiboberfläche.",
+        summary: "Warum das Notizbuch für zwei Personen taugen muss, die denselben Ordner schreiben.",
         body: [
-          "Die meisten Notiz-Apps sind für den Moment des Schreibens gebaut. Diese ist für den Moment danach gebaut: wenn der Agent fertig ist, die Quellen abgelegt sind und ein Mensch sich zum Lesen hinsetzt.",
+          "Die meisten Notiz-Apps gehen von einer schreibenden Person aus. Diese ist für zwei gebaut: Der Agent entwirft, du liest und bearbeitest, und wer von euch beiden will, macht im selben Ordner weiter.",
           "Die Notiz bleibt eine einfache Markdown-Datei. Die App ergänzt eine ruhige Leseoberfläche, eine Quellansicht und einen Dateibaum, in den Agenten ohne Brücke schreiben können.",
         ],
-        quote: "Der Agent schreibt das Log. Der Mensch liest die Belege.",
+        quote: "Der Agent entwirft. Du entscheidest. Derselbe Ordner.",
         list: ["Quelle sichtbar halten", "Leseoberfläche ruhig halten", "Jede Datei portabel halten"],
         ending: "Abgelegt unter: Lesen, Agenten, Klartext.",
       },
@@ -920,7 +927,7 @@ const de: SiteCopy = {
       { n: "01", title: "Agent schreibt", body: "Ein lokaler Agent schreibt Markdown direkt in den Ordner. Keine MCP-Brücke, kein Export." },
       { n: "02", title: "Ordner hält", body: "Einfache Dateien, normale Namen, standardmäßig offline. Der Ordner ist die Wahrheitsquelle." },
       { n: "03", title: "Cloud trägt", body: "Google Drive oder Dropbox synchronisiert denselben Ordner auf andere Geräte und zu entfernten Agenten." },
-      { n: "04", title: "Du liest", body: "Öffne die Bibliothek auf Mac oder iPhone. Lies, bearbeite oder bitte den Agenten um den nächsten Durchgang." },
+      { n: "04", title: "Du machst weiter", body: "Öffne die Bibliothek auf Mac oder iPhone. Lies, bearbeite oder gib den nächsten Durchgang an den Agenten zurück." },
     ],
     providers: "Google Drive / Dropbox",
     caption: "Derselbe Ordner für Agent, Cloud und dich.",
@@ -940,8 +947,8 @@ const de: SiteCopy = {
   },
   features: {
     kicker: "IM LOG",
-    title: "Für den nächsten Morgen gebaut.",
-    body: "Der Agent hat geschrieben. Jetzt muss das Notizbuch es wert sein, gelesen zu werden.",
+    title: "Für den zweiten Durchgang gebaut.",
+    body: "Der Agent hat einen ersten Entwurf geschrieben. Jetzt geht es zu zweit weiter.",
     items: [
       { n: "01", title: "Einfaches .md, keine Datenbank", body: "Jede Notiz ist eine Datei: öffnen, diffen, verschieben oder an ein anderes Werkzeug geben." },
       { n: "02", title: "Quelle, geteilt, lesen", body: "Markdown, gerenderte Seite oder beides. Die Leseansicht bekommt den Platz." },
@@ -995,15 +1002,16 @@ const de: SiteCopy = {
 
 const fr: SiteCopy = {
   meta: {
-    title: "StoatMD — Les agents écrivent. Vous lisez.",
+    title: "StoatMD — Prenez des notes avec votre agent.",
     description:
-      "Un carnet Markdown pensé pour les agents. Les agents écrivent dans un dossier simple ; vous le lisez sur Mac ou iPhone. Synchronisation via votre Google Drive ou Dropbox. Bureau gratuit, iPhone achat unique. Sans abonnement.",
+      "Un carnet Markdown conçu pour prendre des notes avec des agents. Agent et humain lisent et écrivent le même dossier ; continuez sur Mac ou iPhone. Synchronisation via votre Google Drive ou Dropbox. Bureau gratuit, iPhone achat unique. Sans abonnement.",
   },
   nav: { why: "Pourquoi", features: "Fonctions", pricing: "Tarifs", download: "Télécharger", cta: "Télécharger pour Mac" },
+  theme: { label: "Thème", system: "Système", light: "Clair", dark: "Sombre" },
   hero: {
     kicker: "JOURNAL DE TERRAIN / 2026",
-    title: "Les agents écrivent. Vous lisez.",
-    lead: "StoatMD est un carnet Markdown conçu pour ce partage. Les agents écrivent dans un dossier qui vous appartient ; vous ouvrez le même dossier pour lire, modifier et décider de ce qui compte.",
+    title: "Prenez des notes avec votre agent. Un carnet fait pour ça.",
+    lead: "StoatMD est un carnet Markdown conçu pour travailler avec un agent. Les agents écrivent dans un dossier qui vous appartient ; vous ouvrez le même dossier pour lire, modifier et poursuivre le travail.",
     primary: "Télécharger pour Mac — gratuit",
     secondary: "iPhone — achat unique · pas encore listé",
     note: "Bureau gratuit, synchronisation comprise. Sans abonnement, sans compte, sans iCloud.",
@@ -1022,12 +1030,12 @@ const fr: SiteCopy = {
         author: "AGENT",
         date: "2026-11-02",
         words: "428 mots",
-        summary: "Pourquoi la surface de lecture compte plus que celle d'écriture.",
+        summary: "Pourquoi le carnet doit convenir à deux personnes qui écrivent le même dossier.",
         body: [
-          "La plupart des carnets sont conçus pour le moment d'écriture. Celui-ci est conçu pour le moment d'après : l'agent a terminé, les sources sont classées, une personne s'assoit pour lire.",
+          "La plupart des carnets supposent une seule personne qui écrit. Celui-ci est fait pour deux : l'agent rédige une première version, vous lisez et modifiez, puis l'un ou l'autre reprend le fil dans le même dossier.",
           "La note reste un simple fichier Markdown. L'application ajoute une surface de lecture calme, une vue source et une arborescence dans laquelle les agents écrivent sans passerelle.",
         ],
-        quote: "L'agent écrit le journal. La personne lit les preuves.",
+        quote: "L'agent rédige. Vous tranchez. Le même dossier.",
         list: ["Garder la source visible", "Garder la lecture calme", "Garder chaque fichier portable"],
         ending: "Classé sous : lecture, agents, texte brut.",
       },
@@ -1071,7 +1079,7 @@ const fr: SiteCopy = {
       { n: "01", title: "L'agent écrit", body: "Un agent local écrit le Markdown directement dans le dossier. Pas de passerelle MCP, pas d'export." },
       { n: "02", title: "Le dossier garde", body: "Fichiers simples, noms ordinaires, hors ligne par défaut. Le dossier est la source de vérité." },
       { n: "03", title: "Le cloud transporte", body: "Google Drive ou Dropbox synchronise le même dossier vers vos autres appareils et les agents distants." },
-      { n: "04", title: "Vous lisez", body: "Ouvrez la bibliothèque sur Mac ou iPhone. Lisez, modifiez, ou demandez à l'agent une autre passe." },
+      { n: "04", title: "Vous continuez", body: "Ouvrez la bibliothèque sur Mac ou iPhone. Lisez, modifiez, ou confiez la prochaine passe à l'agent." },
     ],
     providers: "Google Drive / Dropbox",
     caption: "Le même dossier pour l'agent, le cloud et vous.",
@@ -1091,8 +1099,8 @@ const fr: SiteCopy = {
   },
   features: {
     kicker: "DANS LE JOURNAL",
-    title: "Conçu pour le lendemain matin.",
-    body: "L'agent a écrit. Il faut maintenant que le carnet mérite d'être lu.",
+    title: "Conçu pour la seconde passe.",
+    body: "L'agent a écrit une première version. Maintenant, vous continuez à deux.",
     items: [
       { n: "01", title: "Du .md simple, pas de base de données", body: "Chaque note est un fichier : à ouvrir, diffuser, déplacer ou confier à un autre outil." },
       { n: "02", title: "Source, partagé, lecture", body: "Voir le Markdown, la page rendue, ou les deux. La vue lecture prend la place." },
@@ -1146,15 +1154,16 @@ const fr: SiteCopy = {
 
 const es: SiteCopy = {
   meta: {
-    title: "StoatMD — Los agentes escriben. Tú lees.",
+    title: "StoatMD — Toma notas con tu agente.",
     description:
-      "Un cuaderno Markdown pensado para agentes. Los agentes escriben en una carpeta simple; tú la lees en Mac o iPhone. Sincroniza con tu propio Google Drive o Dropbox. Escritorio gratis, iPhone compra única. Sin suscripción.",
+      "Un cuaderno Markdown diseñado para tomar notas con agentes. Agente y persona leen y escriben la misma carpeta; sigue en Mac o iPhone. Sincroniza con tu propio Google Drive o Dropbox. Escritorio gratis, iPhone compra única. Sin suscripción.",
   },
   nav: { why: "Por qué", features: "Funciones", pricing: "Precios", download: "Descargar", cta: "Descargar para Mac" },
+  theme: { label: "Tema", system: "Sistema", light: "Claro", dark: "Oscuro" },
   hero: {
     kicker: "CUADERNO DE CAMPO / 2026",
-    title: "Los agentes escriben. Tú lees.",
-    lead: "StoatMD es un cuaderno Markdown diseñado para ese reparto. Los agentes escriben en una carpeta que es tuya; tú abres la misma carpeta para leer, editar y decidir qué importa.",
+    title: "Toma notas con tu agente. Un cuaderno hecho para eso.",
+    lead: "StoatMD es un cuaderno Markdown diseñado para trabajar con un agente. Los agentes escriben en una carpeta que es tuya; tú abres la misma carpeta para leer, editar y seguir trabajando.",
     primary: "Descargar para Mac — gratis",
     secondary: "iPhone — compra única · aún no listado",
     note: "Escritorio gratis, sincronización incluida. Sin suscripción, sin cuenta, sin iCloud.",
@@ -1173,12 +1182,12 @@ const es: SiteCopy = {
         author: "AGENT",
         date: "2026-11-02",
         words: "428 palabras",
-        summary: "Por qué la superficie de lectura importa más que la de escritura.",
+        summary: "Por qué el cuaderno tiene que servir para dos personas que escriben la misma carpeta.",
         body: [
-          "La mayoría de las apps de notas están hechas para el momento de escribir. Esta está hecha para el momento siguiente: cuando el agente ha terminado, las fuentes están archivadas y una persona se sienta a leer.",
+          "La mayoría de las apps de notas dan por hecho que escribe una sola persona. Esta está hecha para dos: el agente redacta una primera versión, tú lees y editas, y cualquiera de los dos retoma el hilo en la misma carpeta.",
           "La nota sigue siendo un archivo Markdown normal. La app añade una superficie de lectura tranquila, una vista de fuente y un árbol de archivos en el que los agentes escriben sin puente.",
         ],
-        quote: "El agente escribe el registro. La persona lee la evidencia.",
+        quote: "El agente redacta. Tú decides. La misma carpeta.",
         list: ["Mantener la fuente visible", "Mantener la lectura tranquila", "Mantener cada archivo portable"],
         ending: "Archivado en: lectura, agentes, texto plano.",
       },
@@ -1222,7 +1231,7 @@ const es: SiteCopy = {
       { n: "01", title: "El agente escribe", body: "Un agente local escribe Markdown directamente en la carpeta. Sin puente MCP, sin exportar." },
       { n: "02", title: "La carpeta guarda", body: "Archivos simples, nombres normales, offline por defecto. La carpeta es la fuente de verdad." },
       { n: "03", title: "La nube transporta", body: "Google Drive o Dropbox sincroniza la misma carpeta con tus otros dispositivos y los agentes remotos." },
-      { n: "04", title: "Tú lees", body: "Abre la biblioteca en Mac o iPhone. Lee, edita o pide al agente otra pasada." },
+      { n: "04", title: "Tú continúas", body: "Abre la biblioteca en Mac o iPhone. Lee, edita o devuelve la siguiente pasada al agente." },
     ],
     providers: "Google Drive / Dropbox",
     caption: "La misma carpeta para el agente, la nube y tú.",
@@ -1242,8 +1251,8 @@ const es: SiteCopy = {
   },
   features: {
     kicker: "DENTRO DEL REGISTRO",
-    title: "Hecho para la mañana siguiente.",
-    body: "El agente ya escribió. Ahora el cuaderno tiene que merecer la lectura.",
+    title: "Hecho para la segunda pasada.",
+    body: "El agente ya escribió una primera versión. Ahora seguís los dos.",
     items: [
       { n: "01", title: ".md simple, sin base de datos", body: "Cada nota es un archivo: se abre, se compara, se mueve o se entrega a otra herramienta." },
       { n: "02", title: "Fuente, dividido, lectura", body: "Ve el Markdown, la página renderizada o ambos. La vista de lectura ocupa el espacio." },

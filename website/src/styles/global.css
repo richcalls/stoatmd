@@ -66,16 +66,21 @@
 }
 
 :root {
-  color-scheme: light;
-  --bg: #fbfbf8;
-  --surface: #ffffff;
-  --surface-soft: #f6f5f1;
-  --ink: #171815;
-  --ink-soft: #3f423c;
-  --muted: #6b6f66;
-  --line: #e4e3dc;
-  --line-strong: #cfcdc4;
-  --accent: #24408f;
+  color-scheme: light dark;
+  --bg: light-dark(#fbfbf8, #121311);
+  --surface: light-dark(#ffffff, #191a17);
+  --surface-soft: light-dark(#f6f5f1, #1f201c);
+  --ink: light-dark(#171815, #f1f0e9);
+  --ink-soft: light-dark(#3f423c, #d2d1c7);
+  --muted: light-dark(#6b6f66, #a3a69b);
+  --line: light-dark(#e4e3dc, #2c2e29);
+  --line-strong: light-dark(#cfcdc4, #40433c);
+  --accent: light-dark(#24408f, #a8b9ea);
+  --on-ink: light-dark(#ffffff, #121311);
+  --ink-hover: light-dark(#000000, #ffffff);
+  --selection: light-dark(#dfe4f2, #2b3550);
+  --header-bg: light-dark(rgba(251, 251, 248, 0.92), rgba(18, 19, 17, 0.92));
+  --shadow: light-dark(rgba(23, 24, 21, 0.08), rgba(0, 0, 0, 0.45));
   --radius: 10px;
   --font-ui:
     Archivo, system-ui, -apple-system, "PingFang SC", "PingFang TC",
@@ -86,6 +91,13 @@
   --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
   --wrap: 1120px;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 *,
@@ -122,7 +134,7 @@ a {
 }
 
 ::selection {
-  background: #dfe4f2;
+  background: var(--selection);
   color: var(--ink);
 }
 
@@ -147,7 +159,7 @@ a {
   padding: 10px 14px;
   border-radius: 8px;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   font-size: 14px;
   text-decoration: none;
   transform: translateY(-160%);
@@ -163,7 +175,7 @@ a {
   top: 0;
   z-index: 50;
   border-bottom: 1px solid var(--line);
-  background: rgba(251, 251, 248, 0.92);
+  background: var(--header-bg);
   backdrop-filter: blur(12px);
 }
 
@@ -183,8 +195,13 @@ a {
   letter-spacing: -0.02em;
 }
 .brand-mark {
+  display: block;
   width: 26px;
   height: 26px;
+  flex-shrink: 0;
+  background: var(--ink);
+  -webkit-mask: url("/assets/mark.svg") center / contain no-repeat;
+  mask: url("/assets/mark.svg") center / contain no-repeat;
 }
 .brand-word {
   font-size: 18px;
@@ -217,10 +234,10 @@ a {
   margin-left: auto;
 }
 
-.lang-menu {
+.picker {
   position: relative;
 }
-.lang-menu summary {
+.picker summary {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -234,18 +251,22 @@ a {
   cursor: pointer;
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
-.lang-menu summary::-webkit-details-marker {
+.picker summary::-webkit-details-marker {
   display: none;
 }
-.lang-menu summary:hover,
-.lang-menu[open] summary {
+.picker summary:hover,
+.picker[open] summary {
   border-color: var(--line-strong);
   background: var(--surface);
 }
-.lang-menu .chev {
+.picker .chev {
   color: var(--muted);
 }
-.lang-options {
+.theme-icon {
+  flex-shrink: 0;
+  color: currentColor;
+}
+.picker-options {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
@@ -255,10 +276,10 @@ a {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--surface);
-  box-shadow: 0 16px 40px rgba(23, 24, 21, 0.08);
+  box-shadow: 0 16px 40px var(--shadow);
 }
-.lang-options a,
-.lang-options button {
+.picker-options a,
+.picker-options button {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -276,11 +297,12 @@ a {
   text-decoration: none;
   cursor: pointer;
 }
-.lang-options a:hover,
-.lang-options button:hover {
+.picker-options a:hover,
+.picker-options button:hover {
   background: var(--surface-soft);
 }
-.lang-options [aria-current="page"] {
+.picker-options [aria-current="page"],
+.picker-options [aria-pressed="true"] {
   color: var(--ink);
   font-weight: 500;
 }
@@ -294,7 +316,7 @@ a {
   border: 1px solid var(--ink);
   border-radius: 8px;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
@@ -302,8 +324,8 @@ a {
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .header-cta:hover {
-  background: #000;
-  border-color: #000;
+  background: var(--ink-hover);
+  border-color: var(--ink-hover);
 }
 
 /* Buttons */
@@ -318,7 +340,7 @@ a {
   border: 1px solid var(--ink);
   border-radius: 8px;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   font-size: 14px;
   font-weight: 500;
   line-height: 1.2;
@@ -326,8 +348,8 @@ a {
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .btn:hover {
-  background: #000;
-  border-color: #000;
+  background: var(--ink-hover);
+  border-color: var(--ink-hover);
 }
 
 /* Hero */
@@ -502,7 +524,7 @@ a {
 .mode-btn[aria-pressed="true"] {
   background: var(--surface);
   color: var(--ink);
-  box-shadow: 0 1px 2px rgba(23, 24, 21, 0.07);
+  box-shadow: 0 1px 2px var(--shadow);
 }
 
 .preview-body {
@@ -1061,6 +1083,17 @@ a {
   }
 }
 
+/* Tablet widths: long localised nav labels plus both pickers and the CTA
+   overflow the header, so drop the CTA (still reachable from the nav) and
+   show the pickers icon-only. */
+@media (max-width: 900px) {
+  .header-cta,
+  .lang-name,
+  .theme-name {
+    display: none;
+  }
+}
+
 @media (max-width: 760px) {
   .wrap {
     width: calc(100% - 40px);
@@ -1177,7 +1210,11 @@ a {
   .wrap {
     width: calc(100% - 32px);
   }
-  .lang-name {
+  .lang-name,
+  .theme-name {
+    display: none;
+  }
+  .header-cta {
     display: none;
   }
   .hero-title {

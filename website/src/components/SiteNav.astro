@@ -11,13 +11,7 @@ const p = SITE_COPY[locale];
 <header class="site-header">
   <div class="wrap header-inner">
     <a class="brand" href={localePath(locale)} aria-label="StoatMD">
-      <img
-        class="brand-mark"
-        src="/assets/mark.svg"
-        width="26"
-        height="26"
-        alt=""
-      />
+      <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-word">Stoat<span class="md">MD</span></span>
     </a>
 
@@ -29,13 +23,48 @@ const p = SITE_COPY[locale];
     </nav>
 
     <div class="header-tools">
-      <details class="lang-menu" id="languagePicker">
+      <details class="picker theme-menu" id="themePicker">
+        <summary aria-label={p.theme.label} title={p.theme.label}>
+          <svg
+            class="theme-icon"
+            viewBox="0 0 16 16"
+            width="14"
+            height="14"
+            aria-hidden="true"
+          >
+            <circle
+              cx="8"
+              cy="8"
+              r="5.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+            ></circle>
+            <path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"></path>
+          </svg>
+          <span class="theme-name" data-theme-current>{p.theme.system}</span>
+          <span class="chev"><Icon name="chevron" size={12} /></span>
+        </summary>
+        <div class="picker-options theme-options">
+          <button type="button" data-theme-pref="system">
+            {p.theme.system}
+          </button>
+          <button type="button" data-theme-pref="light">
+            {p.theme.light}
+          </button>
+          <button type="button" data-theme-pref="dark">
+            {p.theme.dark}
+          </button>
+        </div>
+      </details>
+
+      <details class="picker lang-menu" id="languagePicker">
         <summary aria-label={p.a11y.lang}>
           <Icon name="globe" size={14} />
           <span class="lang-name">{LOCALE_META[locale].label}</span>
           <span class="chev"><Icon name="chevron" size={12} /></span>
         </summary>
-        <div class="lang-options">
+        <div class="picker-options lang-options">
           <button type="button" data-lang="system">
             {p.footer.system}
           </button>

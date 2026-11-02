@@ -53,6 +53,9 @@ export async function capturePreviews(
     });
     await page.goto(`${origin}${locale === "en" ? "/" : `/${locale}/`}`);
     await page.evaluate(async () => {
+      // Share cards are always light; the page tokens would otherwise follow
+      // the capture browser's dark mode and render light ink on white.
+      document.documentElement.dataset.theme = "light";
       await document.fonts.ready;
       document.getAnimations().forEach((animation) => animation.finish());
     });
