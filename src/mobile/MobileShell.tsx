@@ -3,6 +3,8 @@ import { Button, Dialog, Input, NavPage, NavStack, TextView, createNavStack } fr
 import { InputAccessoryView, TabBar } from "nsh/mobile";
 import { MobileFiles, Vault } from "stoatmd/native";
 import { activeStorage, readActiveStorage, writeActiveStorage, storageBusy } from "../storage/state";
+import { readPortableConnection, writePortableConnection } from "../storage/portable";
+import { restoreSharedStorage } from "../storage/runtime";
 import { syncRuntime } from "../sync/runtime";
 import type { SyncErrorKind } from "../sync/provider";
 import { SyncSettings, formatSyncMoment } from "../ui/SyncSettings";
@@ -238,8 +240,20 @@ export function MobileShell(props: { library?: MobileLibrary; nativeChrome?: boo
         const vault = Vault.reopenCache(stored.root);
         if (vault.root !== stored.root) await writeActiveStorage({ ...stored, root: vault.root,
           connection: { ...stored.connection, localRoot: vault.root } });
+        else writePortableConnection(stored.connection);
         await syncRuntime.load();
         await activate(vault.root);
+        return;
+      }
+      // 同一 Apple ID 的另一台设备已经绑定过云盘：直接建缓存进库，不再授权或选文件夹。
+      const portable = readPortableConnection();
+      if (portable) {
+        try {
+          await restoreSharedStorage(portable, async root => { await activate(root); });
+          return;
+        } catch (err) {
+          console.warn("shared storage restore skipped", err);
+        }
       }
     } catch (err) { if (alive) startupError.set(String(err)); }
     finally { if (alive) loading.set(false); }
