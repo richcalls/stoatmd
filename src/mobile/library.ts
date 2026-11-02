@@ -22,11 +22,18 @@ export interface LocalVault {
 }
 export type MobileNote = VaultFileDto & { path: string; saved: string };
 export type RecycledNote = { path: string; original: string; deletedAt: number };
+export interface LibraryHooks {
+  /** 文件内容已写进本地库；path 是库内相对路径。 */
+  saved?(path: string): void;
+  /** 库内相对路径已不存在（删除 / 移动 / 重命名的旧路径）。 */
+  removed?(path: string): void;
+}
 const TRASH = ".stoatmd-trash";
 
 /** One document, one ordered writer. Each committed input starts a write
- * immediately; edits arriving during it are coalesced into the next write. */
-export function mobileLibrary(vault: LocalVault) {
+ * immediately; edits arriving during it are coalesced into the next write.
+ * `hooks` 把"本地已落盘"的增删改告诉外层，用于立即推云端。 */
+export function mobileLibrary(vault: LocalVault, hooks: LibraryHooks = {}) {
   const entries = signal<VaultEntryDto[]>([]);
   const note = signal<MobileNote | null>(null);
   const error = signal("");
@@ -68,6 +75,7 @@ export function mobileLibrary(vault: LocalVault) {
             const result = await vault.write(snapshot.path, snapshot.content, snapshot.mtimeMs);
             if (!result.ok || result.conflict) { conflict.set(true); await journal; return false; }
             note.set({ ...note()!, mtimeMs: result.mtimeMs, saved: snapshot.content });
+            hooks.saved?.(snapshot.path);
           }
           await clearJournal();
         } while (dirty());
@@ -104,15 +112,18 @@ export function mobileLibrary(vault: LocalVault) {
     await vault.create(path, "");
     await openNote(path);
     await refresh();
+    hooks.saved?.(path);
     return true;
   };
   const renameNote = async (name: string) => {
     if (!await flush() || !note()) return false;
     const result = renamedNotePath(note()!.path, name);
     if (!result.ok) throw new Error(`rename.error.${result.error}`);
-    if (result.path !== note()!.path) await vault.rename(note()!.path, result.path);
+    const before = note()!.path;
+    if (result.path !== before) await vault.rename(before, result.path);
     note.set({ ...note()!, path: result.path });
     await refresh();
+    if (result.path !== before) { hooks.removed?.(before); hooks.saved?.(result.path); }
     return true;
   };
   const copy = async (suffix: string, resolveConflict = false) => {
@@ -128,6 +139,7 @@ export function mobileLibrary(vault: LocalVault) {
     await clearJournal();
     recovered.set(false);
     await refresh();
+    hooks.saved?.(path);
     return true;
   };
   const reload = async () => {
@@ -193,6 +205,8 @@ export function mobileLibrary(vault: LocalVault) {
     await vault.rename(current.path, target);
     note.set({ ...current, path: target });
     await refresh();
+    hooks.removed?.(current.path);
+    hooks.saved?.(target);
     return true;
   };
   const loadTrash = async () => {
@@ -210,6 +224,7 @@ export function mobileLibrary(vault: LocalVault) {
     await vault.rename(path, target);
     if (note()?.path === path) { note.set(null); recovered.set(false); }
     await refresh();
+    hooks.removed?.(path);
     return true;
   };
   const recycle = async () => {
@@ -228,6 +243,7 @@ export function mobileLibrary(vault: LocalVault) {
     await vault.rename(item.path, target);
     await refresh();
     await loadTrash();
+    hooks.saved?.(target);
     return target;
   };
   const removePermanently = async (path: string) => {
@@ -247,6 +263,7 @@ export function mobileLibrary(vault: LocalVault) {
     await vault.create(path, content.replace(/^\uFEFF/, ""));
     await openNote(path);
     await refresh();
+    hooks.saved?.(path);
     return true;
   };
   return { vault, entries, note, error, conflict, saving, recovered, recycled, generation, bump, dirty, refresh, flush, edit, openNote, createNote, renameNote, copy, reload, createFolder,

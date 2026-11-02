@@ -31,6 +31,36 @@ type Route = { kind: "library" } | { kind: "document" };
 type SyncErrorView = { kind: SyncErrorKind; message: string };
 /** 自动同步连续失败几次，才把网络错误显示到界面上。 */
 const SYNC_ERROR_AFTER = 5;
+
+/**
+ * 本地改完（保存 / 新建 / 删除 / 移动）后攒一小会儿再推云端，和 Mac 的
+ * `SYNC_AFTER_SAVE_MS` 一致：连续敲字不会每个字符打一次网络。
+ * 后台推送是 quiet 的——失败不弹错误，下一次全量同步会补上。
+ */
+const SYNC_AFTER_SAVE_MS = 2500;
+const pendingPush = { saved: new Set<string>(), removed: new Set<string>() };
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleCloudPush(kind: "saved" | "removed", path: string) {
+  if (kind === "saved") pendingPush.saved.add(path);
+  else pendingPush.removed.add(path);
+  if (pushTimer !== null) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => { pushTimer = null; void flushCloudPush(); }, SYNC_AFTER_SAVE_MS);
+}
+async function flushCloudPush(): Promise<void> {
+  const saved = Array.from(pendingPush.saved);
+  const removed = Array.from(pendingPush.removed);
+  pendingPush.saved.clear();
+  pendingPush.removed.clear();
+  if (!saved.length && !removed.length) return;
+  if (!syncRuntime.connection() || syncRuntime.phase() === "paused") return;
+  // 同一路径既改又删，以删除为准。
+  const gone = new Set(removed);
+  const uploads = saved.filter(path => !gone.has(path));
+  try {
+    await (removed.length ? syncRuntime.pushDeletions(removed, true) : null);
+    await (uploads.length ? syncRuntime.pushPaths(uploads, true) : null);
+  } catch { /* 后台推送失败不打断编辑，最多拖到下一次全量同步 */ }
+}
 type Panel = "settings" | "storage" | "outline" | "type" | "actions" | "info" | "rename" | "folder" | "move" | "trash" | "erase" | "cloudConflicts" | null;
 type Tab = "recent" | "all" | "favorites";
 
@@ -218,7 +248,10 @@ export function MobileShell(props: { library?: MobileLibrary; nativeChrome?: boo
   let alive = true;
   const activate = async (root: string) => {
     const vault = Vault.open(root);
-    const model = mobileLibrary(vault);
+    const model = mobileLibrary(vault, {
+      saved: path => scheduleCloudPush("saved", path),
+      removed: path => scheduleCloudPush("removed", path),
+    });
     await model.refresh();
     try { await model.recover(); } catch (err) { model.error.set(String(err)); }
     if (alive) { syncRuntime.attach(vault); library.set(model); }
@@ -1411,6 +1444,16 @@ function themeRows(): MobileTheme[][] {
 function MobileSettings(props: { connected: boolean; onImport: () => void; onTrash: () => void; onStorage: () => void; onSync: () => void; onConflicts: () => void }) {
   const c = mobileColors();
   const connection = () => syncRuntime.connection();
+  // 设置页也要给「立即同步」反馈：同步中显示进度，失败显示可读原因，
+  // 否则按钮点了看不出反应，像是坏的。
+  const syncState = () => syncStatus(syncRuntime.phase(), syncRuntime.progress(), syncRuntime.error());
+  const syncDetail = () => {
+    const state = syncState();
+    if (state?.kind === "progress") return t(state.key, state.params);
+    if (state?.kind === "paused") return t(state.key, state.params);
+    if (state?.kind === "error") return t(state.key);
+    return `${t("sync.synced")} · ${formatSyncMoment(syncRuntime.lastSyncAt())}`;
+  };
   return <View>
     <SectionTitle top={2}>{t("settings.appearance")}</SectionTitle>
     <View testID="mobile-themes" style={{ paddingHorizontal: 16, gap: 8 }}>
@@ -1447,7 +1490,7 @@ function MobileSettings(props: { connected: boolean; onImport: () => void; onTra
         detail={props.connected ? `${connection()!.remotePath || "/"} · ${t("mobile.offlineReady")}` : t("mobile.connectHint")}
         value={props.connected ? t("storage.inUse") : undefined} last={!props.connected && !syncRuntime.conflicts().length} onPress={props.onStorage} />
       {props.connected ? <SettingsRow id="mobile-sync-now" icon="arrows-clockwise" iconBg="#34C759" title={t("mobile.syncNow")}
-        detail={`${t("sync.synced")} · ${formatSyncMoment(syncRuntime.lastSyncAt())}`} last={!syncRuntime.conflicts().length} onPress={props.onSync} /> : null}
+        detail={syncDetail()} disabled={syncState()?.kind === "progress"} last={!syncRuntime.conflicts().length} onPress={props.onSync} /> : null}
       {syncRuntime.conflicts().length ? <SettingsRow id="mobile-conflicts-row" icon="info" iconBg="#FF9500" title={t("sync.manageConflicts")}
         value={String(syncRuntime.conflicts().length)} last onPress={props.onConflicts} /> : null}
     </SettingsGroup>
