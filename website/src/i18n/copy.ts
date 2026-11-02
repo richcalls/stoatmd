@@ -229,7 +229,7 @@ const en: SiteCopy = {
     ios: "iPhone — not listed yet",
   },
   footer: {
-    line: "A working log for notes your agents write.",
+    line: "A notebook for notes you make with your agent.",
     privacy: "Privacy",
     terms: "Terms",
     feedback: "Feedback",
@@ -382,7 +382,7 @@ const zhHans: SiteCopy = {
     ios: "iPhone — 尚未上架",
   },
   footer: {
-    line: "给 Agent 写的笔记，一个能工作的日志。",
+    line: "和 Agent 一起做笔记的笔记本。",
     privacy: "隐私",
     terms: "条款",
     feedback: "反馈",
@@ -535,7 +535,7 @@ const zhHant: SiteCopy = {
     ios: "iPhone — 尚未上架",
   },
   footer: {
-    line: "給 Agent 寫的筆記，一個能工作的日誌。",
+    line: "和 Agent 一起做筆記的筆記本。",
     privacy: "隱私",
     terms: "條款",
     feedback: "回饋",
@@ -688,7 +688,7 @@ const ja: SiteCopy = {
     ios: "iPhone — 未掲載",
   },
   footer: {
-    line: "エージェントが書くノートのための、実用的なログ。",
+    line: "エージェントと一緒にノートをつくるノートブック。",
     privacy: "プライバシー",
     terms: "利用規約",
     feedback: "フィードバック",
@@ -841,7 +841,7 @@ const ko: SiteCopy = {
     ios: "iPhone — 아직 미등록",
   },
   footer: {
-    line: "에이전트가 쓰는 노트를 위한 실용적인 로그.",
+    line: "에이전트와 함께 노트를 만드는 노트북.",
     privacy: "개인정보",
     terms: "약관",
     feedback: "피드백",
@@ -994,7 +994,7 @@ const de: SiteCopy = {
     ios: "iPhone — noch nicht gelistet",
   },
   footer: {
-    line: "Ein Arbeitslog für Notizen, die deine Agenten schreiben.",
+    line: "Ein Notizbuch für Notizen, die du mit deinem Agenten machst.",
     privacy: "Datenschutz",
     terms: "Bedingungen",
     feedback: "Feedback",
@@ -1147,7 +1147,7 @@ const fr: SiteCopy = {
     ios: "iPhone — pas encore listé",
   },
   footer: {
-    line: "Un journal de travail pour les notes que vos agents écrivent.",
+    line: "Un carnet pour les notes que vous prenez avec votre agent.",
     privacy: "Confidentialité",
     terms: "Conditions",
     feedback: "Retours",
@@ -1300,7 +1300,7 @@ const es: SiteCopy = {
     ios: "iPhone — aún no listado",
   },
   footer: {
-    line: "Un registro de trabajo para las notas que escriben tus agentes.",
+    line: "Un cuaderno para las notas que tomas con tu agente.",
     privacy: "Privacidad",
     terms: "Términos",
     feedback: "Comentarios",
