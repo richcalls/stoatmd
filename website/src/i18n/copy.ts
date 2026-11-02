@@ -71,8 +71,8 @@ export interface SiteCopy {
     body: string;
     mac: string;
     macNote: string;
+    platforms: string;
     ios: string;
-    status: string;
   };
   footer: {
     line: string;
@@ -103,7 +103,7 @@ const en: SiteCopy = {
     primary: "Download for Mac — free",
     secondary: "iPhone — one-time purchase · not listed yet",
     note: "Desktop free, including sync. No subscription, no account, no iCloud.",
-    status: "BUILD 1.0 · MACOS",
+    status: "BUILD 1.0",
   },
   log: {
     label: "Agent log",
@@ -202,7 +202,7 @@ const en: SiteCopy = {
     body: "No subscription. No account. The desktop app is free, including cloud sync. The iPhone app is a one-time purchase.",
     desktop: {
       label: "DESKTOP",
-      name: "StoatMD for Mac",
+      name: "StoatMD Desktop",
       price: "$0",
       unit: "free forever",
       items: ["Local folders + Google Drive / Dropbox", "Source, split, read", "25 themes, offline, conflict picker"],
@@ -220,11 +220,11 @@ const en: SiteCopy = {
   release: {
     kicker: "RELEASE RECORD",
     title: "Mac is ready to download.",
-    body: "The first public build ships through GitHub Releases. The iPhone app is not listed yet.",
+    body: "The first public build ships through GitHub Releases. The same desktop codebase targets Windows and Linux too; those builds are coming later. The iPhone app is not listed yet.",
     mac: "Download for Mac — free",
     macNote: "GitHub Releases · macOS 14+",
+    platforms: "Windows and Linux builds are coming later.",
     ios: "iPhone — not listed yet",
-    status: "BUILD / 1.0",
   },
   footer: {
     line: "A working log for notes your agents write.",
@@ -255,7 +255,7 @@ const zhHans: SiteCopy = {
     primary: "下载 Mac 版 — 免费",
     secondary: "iPhone — 一次买断 · 尚未上架",
     note: "桌面版免费，含云盘同步。无订阅、无账号、不绑 iCloud。",
-    status: "BUILD 1.0 · MACOS",
+    status: "BUILD 1.0",
   },
   log: {
     label: "Agent 日志",
@@ -354,7 +354,7 @@ const zhHans: SiteCopy = {
     body: "没有订阅，没有账号。桌面版免费，含云盘同步；iPhone 版一次买断。",
     desktop: {
       label: "桌面",
-      name: "StoatMD for Mac",
+      name: "StoatMD Desktop",
       price: "$0",
       unit: "永久免费",
       items: ["本地文件夹 + Google Drive / Dropbox", "源码、分栏、阅读", "25 套主题、离线、冲突选择"],
@@ -372,11 +372,11 @@ const zhHans: SiteCopy = {
   release: {
     kicker: "发布记录",
     title: "Mac 版可以下载了。",
-    body: "首个公开版本通过 GitHub Releases 发布。iPhone 版尚未上架。",
+    body: "首个公开版本通过 GitHub Releases 发布。桌面版同一套代码库也面向 Windows 与 Linux，对应安装包随后补充。iPhone 版尚未上架。",
     mac: "下载 Mac 版 — 免费",
     macNote: "GitHub Releases · macOS 14+",
+    platforms: "Windows 与 Linux 版随后补充。",
     ios: "iPhone — 尚未上架",
-    status: "BUILD / 1.0",
   },
   footer: {
     line: "给 Agent 写的笔记，一个能工作的日志。",
@@ -407,7 +407,7 @@ const zhHant: SiteCopy = {
     primary: "下載 Mac 版 — 免費",
     secondary: "iPhone — 一次買斷 · 尚未上架",
     note: "桌面版免費，含雲端硬碟同步。無訂閱、無帳號、不綁 iCloud。",
-    status: "BUILD 1.0 · MACOS",
+    status: "BUILD 1.0",
   },
   log: {
     label: "Agent 日誌",
@@ -506,7 +506,7 @@ const zhHant: SiteCopy = {
     body: "沒有訂閱，沒有帳號。桌面版免費，含雲端硬碟同步；iPhone 版一次買斷。",
     desktop: {
       label: "桌面",
-      name: "StoatMD for Mac",
+      name: "StoatMD Desktop",
       price: "$0",
       unit: "永久免費",
       items: ["本機資料夾 + Google Drive / Dropbox", "原始碼、分欄、閱讀", "25 套主題、離線、衝突選擇"],
@@ -524,11 +524,11 @@ const zhHant: SiteCopy = {
   release: {
     kicker: "發布記錄",
     title: "Mac 版可以下載了。",
-    body: "首個公開版本透過 GitHub Releases 發布。iPhone 版尚未上架。",
+    body: "首個公開版本透過 GitHub Releases 發布。桌面版同一套程式碼庫也面向 Windows 與 Linux，對應安裝包隨後補充。iPhone 版尚未上架。",
     mac: "下載 Mac 版 — 免費",
     macNote: "GitHub Releases · macOS 14+",
+    platforms: "Windows 與 Linux 版隨後補充。",
     ios: "iPhone — 尚未上架",
-    status: "BUILD / 1.0",
   },
   footer: {
     line: "給 Agent 寫的筆記，一個能工作的日誌。",
@@ -559,7 +559,7 @@ const ja: SiteCopy = {
     primary: "Mac 版をダウンロード — 無料",
     secondary: "iPhone — 買い切り · 未掲載",
     note: "デスクトップ版は同期込みで無料。サブスクなし、アカウントなし、iCloud なし。",
-    status: "BUILD 1.0 · MACOS",
+    status: "BUILD 1.0",
   },
   log: {
     label: "エージェントログ",
@@ -658,7 +658,7 @@ const ja: SiteCopy = {
     body: "サブスクなし、アカウントなし。デスクトップ版は同期込みで無料。iPhone 版は買い切りです。",
     desktop: {
       label: "デスクトップ",
-      name: "StoatMD for Mac",
+      name: "StoatMD Desktop",
       price: "$0",
       unit: "永久無料",
       items: ["ローカルフォルダ + Google Drive / Dropbox", "ソース、分割、読書", "25 テーマ、オフライン、衝突選択"],
@@ -676,11 +676,11 @@ const ja: SiteCopy = {
   release: {
     kicker: "リリース記録",
     title: "Mac 版をダウンロードできます。",
-    body: "最初の公開ビルドは GitHub Releases で配布します。iPhone 版はまだ掲載されていません。",
+    body: "最初の公開ビルドは GitHub Releases で配布します。デスクトップ版は同じコードベースで Windows と Linux にも対応予定で、ビルドは追って追加します。iPhone 版はまだ掲載されていません。",
     mac: "Mac 版をダウンロード — 無料",
     macNote: "GitHub Releases · macOS 14+",
+    platforms: "Windows / Linux 版は追って追加します。",
     ios: "iPhone — 未掲載",
-    status: "BUILD / 1.0",
   },
   footer: {
     line: "エージェントが書くノートのための、実用的なログ。",
@@ -711,7 +711,7 @@ const ko: SiteCopy = {
     primary: "Mac 버전 다운로드 — 무료",
     secondary: "iPhone — 일회 구매 · 아직 미등록",
     note: "데스크톱은 동기화까지 무료. 구독 없음, 계정 없음, iCloud 없음.",
-    status: "BUILD 1.0 · MACOS",
+    status: "BUILD 1.0",
   },
   log: {
     label: "에이전트 로그",
@@ -810,7 +810,7 @@ const ko: SiteCopy = {
     body: "구독 없음, 계정 없음. 데스크톱 앱은 동기화까지 무료. iPhone 앱은 일회 구매입니다.",
     desktop: {
       label: "데스크톱",
-      name: "StoatMD for Mac",
+      name: "StoatMD Desktop",
       price: "$0",
       unit: "영구 무료",
       items: ["로컬 폴더 + Google Drive / Dropbox", "소스, 분할, 읽기", "25가지 테마, 오프라인, 충돌 선택"],
@@ -828,11 +828,11 @@ const ko: SiteCopy = {
   release: {
     kicker: "릴리스 기록",
     title: "Mac 버전을 다운로드할 수 있습니다.",
-    body: "첫 공개 빌드는 GitHub Releases로 배포합니다. iPhone 앱은 아직 등록되지 않았습니다.",
+    body: "첫 공개 빌드는 GitHub Releases로 배포합니다. 데스크톱 앱은 같은 코드베이스로 Windows와 Linux도 지원할 예정이며, 빌드는 추후 추가합니다. iPhone 앱은 아직 등록되지 않았습니다.",
     mac: "Mac 버전 다운로드 — 무료",
     macNote: "GitHub Releases · macOS 14+",
+    platforms: "Windows / Linux 버전은 추후 추가됩니다.",
     ios: "iPhone — 아직 미등록",
-    status: "BUILD / 1.0",
   },
   footer: {
     line: "에이전트가 쓰는 노트를 위한 실용적인 로그.",
@@ -863,7 +863,7 @@ const de: SiteCopy = {
     primary: "Mac-Version laden — kostenlos",
     secondary: "iPhone — einmaliger Kauf · noch nicht gelistet",
     note: "Desktop kostenlos, inklusive Sync. Kein Abo, kein Konto, kein iCloud.",
-    status: "BUILD 1.0 · MACOS",
+    status: "BUILD 1.0",
   },
   log: {
     label: "Agenten-Log",
@@ -979,12 +979,12 @@ const de: SiteCopy = {
   },
   release: {
     kicker: "RELEASE-PROTOKOLL",
-    title: "Mac ist bereit zum Download.",
-    body: "Der erste öffentliche Build erscheint über GitHub Releases. Die iPhone-App ist noch nicht gelistet.",
+    title: "Die Mac-Version ist zum Download bereit.",
+    body: "Der erste öffentliche Build erscheint über GitHub Releases. Dieselbe Desktop-Codebasis ist auch für Windows und Linux ausgelegt; diese Builds folgen später. Die iPhone-App ist noch nicht gelistet.",
     mac: "Mac-Version laden — kostenlos",
     macNote: "GitHub Releases · macOS 14+",
+    platforms: "Windows- und Linux-Builds folgen später.",
     ios: "iPhone — noch nicht gelistet",
-    status: "BUILD / 1.0",
   },
   footer: {
     line: "Ein Arbeitslog für Notizen, die deine Agenten schreiben.",
@@ -1015,7 +1015,7 @@ const fr: SiteCopy = {
     primary: "Télécharger pour Mac — gratuit",
     secondary: "iPhone — achat unique · pas encore listé",
     note: "Bureau gratuit, synchronisation comprise. Sans abonnement, sans compte, sans iCloud.",
-    status: "BUILD 1.0 · MACOS",
+    status: "BUILD 1.0",
   },
   log: {
     label: "Journal de l'agent",
@@ -1131,12 +1131,12 @@ const fr: SiteCopy = {
   },
   release: {
     kicker: "JOURNAL DE VERSION",
-    title: "Mac est prêt à être téléchargé.",
-    body: "La première version publique passe par GitHub Releases. L'application iPhone n'est pas encore listée.",
+    title: "La version Mac est prête à être téléchargée.",
+    body: "La première version publique passe par GitHub Releases. La même base de code bureau vise aussi Windows et Linux ; ces versions arriveront plus tard. L'application iPhone n'est pas encore listée.",
     mac: "Télécharger pour Mac — gratuit",
     macNote: "GitHub Releases · macOS 14+",
+    platforms: "Les versions Windows et Linux arriveront plus tard.",
     ios: "iPhone — pas encore listé",
-    status: "BUILD / 1.0",
   },
   footer: {
     line: "Un journal de travail pour les notes que vos agents écrivent.",
@@ -1167,7 +1167,7 @@ const es: SiteCopy = {
     primary: "Descargar para Mac — gratis",
     secondary: "iPhone — compra única · aún no listado",
     note: "Escritorio gratis, sincronización incluida. Sin suscripción, sin cuenta, sin iCloud.",
-    status: "BUILD 1.0 · MACOS",
+    status: "BUILD 1.0",
   },
   log: {
     label: "Registro del agente",
@@ -1283,12 +1283,12 @@ const es: SiteCopy = {
   },
   release: {
     kicker: "REGISTRO DE VERSIÓN",
-    title: "Mac ya se puede descargar.",
-    body: "La primera versión pública se distribuye por GitHub Releases. La app de iPhone aún no está listada.",
+    title: "La versión para Mac ya se puede descargar.",
+    body: "La primera versión pública se distribuye por GitHub Releases. La misma base de código de escritorio también está pensada para Windows y Linux; esas versiones llegarán más tarde. La app de iPhone aún no está listada.",
     mac: "Descargar para Mac — gratis",
     macNote: "GitHub Releases · macOS 14+",
+    platforms: "Las versiones para Windows y Linux llegarán más tarde.",
     ios: "iPhone — aún no listado",
-    status: "BUILD / 1.0",
   },
   footer: {
     line: "Un registro de trabajo para las notas que escriben tus agentes.",

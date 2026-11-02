@@ -1,18 +1,18 @@
 # StoatMD
 
-> A Markdown notebook for making notes with an agent. Agent and human read and write the same plain folder on Mac or iPhone. Sync through your own Google Drive or Dropbox. Desktop free, iPhone one-time purchase. No subscription.
+> A Markdown notebook for making notes with an agent. Agent and human read and write the same plain folder on desktop or iPhone. Sync through your own Google Drive or Dropbox. Desktop free, iPhone one-time purchase. No subscription.
 
 - Site: https://stoatmd.com
 - Product: StoatMD
-- Positioning: notes made together with an agent. The agent writes, the person reads, edits, and continues the work. The library is a plain folder of `.md` files, not a database.
+- Positioning: notes made together with an agent. The agent drafts; the person reads, edits, and continues; either side can pick the work back up in the same folder. The library is a plain folder of `.md` files, not a database.
 - Pricing: desktop app is free, including cloud sync. iPhone app is a one-time purchase; price is TBA — do not invent a price. No subscription anywhere.
 - Sync providers (v1): Google Drive, Dropbox only (no iCloud, no OneDrive, no WebDAV, no self-hosted server).
 - Agents: local agents write directly into the folder; remote agents write through the same Drive/Dropbox folder. No MCP bridge or export step is required.
 - Editing model: plain Markdown source with source / split / read views. Not WYSIWYG.
 - Conflict handling: keep local, keep cloud, or keep both (`original (cloud conflict yyyy-mm-dd).md`).
-- Release status: macOS downloadable via GitHub Releases. iOS not listed yet.
+- Release status: macOS downloadable via GitHub Releases. Windows and Linux builds are planned but not published yet. iOS not listed yet.
 - Not built: MCP / AgentBridge, WYSIWYG, real-time collaboration, accounts, own sync server.
-- Platforms listed: macOS, iPhone. Windows/Linux not listed.
+- Platforms listed: macOS, iPhone. Windows/Linux builds are planned but not published yet.
 
 ## Languages (indexable URLs)
 

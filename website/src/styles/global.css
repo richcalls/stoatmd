@@ -900,6 +900,12 @@ a {
   font-size: 13px;
 }
 
+.download-platforms {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .download-ios {
   margin: 6px 0 0;
   color: var(--ink-soft);
