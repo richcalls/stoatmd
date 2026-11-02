@@ -56,7 +56,7 @@ test("iOS 当前界面截图", async () => {
   await app.waitFor("id:mobile-note-开始使用.md");
 
   await app.press("id:mobile-settings");
-  await app.waitFor("id:mobile-theme-paper");
+  await app.waitFor("id:mobile-theme-everest");
   await app.screenshot("screenshots/ios-raw/06-settings-light.png");
 
   await app.press("id:mobile-text-row");
@@ -77,9 +77,9 @@ test("iOS 当前界面截图", async () => {
   await app.press("id:mobile-panel-done");
   await app.waitFor("id:mobile-search");
   await app.press("id:mobile-settings");
-  await app.waitFor("id:mobile-theme-paper");
+  await app.waitFor("id:mobile-theme-everest");
 
-  await app.press("id:mobile-theme-nord");
+  await app.press("id:mobile-theme-aurora-borealis");
   await new Promise(resolve => setTimeout(resolve, 350));
   await app.screenshot("screenshots/ios-raw/07-settings-dark.png");
   await app.press("id:mobile-panel-done");

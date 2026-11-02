@@ -50,7 +50,7 @@ test("iPad 横屏：左库右文两栏", async () => {
   await app.keyboard.press("mod+3");
   await app.waitFor("id:mobile-preview");
   await app.keyboard.press("mod+,");
-  await app.waitFor("id:mobile-theme-paper");
+  await app.waitFor("id:mobile-theme-everest");
   // 设置里的文稿配色：切到单色再切回来，截图留档。
   await app.press("id:mobile-render-monochrome");
   await new Promise(resolve => setTimeout(resolve, 200));

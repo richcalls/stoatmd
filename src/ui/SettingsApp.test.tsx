@@ -3,7 +3,7 @@ import type { SettingsState } from "./settingsState";
 
 const state: SettingsState = {
   title: "设置", vaultRoot: "/tmp/stoatmd-test-vault", tab: "appearance",
-  theme: "paper", locale: "zh", logo: "thread", renderMode: "color",
+  theme: "everest", locale: "zh", logo: "thread", renderMode: "color",
   typography: { ui: 14, editor: 15, family: "system", size: 16, line: 1.55 },
   storage: { busy: false, active: null, phase: "idle", target: null, summary: null, keepOriginal: true,
     progress: { stage: "copying", done: 0, total: 0 }, error: null, warning: null },
@@ -66,7 +66,7 @@ test("独立设置：迁移请求携带保留选项，主窗口响应更新完�
   });
   await app.press("id:storage-keep-original");
   // A background theme/progress publication must preserve the user's confirmation choice.
-  await app.host.send("state", { ...confirmation, theme: "nord" });
+  await app.host.send("state", { ...confirmation, theme: "aurora-borealis" });
   await app.press("id:storage-start");
   await app.waitFor("id:storage-done");
   expect(app.host.calls()).toEqual([{ name: "settings", data: {

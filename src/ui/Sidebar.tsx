@@ -132,7 +132,7 @@ export function Sidebar(props: Props) {
                   alignItems: "center",
                 }}
               >
-                <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: uiTextSize(12), fontWeight: "600", color: colors().ink2 }}>
+                <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: uiTextSize(12), fontWeight: "600", color: colors().ink }}>
                   {rootLabel()}
                 </Text>
                 <Icon name="caret-down" color={colors().ink3} size={9} />
@@ -177,7 +177,7 @@ export function Sidebar(props: Props) {
             focusStyle={controlFocusStyle()}
             activeStyle={controlPressStyle()}
           >
-            <Icon name="pencil" color={colors().ink3} size={14} />
+            <Icon name="pencil" color={colors().ink2} size={14} />
           </Button>
         </View>
 
@@ -194,7 +194,7 @@ export function Sidebar(props: Props) {
             paddingHorizontal: 8,
           }}
         >
-          <Icon name="magnifying-glass" color={colors().ink3} size={14} />
+          <Icon name="magnifying-glass" color={colors().ink2} size={14} />
           <Input
             testID="sidebar-search"
             accessibilityLabel={t("search.placeholder")}
@@ -233,7 +233,7 @@ export function Sidebar(props: Props) {
           <Text
             style={{
               fontSize: uiTextSize(12),
-              color: colors().ink3,
+              color: colors().ink2,
               paddingHorizontal: 10,
               paddingTop: 8,
               lineHeight: uiLineHeight(18),
@@ -274,7 +274,7 @@ export function Sidebar(props: Props) {
                 selected: selected(),
                 expanded: expanded(),
               }}
-              hoverStyle={selected() ? { backgroundColor: chromeColors().selection } : controlHoverStyle()}
+              hoverStyle={selected() ? { backgroundColor: colors().list } : controlHoverStyle()}
               focusStyle={controlFocusStyle()}
               activeStyle={controlPressStyle()}
               onPress={() => {
@@ -299,25 +299,22 @@ export function Sidebar(props: Props) {
                 paddingLeft: 5 + row().depth * 12,
                 paddingRight: 7,
                 borderRadius: 6,
-                // Keep the selected row flat against the sidebar. A full
-                // border plus shadow produced dark vertical bands at both
-                // sides of the row, especially while the list was clipped.
+                // The selected swatch is the only decoration on the active
+                // row; keep the row free of borders and shadows.
                 borderWidth: 0,
-                borderBottomWidth: selected() ? 1 : 0,
-                borderBottomColor: selected() ? chromeColors().selectionEdge : "transparent",
-                backgroundColor: selected() ? chromeColors().selection : "transparent",
+                backgroundColor: selected() ? colors().list : "transparent",
                 boxShadow: "none",
               }}
             >
               <If when={isFolder()}>
                 <View style={{ width: 9, alignItems: "center" }}>
-                  <Icon name={caret()} color={colors().ink3} size={8} />
+                  <Icon name={caret()} color={colors().ink2} size={8} />
                 </View>
-                <Icon name="folder" color={colors().ink3} size={14} />
+                <Icon name="folder" color={colors().ink2} size={14} />
               </If>
               <If when={!isFolder()}>
                 <View style={{ width: 9 }} />
-                <Icon name="file-text" color={selected() ? colors().ink2 : colors().ink3} size={14} />
+                <Icon name="file-text" color={selected() ? colors().ink : colors().ink2} size={14} />
               </If>
               <Text
                 numberOfLines={1}
@@ -326,7 +323,9 @@ export function Sidebar(props: Props) {
                   minWidth: 0,
                   fontSize: uiTextSize(12),
                   fontWeight: selected() || isFolder() ? "500" : "400",
-                  color: selected() ? colors().ink : colors().ink2,
+                  // Keep filenames and folder labels readable over each
+                  // theme's System Navigation color.
+                  color: colors().ink,
                 }}
               >
                 {label()}
@@ -371,14 +370,14 @@ export function Sidebar(props: Props) {
         />
         <Text
           numberOfLines={1}
-          style={{ fontSize: uiTextSize(11), color: colors().ink2, flex: 1, minWidth: 0 }}
+          style={{ fontSize: uiTextSize(11), color: colors().ink, flex: 1, minWidth: 0 }}
         >
           {syncLabel()}
         </Text>
         <Text
           testID="sidebar-count"
           numberOfLines={1}
-          style={{ fontSize: uiTextSize(10.5), color: colors().ink3 }}
+          style={{ fontSize: uiTextSize(10.5), color: colors().ink2 }}
         >
           {t("sidebar.noteCount", { n: props.notes.length })}
         </Text>

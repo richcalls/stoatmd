@@ -507,8 +507,11 @@ export function MacShell() {
             void openNote(v, id);
           },
         },
-        { type: "separator" },
-        mac && {
+        mac && !cloud && { type: "separator" as const },
+        // A cloud-backed vault is an app-managed offline cache. Finder cannot
+        // reveal its Google Drive/Dropbox path, so do not expose a misleading
+        // local-cache action in that menu.
+        mac && !cloud && {
           label: t("context.reveal"),
           onSelect: () => revealNote(v, id),
         },
