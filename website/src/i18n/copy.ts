@@ -72,6 +72,7 @@ export interface SiteCopy {
     mac: string;
     macNote: string;
     platforms: string;
+    soon: string;
     ios: string;
   };
   footer: {
@@ -219,11 +220,12 @@ const en: SiteCopy = {
   },
   release: {
     kicker: "RELEASE RECORD",
-    title: "Mac is ready to download.",
+    title: "The desktop app is here.",
     body: "The first public build ships through GitHub Releases. The same desktop codebase targets Windows and Linux too; those builds are coming later. The iPhone app is not listed yet.",
     mac: "Download for Mac — free",
-    macNote: "GitHub Releases · macOS 14+",
+    macNote: "GitHub Releases · macOS 14+ · Apple Silicon",
     platforms: "Windows and Linux builds are coming later.",
+    soon: "Windows / Linux — coming soon",
     ios: "iPhone — not listed yet",
   },
   footer: {
@@ -371,11 +373,12 @@ const zhHans: SiteCopy = {
   },
   release: {
     kicker: "发布记录",
-    title: "Mac 版可以下载了。",
+    title: "桌面版开始发布。",
     body: "首个公开版本通过 GitHub Releases 发布。桌面版同一套代码库也面向 Windows 与 Linux，对应安装包随后补充。iPhone 版尚未上架。",
     mac: "下载 Mac 版 — 免费",
-    macNote: "GitHub Releases · macOS 14+",
+    macNote: "GitHub Releases · macOS 14+ · Apple Silicon",
     platforms: "Windows 与 Linux 版随后补充。",
+    soon: "Windows / Linux 版准备中",
     ios: "iPhone — 尚未上架",
   },
   footer: {
@@ -523,11 +526,12 @@ const zhHant: SiteCopy = {
   },
   release: {
     kicker: "發布記錄",
-    title: "Mac 版可以下載了。",
+    title: "桌面版開始發布。",
     body: "首個公開版本透過 GitHub Releases 發布。桌面版同一套程式碼庫也面向 Windows 與 Linux，對應安裝包隨後補充。iPhone 版尚未上架。",
     mac: "下載 Mac 版 — 免費",
-    macNote: "GitHub Releases · macOS 14+",
+    macNote: "GitHub Releases · macOS 14+ · Apple Silicon",
     platforms: "Windows 與 Linux 版隨後補充。",
+    soon: "Windows / Linux 版準備中",
     ios: "iPhone — 尚未上架",
   },
   footer: {
@@ -675,11 +679,12 @@ const ja: SiteCopy = {
   },
   release: {
     kicker: "リリース記録",
-    title: "Mac 版をダウンロードできます。",
+    title: "デスクトップ版の配布が始まりました。",
     body: "最初の公開ビルドは GitHub Releases で配布します。デスクトップ版は同じコードベースで Windows と Linux にも対応予定で、ビルドは追って追加します。iPhone 版はまだ掲載されていません。",
     mac: "Mac 版をダウンロード — 無料",
-    macNote: "GitHub Releases · macOS 14+",
+    macNote: "GitHub Releases · macOS 14+ · Apple Silicon",
     platforms: "Windows / Linux 版は追って追加します。",
+    soon: "Windows / Linux 版は準備中",
     ios: "iPhone — 未掲載",
   },
   footer: {
@@ -827,11 +832,12 @@ const ko: SiteCopy = {
   },
   release: {
     kicker: "릴리스 기록",
-    title: "Mac 버전을 다운로드할 수 있습니다.",
+    title: "데스크톱 버전 배포를 시작했습니다.",
     body: "첫 공개 빌드는 GitHub Releases로 배포합니다. 데스크톱 앱은 같은 코드베이스로 Windows와 Linux도 지원할 예정이며, 빌드는 추후 추가합니다. iPhone 앱은 아직 등록되지 않았습니다.",
     mac: "Mac 버전 다운로드 — 무료",
-    macNote: "GitHub Releases · macOS 14+",
+    macNote: "GitHub Releases · macOS 14+ · Apple Silicon",
     platforms: "Windows / Linux 버전은 추후 추가됩니다.",
+    soon: "Windows / Linux 버전 준비 중",
     ios: "iPhone — 아직 미등록",
   },
   footer: {
@@ -979,11 +985,12 @@ const de: SiteCopy = {
   },
   release: {
     kicker: "RELEASE-PROTOKOLL",
-    title: "Die Mac-Version ist zum Download bereit.",
+    title: "Die Desktop-App ist da.",
     body: "Der erste öffentliche Build erscheint über GitHub Releases. Dieselbe Desktop-Codebasis ist auch für Windows und Linux ausgelegt; diese Builds folgen später. Die iPhone-App ist noch nicht gelistet.",
     mac: "Mac-Version laden — kostenlos",
-    macNote: "GitHub Releases · macOS 14+",
+    macNote: "GitHub Releases · macOS 14+ · Apple Silicon",
     platforms: "Windows- und Linux-Builds folgen später.",
+    soon: "Windows / Linux — in Vorbereitung",
     ios: "iPhone — noch nicht gelistet",
   },
   footer: {
@@ -1131,11 +1138,12 @@ const fr: SiteCopy = {
   },
   release: {
     kicker: "JOURNAL DE VERSION",
-    title: "La version Mac est prête à être téléchargée.",
+    title: "L'application bureau est là.",
     body: "La première version publique passe par GitHub Releases. La même base de code bureau vise aussi Windows et Linux ; ces versions arriveront plus tard. L'application iPhone n'est pas encore listée.",
     mac: "Télécharger pour Mac — gratuit",
-    macNote: "GitHub Releases · macOS 14+",
+    macNote: "GitHub Releases · macOS 14+ · Apple Silicon",
     platforms: "Les versions Windows et Linux arriveront plus tard.",
+    soon: "Windows / Linux — bientôt disponible",
     ios: "iPhone — pas encore listé",
   },
   footer: {
@@ -1283,11 +1291,12 @@ const es: SiteCopy = {
   },
   release: {
     kicker: "REGISTRO DE VERSIÓN",
-    title: "La versión para Mac ya se puede descargar.",
+    title: "La app de escritorio ya está aquí.",
     body: "La primera versión pública se distribuye por GitHub Releases. La misma base de código de escritorio también está pensada para Windows y Linux; esas versiones llegarán más tarde. La app de iPhone aún no está listada.",
     mac: "Descargar para Mac — gratis",
-    macNote: "GitHub Releases · macOS 14+",
+    macNote: "GitHub Releases · macOS 14+ · Apple Silicon",
     platforms: "Las versiones para Windows y Linux llegarán más tarde.",
+    soon: "Windows / Linux — próximamente",
     ios: "iPhone — aún no listado",
   },
   footer: {
