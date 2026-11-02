@@ -196,12 +196,11 @@ a {
 }
 .brand-mark {
   display: block;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
-  background: var(--ink);
-  -webkit-mask: url("/assets/mark.svg") center / contain no-repeat;
-  mask: url("/assets/mark.svg") center / contain no-repeat;
+  border-radius: 6px;
+  background: url("/assets/logo.png") center / cover no-repeat;
 }
 .brand-word {
   font-size: 18px;
@@ -232,6 +231,38 @@ a {
   align-items: center;
   gap: 10px;
   margin-left: auto;
+}
+
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+.theme-toggle-btn:hover {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+.sun-icon {
+  display: none;
+}
+.moon-icon {
+  display: block;
+}
+:root[data-theme="dark"] .sun-icon {
+  display: block;
+}
+:root[data-theme="dark"] .moon-icon {
+  display: none;
 }
 
 .picker {
