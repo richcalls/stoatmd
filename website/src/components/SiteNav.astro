@@ -2,7 +2,6 @@
 import { LOCALES, LOCALE_META, localePath, type Locale } from "../i18n";
 import { SITE_COPY } from "../i18n/copy";
 import Icon from "./Icon.astro";
-import DownloadCta from "./DownloadCta.astro";
 
 const { locale } = Astro.props as { locale: Locale };
 const p = SITE_COPY[locale];
@@ -24,40 +23,50 @@ const p = SITE_COPY[locale];
     </nav>
 
     <div class="header-tools">
-      <details class="picker theme-menu" id="themePicker">
-        <summary aria-label={p.theme.label} title={p.theme.label}>
-          <svg
-            class="theme-icon"
-            viewBox="0 0 16 16"
-            width="14"
-            height="14"
-            aria-hidden="true"
-          >
-            <circle
-              cx="8"
-              cy="8"
-              r="5.5"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.4"
-            ></circle>
-            <path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"></path>
-          </svg>
-          <span class="theme-name" data-theme-current>{p.theme.system}</span>
-          <span class="chev"><Icon name="chevron" size={12} /></span>
-        </summary>
-        <div class="picker-options theme-options">
-          <button type="button" data-theme-pref="system">
-            {p.theme.system}
-          </button>
-          <button type="button" data-theme-pref="light">
-            {p.theme.light}
-          </button>
-          <button type="button" data-theme-pref="dark">
-            {p.theme.dark}
-          </button>
-        </div>
-      </details>
+      <button
+        class="theme-toggle-btn"
+        id="themeToggleBtn"
+        type="button"
+        aria-label="切换浅色/深色主题"
+        title="切换浅色/深色主题"
+      >
+        <svg
+          class="theme-icon sun-icon"
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg
+          class="theme-icon moon-icon"
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
 
       <details class="picker lang-menu" id="languagePicker">
         <summary aria-label={p.a11y.lang}>
@@ -83,14 +92,6 @@ const p = SITE_COPY[locale];
           ))}
         </div>
       </details>
-
-      <DownloadCta
-        class="header-cta"
-        iconSize={12}
-        mac={p.nav.cta}
-        soon={p.release.soon}
-        ios={p.release.ios}
-      />
     </div>
   </div>
 </header>

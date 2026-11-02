@@ -5,6 +5,7 @@ import { MAC_DOWNLOAD_URL, RELEASES_URL } from "../lib/download";
 interface Props {
   class?: string;
   iconSize?: number;
+  iconName?: string;
   mac: string;
   soon: string;
   ios: string;
@@ -13,6 +14,7 @@ interface Props {
 const {
   class: className = "btn",
   iconSize = 14,
+  iconName = "down",
   mac,
   soon,
   ios,
@@ -31,5 +33,5 @@ const {
   data-ios-url="#download"
 >
   <span data-download-label>{mac}</span>
-  <Icon name="down" size={iconSize} />
+  <Icon name={iconName} size={iconSize} />
 </a>
