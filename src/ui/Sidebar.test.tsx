@@ -51,8 +51,8 @@ test("文件树：文件名和文件夹使用清晰的正文墨色，图标使�
   const app = await open("./Sidebar.harness.tsx", options);
   await app.press("id:feed");
   const palette = themePreset("everest").palette;
-  expect(app.spanStyle("text:根级笔记").color).toBe(`${palette.ink.toLowerCase()}ff`);
-  expect(app.spanStyle("text:项目").color).toBe(`${palette.ink.toLowerCase()}ff`);
+  expect(app.spanStyle("text:根级笔记").color).toBe(`${palette.ink2.toLowerCase()}ff`);
+  expect(app.spanStyle("text:项目").color).toBe(`${palette.ink2.toLowerCase()}ff`);
 });
 
 test("文件树：点文件夹可折叠/展开，并记录新建目标", async () => {
