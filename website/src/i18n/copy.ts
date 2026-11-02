@@ -13,7 +13,7 @@ export interface NoteCopy {
   ending: string;
 }
 
-export interface FieldLogCopy {
+export interface SiteCopy {
   meta: { title: string; description: string };
   nav: { why: string; features: string; pricing: string; download: string; cta: string };
   hero: {
@@ -77,6 +77,7 @@ export interface FieldLogCopy {
     line: string;
     privacy: string;
     terms: string;
+    feedback: string;
     privacyBody: string;
     termsBody: string;
     langLabel: string;
@@ -86,7 +87,7 @@ export interface FieldLogCopy {
   a11y: { lang: string; nav: string; preview: string; skip: string };
 }
 
-const en: FieldLogCopy = {
+const en: SiteCopy = {
   meta: {
     title: "StoatMD — Your agents write the notes. You read them.",
     description:
@@ -227,6 +228,7 @@ const en: FieldLogCopy = {
     line: "A working log for notes your agents write.",
     privacy: "Privacy",
     terms: "Terms",
+    feedback: "Feedback",
     privacyBody: "Privacy policy will live here.",
     termsBody: "Terms of use will live here.",
     langLabel: "Language",
@@ -236,7 +238,7 @@ const en: FieldLogCopy = {
   a11y: { lang: "Language", nav: "Primary", preview: "Interactive notebook preview", skip: "Skip to content" },
 };
 
-const zhHans: FieldLogCopy = {
+const zhHans: SiteCopy = {
   meta: {
     title: "StoatMD — Agent 写笔记，你来读",
     description:
@@ -377,6 +379,7 @@ const zhHans: FieldLogCopy = {
     line: "给 Agent 写的笔记，一个能工作的日志。",
     privacy: "隐私",
     terms: "条款",
+    feedback: "反馈",
     privacyBody: "隐私政策将放在这里。",
     termsBody: "使用条款将放在这里。",
     langLabel: "语言",
@@ -386,7 +389,7 @@ const zhHans: FieldLogCopy = {
   a11y: { lang: "语言", nav: "主导航", preview: "交互式笔记本预览", skip: "跳到正文" },
 };
 
-const zhHant: FieldLogCopy = {
+const zhHant: SiteCopy = {
   meta: {
     title: "StoatMD — Agent 寫筆記，你來讀",
     description:
@@ -527,6 +530,7 @@ const zhHant: FieldLogCopy = {
     line: "給 Agent 寫的筆記，一個能工作的日誌。",
     privacy: "隱私",
     terms: "條款",
+    feedback: "回饋",
     privacyBody: "隱私政策將放在這裡。",
     termsBody: "使用條款將放在這裡。",
     langLabel: "語言",
@@ -536,7 +540,7 @@ const zhHant: FieldLogCopy = {
   a11y: { lang: "語言", nav: "主導航", preview: "互動式筆記本預覽", skip: "跳至內容" },
 };
 
-const ja: FieldLogCopy = {
+const ja: SiteCopy = {
   meta: {
     title: "StoatMD — エージェントが書き、あなたが読む",
     description:
@@ -677,6 +681,7 @@ const ja: FieldLogCopy = {
     line: "エージェントが書くノートのための、実用的なログ。",
     privacy: "プライバシー",
     terms: "利用規約",
+    feedback: "フィードバック",
     privacyBody: "プライバシーポリシーはここに掲載されます。",
     termsBody: "利用規約はここに掲載されます。",
     langLabel: "言語",
@@ -686,7 +691,7 @@ const ja: FieldLogCopy = {
   a11y: { lang: "言語", nav: "メインナビ", preview: "インタラクティブなノートブックプレビュー", skip: "本文へスキップ" },
 };
 
-const ko: FieldLogCopy = {
+const ko: SiteCopy = {
   meta: {
     title: "StoatMD — 에이전트가 쓰고, 당신이 읽습니다",
     description:
@@ -827,6 +832,7 @@ const ko: FieldLogCopy = {
     line: "에이전트가 쓰는 노트를 위한 실용적인 로그.",
     privacy: "개인정보",
     terms: "약관",
+    feedback: "피드백",
     privacyBody: "개인정보 처리방침이 여기에 게시됩니다.",
     termsBody: "이용약관이 여기에 게시됩니다.",
     langLabel: "언어",
@@ -836,7 +842,7 @@ const ko: FieldLogCopy = {
   a11y: { lang: "언어", nav: "주요 탐색", preview: "대화형 노트북 미리보기", skip: "본문으로 건너뛰기" },
 };
 
-const de: FieldLogCopy = {
+const de: SiteCopy = {
   meta: {
     title: "StoatMD — Agenten schreiben die Notizen. Du liest sie.",
     description:
@@ -977,6 +983,7 @@ const de: FieldLogCopy = {
     line: "Ein Arbeitslog für Notizen, die deine Agenten schreiben.",
     privacy: "Datenschutz",
     terms: "Bedingungen",
+    feedback: "Feedback",
     privacyBody: "Die Datenschutzerklärung folgt hier.",
     termsBody: "Die Nutzungsbedingungen folgen hier.",
     langLabel: "Sprache",
@@ -986,7 +993,7 @@ const de: FieldLogCopy = {
   a11y: { lang: "Sprache", nav: "Hauptnavigation", preview: "Interaktive Notizbuch-Vorschau", skip: "Zum Inhalt springen" },
 };
 
-const fr: FieldLogCopy = {
+const fr: SiteCopy = {
   meta: {
     title: "StoatMD — Les agents écrivent. Vous lisez.",
     description:
@@ -1127,6 +1134,7 @@ const fr: FieldLogCopy = {
     line: "Un journal de travail pour les notes que vos agents écrivent.",
     privacy: "Confidentialité",
     terms: "Conditions",
+    feedback: "Retours",
     privacyBody: "La politique de confidentialité sera ici.",
     termsBody: "Les conditions d'utilisation seront ici.",
     langLabel: "Langue",
@@ -1136,7 +1144,7 @@ const fr: FieldLogCopy = {
   a11y: { lang: "Langue", nav: "Navigation principale", preview: "Aperçu interactif du carnet", skip: "Aller au contenu" },
 };
 
-const es: FieldLogCopy = {
+const es: SiteCopy = {
   meta: {
     title: "StoatMD — Los agentes escriben. Tú lees.",
     description:
@@ -1277,6 +1285,7 @@ const es: FieldLogCopy = {
     line: "Un registro de trabajo para las notas que escriben tus agentes.",
     privacy: "Privacidad",
     terms: "Términos",
+    feedback: "Comentarios",
     privacyBody: "La política de privacidad estará aquí.",
     termsBody: "Los términos de uso estarán aquí.",
     langLabel: "Idioma",
@@ -1286,7 +1295,7 @@ const es: FieldLogCopy = {
   a11y: { lang: "Idioma", nav: "Navegación principal", preview: "Vista previa interactiva del cuaderno", skip: "Saltar al contenido" },
 };
 
-export const FIELDLOG: Record<Locale, FieldLogCopy> = {
+export const SITE_COPY: Record<Locale, SiteCopy> = {
   en,
   "zh-hans": zhHans,
   "zh-hant": zhHant,

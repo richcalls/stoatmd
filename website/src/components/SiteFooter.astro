@@ -1,38 +1,43 @@
 ---
 import { localePath, type Locale } from "../i18n";
-import { FIELDLOG } from "../i18n/fieldlog";
+import { SITE_COPY } from "../i18n/copy";
 
 const { locale } = Astro.props as { locale: Locale };
-const p = FIELDLOG[locale];
+const p = SITE_COPY[locale];
 ---
 
-<footer class="site-foot">
+<footer class="site-footer">
   <div class="wrap">
-    <div class="foot-grid">
+    <div class="footer-grid">
       <div>
-        <a class="foot-brand" href={localePath(locale)} aria-label="StoatMD">
-          <img
-            src="/assets/mark-on-dark.svg"
-            width="28"
-            height="28"
-            alt=""
-          />
+        <a class="brand" href={localePath(locale)} aria-label="StoatMD">
+          <img src="/assets/mark.svg" width="24" height="24" alt="" />
           <span class="brand-word">Stoat<span class="md">MD</span></span>
         </a>
-        <p class="foot-line">{p.footer.line}</p>
+        <p class="footer-line">{p.footer.line}</p>
+        <p class="footer-copy">{p.footer.copyright}</p>
       </div>
-      <p class="foot-copy">{p.footer.copyright}</p>
-    </div>
 
-    <div class="legal">
-      <details id="privacy">
-        <summary>{p.footer.privacy}</summary>
-        <p>{p.footer.privacyBody}</p>
-      </details>
-      <details id="terms">
-        <summary>{p.footer.terms}</summary>
-        <p>{p.footer.termsBody}</p>
-      </details>
+      <div class="footer-right">
+        <a
+          class="footer-feedback"
+          href="https://github.com/richcalls/stoatmd-community/issues"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {p.footer.feedback}
+        </a>
+        <div class="footer-legal">
+          <details>
+            <summary>{p.footer.privacy}</summary>
+            <p>{p.footer.privacyBody}</p>
+          </details>
+          <details>
+            <summary>{p.footer.terms}</summary>
+            <p>{p.footer.termsBody}</p>
+          </details>
+        </div>
+      </div>
     </div>
   </div>
 </footer>

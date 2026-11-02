@@ -1,26 +1,27 @@
 ---
 import type { Locale } from "../i18n";
-import { FIELDLOG } from "../i18n/fieldlog";
+import { SITE_COPY } from "../i18n/copy";
 
 const { locale } = Astro.props as { locale: Locale };
-const p = FIELDLOG[locale].features;
+const p = SITE_COPY[locale].features;
 ---
 
 <section class="section" id="features" aria-labelledby="features-title">
   <div class="wrap">
     <div class="section-head">
-      <p class="field-ref">{p.kicker}</p>
       <h2 id="features-title">{p.title}</h2>
       <p class="section-lead">{p.body}</p>
     </div>
 
     <div class="section-body">
-      <div class="feature-list">
+      <div class="features">
         {p.items.map((item) => (
-          <div class="feature-row">
+          <div class="feature">
             <span class="feature-n">{item.n}</span>
-            <h3>{item.title}</h3>
-            <p>{item.body}</p>
+            <div>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </div>
           </div>
         ))}
       </div>

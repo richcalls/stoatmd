@@ -6,14 +6,14 @@ import {
   absoluteUrl,
   type Locale,
 } from "../i18n";
-import { FIELDLOG } from "../i18n/fieldlog";
+import { SITE_COPY } from "../i18n/copy";
 
 interface Props {
   locale: Locale;
 }
 
 const { locale } = Astro.props;
-const p = FIELDLOG[locale];
+const p = SITE_COPY[locale];
 const title = p.meta.title;
 const description = p.meta.description;
 const meta = LOCALE_META[locale];
@@ -33,7 +33,7 @@ const serifFont = serifFonts[locale] ?? "newsreader-latin-400-normal";
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>{title}</title>
 <meta name="description" content={description} />
-<meta name="theme-color" content="#dfe7d8" />
+<meta name="theme-color" content="#fbfbf8" />
 <link rel="canonical" href={canonical} />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
@@ -70,13 +70,6 @@ const serifFont = serifFonts[locale] ?? "newsreader-latin-400-normal";
 <link
   rel="preload"
   href="/fonts/archivo-400800-latin.woff2"
-  as="font"
-  type="font/woff2"
-  crossorigin
-/>
-<link
-  rel="preload"
-  href="/fonts/azeret-mono-400-latin.woff2"
   as="font"
   type="font/woff2"
   crossorigin

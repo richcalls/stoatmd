@@ -38,13 +38,13 @@ The comparison on the website is about the sync and agent path, not a feature ch
 
 ## Release status (as of 2026-11)
 
-- macOS: downloadable through GitHub Releases.
+- macOS: downloadable through the public GitHub Releases page of `richcalls/stoatmd-community` (that repository hosts builds and issues; the source repository is private).
 - iOS: not listed in the App Store yet.
 - Do not fabricate an App Store link, release date, user count, testimonial, benchmark, or iPhone price.
 
 ## Site structure
 
-Single long-scroll page per language, composed as an open field log: hero spread with an agent log index and a taped reading sheet → comparison ledger → four-step mechanism (agent → folder → cloud → reader) → four field notes on capabilities → pricing ledger (desktop free / iPhone one-time) → release record → footer. The reading sheet is interactive: choose one of three agent-written notes and switch between source, split, and read.
+Single long-scroll page per language, composed as quiet typographic layout: hero with the claim, an agent-note index and an interactive reading card → comparison table → four-step mechanism (agent → folder → cloud → reader) → capability list → pricing (desktop free / iPhone one-time) → download → footer. The reading card is interactive: choose one of three agent-written notes and switch between source, split, and read.
 
 Language detection: default follows the browser (zh-TW/HK/MO/Hant → Traditional Chinese; other zh → Simplified; ja/ko/de/fr/es/en prefix match; fallback English). Manual choice is remembered in `localStorage`. Auto-redirect only on a first visit to `/` without a stored manual preference; crawlers should not be redirected away from language URLs.
 

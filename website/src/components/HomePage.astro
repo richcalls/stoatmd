@@ -13,12 +13,9 @@ const { locale } = Astro.props as { locale: Locale };
 
 <main id="top" tabindex="-1">
   <section class="hero" aria-labelledby="hero-title">
-    <div class="wrap">
-      <div class="spread">
-        <Hero locale={locale} />
-        <div class="binding" aria-hidden="true"></div>
-        <ProductPreview locale={locale} />
-      </div>
+    <div class="wrap hero-grid">
+      <Hero locale={locale} />
+      <ProductPreview locale={locale} />
     </div>
   </section>
 

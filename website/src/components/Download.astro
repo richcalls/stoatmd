@@ -1,65 +1,57 @@
 ---
 import type { Locale } from "../i18n";
-import { FIELDLOG } from "../i18n/fieldlog";
+import { SITE_COPY } from "../i18n/copy";
 import Icon from "./Icon.astro";
 
 const { locale } = Astro.props as { locale: Locale };
-const p = FIELDLOG[locale];
+const p = SITE_COPY[locale];
 const r = p.release;
 
 /**
- * The public download target. The repository must be public and carry a
- * release for this link to resolve — see README before launch.
+ * Public download target. The community repository is public and hosts the
+ * signed macOS build in its Releases; the source repository stays private.
  */
-const DOWNLOAD_URL = "https://github.com/richcalls/stoatmd/releases/latest";
+const DOWNLOAD_URL =
+  "https://github.com/richcalls/stoatmd-community/releases/latest";
 ---
 
 <section class="section" id="download" aria-labelledby="download-title">
   <div class="wrap">
     <div class="section-head">
-      <p class="field-ref">{r.kicker}</p>
       <h2 id="download-title">{r.title}</h2>
       <p class="section-lead">{r.body}</p>
     </div>
 
     <div class="section-body">
-      <div class="release-grid">
-        <div>
-          <div class="release-actions">
-            <a
-              class="btn-stamp is-solid"
-              href={DOWNLOAD_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {r.mac}
-              <Icon name="down" size={14} />
-            </a>
-            <span class="release-ios">{r.ios}</span>
-          </div>
-          <p class="hero-note">{r.macNote}</p>
+      <div class="download">
+        <div class="download-copy">
+          <a
+            class="btn"
+            href={DOWNLOAD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {r.mac}
+            <Icon name="down" size={14} />
+          </a>
+          <p class="download-note">{r.macNote}</p>
+          <p class="download-ios">{r.ios}</p>
         </div>
 
-        <div class="record">
-          <div class="record-head">
-            <span class="record-title">{p.pricing.desktop.name}</span>
-            <span class="record-status">{r.status}</span>
+        <dl class="download-specs">
+          <div>
+            <dt>{p.pricing.desktop.label}</dt>
+            <dd>{p.pricing.desktop.name}</dd>
           </div>
-          <dl class="record-rows">
-            <div class="record-row">
-              <dt>{p.pricing.desktop.label}</dt>
-              <dd>{r.macNote}</dd>
-            </div>
-            <div class="record-row">
-              <dt>{p.pricing.desktop.unit}</dt>
-              <dd class="is-price">{p.pricing.desktop.price}</dd>
-            </div>
-            <div class="record-row">
-              <dt>{p.pricing.mobile.label}</dt>
-              <dd>{r.ios}</dd>
-            </div>
-          </dl>
-        </div>
+          <div>
+            <dt>{p.pricing.desktop.unit}</dt>
+            <dd>{p.pricing.desktop.price}</dd>
+          </div>
+          <div>
+            <dt>{p.pricing.mobile.label}</dt>
+            <dd>{p.pricing.mobile.price}</dd>
+          </div>
+        </dl>
       </div>
     </div>
   </div>

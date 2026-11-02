@@ -1,13 +1,13 @@
 ---
 import { LOCALE_META, SITE_ORIGIN, absoluteUrl, type Locale } from "../i18n";
-import { FIELDLOG } from "../i18n/fieldlog";
+import { SITE_COPY } from "../i18n/copy";
 
 interface Props {
   locale: Locale;
 }
 
 const { locale } = Astro.props;
-const p = FIELDLOG[locale];
+const p = SITE_COPY[locale];
 
 const data = {
   "@context": "https://schema.org",

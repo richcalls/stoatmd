@@ -1,39 +1,34 @@
 ---
 import { localePath, type Locale } from "../i18n";
-import { FIELDLOG } from "../i18n/fieldlog";
+import { SITE_COPY } from "../i18n/copy";
 import Icon from "./Icon.astro";
 
 const { locale } = Astro.props as { locale: Locale };
-const p = FIELDLOG[locale].pricing;
+const p = SITE_COPY[locale].pricing;
 const tiers = [p.desktop, p.mobile];
 ---
 
 <section class="section" id="pricing" aria-labelledby="pricing-title">
   <div class="wrap">
     <div class="section-head">
-      <p class="field-ref">{p.kicker}</p>
       <h2 id="pricing-title">{p.title}</h2>
       <p class="section-lead">{p.body}</p>
     </div>
 
     <div class="section-body">
-      <div class="ledger-sheet">
-        <span class="no-sub">{p.stamp}</span>
-
-        <div class="price-rows">
+      <div class="pricing">
+        <div class="tiers">
           {tiers.map((tier) => {
             const isText = !/^\$?\d/.test(tier.price);
             return (
-              <div class="price-row">
-                <span class="price-tier">{tier.label}</span>
-                <div>
-                  <div class="price-name">{tier.name}</div>
-                  <div class="price-unit">{tier.unit}</div>
-                </div>
-                <div class:list={["price-amount", { "is-text": isText }]}>
+              <div class="tier">
+                <p class="tier-label">{tier.label}</p>
+                <p class:list={["tier-price", { "is-text": isText }]}>
                   {tier.price}
-                </div>
-                <ul class="price-items">
+                </p>
+                <p class="tier-name">{tier.name}</p>
+                <p class="tier-unit">{tier.unit}</p>
+                <ul class="tier-items">
                   {tier.items.map((item) => (
                     <li>{item}</li>
                   ))}
@@ -43,10 +38,10 @@ const tiers = [p.desktop, p.mobile];
           })}
         </div>
 
-        <p class="price-note">{p.note}</p>
-        <div class="price-cta">
-          <a class="btn-stamp" href={localePath(locale, "#download")}>
-            {FIELDLOG[locale].hero.primary}
+        <div class="pricing-foot">
+          <p class="pricing-note">{p.note}</p>
+          <a class="btn" href={localePath(locale, "#download")}>
+            {SITE_COPY[locale].hero.primary}
             <Icon name="down" size={14} />
           </a>
         </div>

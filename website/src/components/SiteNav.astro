@@ -1,47 +1,41 @@
 ---
 import { LOCALES, LOCALE_META, localePath, type Locale } from "../i18n";
-import { FIELDLOG } from "../i18n/fieldlog";
+import { SITE_COPY } from "../i18n/copy";
 import Icon from "./Icon.astro";
 
 const { locale } = Astro.props as { locale: Locale };
-const p = FIELDLOG[locale];
+const p = SITE_COPY[locale];
 ---
 
 <a class="skip-link" href="#top">{p.a11y.skip}</a>
-<header class="masthead">
-  <div class="wrap nav-inner">
+<header class="site-header">
+  <div class="wrap header-inner">
     <a class="brand" href={localePath(locale)} aria-label="StoatMD">
       <img
         class="brand-mark"
         src="/assets/mark.svg"
-        width="34"
-        height="34"
+        width="26"
+        height="26"
         alt=""
       />
       <span class="brand-word">Stoat<span class="md">MD</span></span>
     </a>
 
-    <nav class="nav-links" aria-label={p.a11y.nav}>
-      <a class="nav-link" href={localePath(locale, "#why")}>{p.nav.why}</a>
-      <a class="nav-link" href={localePath(locale, "#features")}>
-        {p.nav.features}
-      </a>
-      <a class="nav-link" href={localePath(locale, "#pricing")}>
-        {p.nav.pricing}
-      </a>
-      <a class="nav-link" href={localePath(locale, "#download")}>
-        {p.nav.download}
-      </a>
+    <nav class="site-nav" aria-label={p.a11y.nav}>
+      <a href={localePath(locale, "#why")}>{p.nav.why}</a>
+      <a href={localePath(locale, "#features")}>{p.nav.features}</a>
+      <a href={localePath(locale, "#pricing")}>{p.nav.pricing}</a>
+      <a href={localePath(locale, "#download")}>{p.nav.download}</a>
     </nav>
 
-    <div class="nav-tools">
-      <details class="language-picker" id="languagePicker">
+    <div class="header-tools">
+      <details class="lang-menu" id="languagePicker">
         <summary aria-label={p.a11y.lang}>
           <Icon name="globe" size={14} />
-          <span>{LOCALE_META[locale].label}</span>
+          <span class="lang-name">{LOCALE_META[locale].label}</span>
           <span class="chev"><Icon name="chevron" size={12} /></span>
         </summary>
-        <div class="language-options">
+        <div class="lang-options">
           <button type="button" data-lang="system">
             {p.footer.system}
           </button>
@@ -60,7 +54,7 @@ const p = FIELDLOG[locale];
         </div>
       </details>
 
-      <a class="nav-cta" href={localePath(locale, "#download")}>
+      <a class="header-cta" href={localePath(locale, "#download")}>
         {p.nav.cta}
         <Icon name="down" size={12} />
       </a>

@@ -6,8 +6,7 @@ if (preview) {
   );
   const panels = preview.querySelectorAll<HTMLElement>("[data-panel]");
   const filename = preview.querySelector<HTMLElement>("[data-filename]");
-  const noteMeta = preview.querySelector<HTMLElement>("[data-note-meta]");
-  const body = preview.querySelector<HTMLElement>(".sheet-body");
+  const body = preview.querySelector<HTMLElement>(".preview-body");
 
   function selectNote(index: number) {
     for (const [i, button] of notes.entries()) {
@@ -21,8 +20,6 @@ if (preview) {
       filename.textContent = panel.dataset.path;
     if (filename && panel?.dataset.path)
       filename.setAttribute("title", panel.dataset.path);
-    if (noteMeta && panel?.dataset.meta)
-      noteMeta.textContent = panel.dataset.meta;
     if (body) body.scrollTop = 0;
   }
 

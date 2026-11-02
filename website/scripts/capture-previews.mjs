@@ -66,7 +66,7 @@ export async function capturePreviews(
     });
     await screenshot(page, join(reviewDir, `${locale}-mobile.png`), true);
 
-    // Compose the 1200 × 630 share card from the same localized log spread.
+    // Compose the 1200 × 630 share card from the same localized page.
     await page.cdp("Emulation.setDeviceMetricsOverride", {
       width: 1200,
       height: 630,
@@ -77,57 +77,39 @@ export async function capturePreviews(
       const brand = document.querySelector(".brand")?.cloneNode(true);
       const title = document.querySelector(".hero-title")?.cloneNode(true);
       const lead = document.querySelector(".hero-lead")?.cloneNode(true);
-      const stamp = document.querySelector(
-        ".hero-actions .btn-stamp",
-      )?.cloneNode(true);
+      const action = document
+        .querySelector(".hero-actions .btn")
+        ?.cloneNode(true);
+      const noteText =
+        document.querySelector(".hero-note")?.textContent?.trim() || "";
       const reading = document.querySelector(".reading-view")?.cloneNode(true);
       const filename =
         document.querySelector(".filename")?.textContent?.trim() || "";
-      const state =
-        document.querySelector(".state-live")?.textContent?.trim() || "";
-      const kicker =
-        document
-          .querySelector(".log-brand")
-          ?.textContent?.replace(/\s+/g, " ")
-          .trim() || "StoatMD / Field Log";
-      const noteText =
-        document.querySelector(".hero-note")?.textContent?.trim() || "";
-      if (!brand || !title || !lead || !stamp || !reading) return false;
+      if (!brand || !title || !lead || !action || !reading) return false;
 
       const style = document.createElement("style");
       style.textContent = `
-        html, body { margin:0 !important; padding:0 !important; overflow:hidden !important; width:1200px; height:630px; background:#dfe7d8; }
-        #og { position:fixed; inset:0; width:1200px; height:630px; padding:58px 64px 52px; display:grid; grid-template-columns:minmax(0,1fr) 424px; gap:54px; background-color:#dfe7d8; background-image:linear-gradient(to right,rgba(36,64,143,.075) 1px,transparent 1px),linear-gradient(to bottom,rgba(36,64,143,.075) 1px,transparent 1px); background-size:24px 24px; font-family:var(--font-ui); color:var(--ink); }
+        html, body { margin:0 !important; padding:0 !important; overflow:hidden !important; width:1200px; height:630px; background:#fbfbf8; }
+        #og { position:fixed; inset:0; width:1200px; height:630px; padding:56px 64px 52px; display:grid; grid-template-columns:minmax(0,1fr) 428px; gap:56px; background:#fbfbf8; font-family:var(--font-ui); color:var(--ink); }
         #og .og-left { display:flex; flex-direction:column; min-width:0; }
-        #og .og-top { display:flex; align-items:center; justify-content:space-between; gap:18px; }
-        #og .brand { display:flex; align-items:center; gap:10px; text-decoration:none; }
-        #og .brand-mark { width:38px; height:38px; }
-        #og .brand-word { font-size:26px; font-weight:800; letter-spacing:-.04em; line-height:1; }
-        #og .brand-word .md { color:var(--blue); }
-        #og .og-kicker { font-family:var(--font-mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
-        #og .hero-title { margin:34px 0 0; font-size:55px; line-height:.94; letter-spacing:-.05em; max-width:650px; }
-        #og .hero-title .line { display:block; }
-        #og .hero-title .accent { color:var(--blue); }
-        #og .hero-lead { margin-top:20px; max-width:560px; font-size:17px; line-height:1.5; color:var(--ink-soft); }
-        #og .og-bottom { margin-top:auto; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
-        #og .og-bottom .btn-stamp { animation:none; transform:rotate(-1deg); font-size:11px; padding:12px 15px; }
-        #og .og-bottom .btn-stamp::before { inset:3px; }
-        #og .og-note { font-family:var(--font-mono); font-size:10px; line-height:1.5; color:var(--muted); max-width:220px; }
-        #og .og-sheet { position:relative; align-self:start; height:512px; padding:22px 22px 18px; background-color:var(--sheet); border:1px solid #c9c2ad; box-shadow:0 22px 34px -26px rgba(20,22,19,.45),0 3px 6px rgba(20,22,19,.08); transform:rotate(-.45deg); overflow:hidden; }
-        #og .og-sheet::before { content:""; position:absolute; top:-11px; left:22px; width:80px; height:22px; background:rgba(216,196,154,.8); transform:rotate(-4deg); clip-path:polygon(2% 0,100% 4%,97% 100%,0 94%); }
-        #og .og-sheet::after { content:""; position:absolute; inset:5px; border:1px solid rgba(27,29,26,.07); pointer-events:none; }
-        #og .og-toolbar { position:relative; z-index:1; display:flex; justify-content:space-between; gap:10px; padding-bottom:8px; border-bottom:1px solid var(--rule); font-family:var(--font-mono); font-size:8px; color:var(--blue); }
-        #og .og-toolbar .state { color:var(--stamp); letter-spacing:.08em; text-transform:uppercase; }
-        #og .og-sheet .reading-view { position:relative; z-index:1; padding-top:10px; }
-        #og .og-sheet .doc-meta { font-size:8px; margin-bottom:5px; }
-        #og .og-sheet .reading-view h2 { font-size:31px; line-height:1.06; max-width:100%; }
-        #og .og-sheet .pencil-underline { width:170px; height:6px; margin:3px 0 7px; }
-        #og .og-sheet .reading-view p { font-size:12.5px; line-height:1.52; margin-bottom:7px; max-width:100%; }
-        #og .og-sheet .reading-view blockquote { font-size:15px; line-height:1.3; margin:10px 0 9px; padding:7px 0; max-width:100%; }
-        #og .og-sheet .reading-view blockquote::before { font-size:1.4rem; left:-13px; top:2px; }
-        #og .og-sheet .reading-view ul { gap:3px; margin-bottom:8px; }
-        #og .og-sheet .reading-view li { font-size:11.5px; gap:6px; }
-        #og .og-sheet .doc-ending { font-size:8px; padding-top:6px; }
+        #og .brand { display:flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink); }
+        #og .brand-mark { width:28px; height:28px; }
+        #og .brand-word { font-size:20px; font-weight:600; letter-spacing:-.02em; line-height:1; }
+        #og .hero-title { margin:44px 0 0; max-width:640px; font-size:52px; font-weight:600; line-height:1.04; letter-spacing:-.035em; text-wrap:balance; }
+        #og .hero-lead { margin:20px 0 0; max-width:520px; color:var(--muted); font-size:17px; line-height:1.6; }
+        #og .og-bottom { margin-top:auto; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+        #og .og-bottom .btn { min-height:42px; padding:10px 16px; font-size:13px; }
+        #og .og-note { color:var(--muted); font-size:12px; line-height:1.5; max-width:230px; }
+        #og .og-preview { align-self:start; height:518px; overflow:hidden; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+        #og .og-bar { display:flex; justify-content:space-between; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line); color:var(--muted); font-family:var(--font-mono); font-size:10.5px; }
+        #og .og-preview .reading-view { padding:28px 30px 32px; }
+        #og .og-preview .doc-meta { margin-bottom:14px; font-size:9.5px; }
+        #og .og-preview .reading-view h2 { margin-bottom:14px; font-size:28px; line-height:1.18; }
+        #og .og-preview .reading-view p { margin-bottom:11px; font-size:12.5px; line-height:1.68; }
+        #og .og-preview .reading-view blockquote { margin:16px 0; padding-left:14px; font-size:14px; line-height:1.5; }
+        #og .og-preview .reading-view ul { gap:4px; margin:14px 0; padding-left:17px; }
+        #og .og-preview .reading-view li { font-size:11px; }
+        #og .og-preview .doc-ending { margin-top:16px !important; padding-top:12px; font-size:9.5px !important; }
       `;
       document.head.appendChild(style);
 
@@ -135,45 +117,34 @@ export async function capturePreviews(
       og.id = "og";
       const left = document.createElement("div");
       left.className = "og-left";
-      const top = document.createElement("div");
-      top.className = "og-top";
-      top.appendChild(brand);
-      const kick = document.createElement("span");
-      kick.className = "og-kicker";
-      kick.textContent = kicker;
-      top.appendChild(kick);
-      left.appendChild(top);
+      left.appendChild(brand);
       left.appendChild(title);
       left.appendChild(lead);
 
       const bottom = document.createElement("div");
       bottom.className = "og-bottom";
-      stamp.classList.add("og-stamp");
-      bottom.appendChild(stamp);
+      bottom.appendChild(action);
       const note = document.createElement("span");
       note.className = "og-note";
       note.textContent = noteText;
       bottom.appendChild(note);
       left.appendChild(bottom);
 
-      const sheet = document.createElement("div");
-      sheet.className = "og-sheet";
-      const toolbar = document.createElement("div");
-      toolbar.className = "og-toolbar";
+      const preview = document.createElement("div");
+      preview.className = "og-preview";
+      const bar = document.createElement("div");
+      bar.className = "og-bar";
       const file = document.createElement("span");
       file.textContent = filename;
-      const status = document.createElement("span");
-      status.className = "state";
-      status.textContent = state;
-      toolbar.append(file, status);
-      sheet.appendChild(toolbar);
-      sheet.appendChild(reading);
-      og.append(left, sheet);
+      bar.appendChild(file);
+      preview.appendChild(bar);
+      preview.appendChild(reading);
+      og.append(left, preview);
 
       document.body.innerHTML = "";
       document.body.appendChild(og);
       window.scrollTo(0, 0);
-      return { filename, state };
+      return { filename };
     });
     if (!built) throw new Error(`Could not compose share card for ${locale}`);
     await page.waitForTimeout(150);

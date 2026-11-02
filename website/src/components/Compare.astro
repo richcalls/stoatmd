@@ -1,22 +1,21 @@
 ---
 import type { Locale } from "../i18n";
-import { FIELDLOG } from "../i18n/fieldlog";
+import { SITE_COPY } from "../i18n/copy";
 
 const { locale } = Astro.props as { locale: Locale };
-const p = FIELDLOG[locale].comparison;
+const p = SITE_COPY[locale].comparison;
 ---
 
 <section class="section" id="why" aria-labelledby="why-title">
   <div class="wrap">
     <div class="section-head">
-      <p class="field-ref">{p.kicker}</p>
       <h2 id="why-title">{p.title}</h2>
       <p class="section-lead">{p.body}</p>
     </div>
 
     <div class="section-body">
-      <div class="ledger-wrap">
-        <table class="ledger">
+      <div class="compare">
+        <table class="compare-table">
           <thead>
             <tr>
               <th scope="col"></th>
@@ -37,7 +36,7 @@ const p = FIELDLOG[locale].comparison;
           </tbody>
         </table>
       </div>
-      <p class="ledger-foot">{p.footnote}</p>
+      <p class="section-note">{p.footnote}</p>
     </div>
   </div>
 </section>

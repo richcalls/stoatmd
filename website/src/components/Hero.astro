@@ -1,10 +1,10 @@
 ---
 import { localePath, type Locale } from "../i18n";
-import { FIELDLOG } from "../i18n/fieldlog";
+import { SITE_COPY } from "../i18n/copy";
 import Icon from "./Icon.astro";
 
 const { locale } = Astro.props as { locale: Locale };
-const p = FIELDLOG[locale];
+const p = SITE_COPY[locale];
 
 function splitTitle(title: string): [string, string] {
   const sentence = title.match(/^(.+?[.。])\s*(.+)$/);
@@ -15,75 +15,41 @@ function splitTitle(title: string): [string, string] {
 }
 
 const [titleA, titleB] = splitTitle(p.hero.title);
-const latestDate = p.log.notes[0]?.date ?? "";
 ---
 
-<div class="page page-left">
-  <div class="page-pad">
-    <div class="log-head">
-      <span class="log-brand">
-        <img src="/assets/mark.svg" width="22" height="22" alt="" />
-        StoatMD
-        <span class="log-kicker">
-          <span aria-hidden="true">/</span> {p.hero.kicker}
-        </span>
-      </span>
-      <span class="log-date">
-        {latestDate.replaceAll("-", " / ")}
-        <br />
-        <span class="stamp">{p.hero.status}</span>
-      </span>
-    </div>
+<div class="hero-copy">
+  <h1 class="hero-title" id="hero-title">
+    {titleA}{titleB && <span class="hero-title-second">{titleB}</span>}
+  </h1>
 
-    <h1 class="hero-title" id="hero-title">
-      <span class="line">{titleA}</span>
-      {titleB && <span class="line accent">{titleB}</span>}
-    </h1>
+  <p class="hero-lead">{p.hero.lead}</p>
 
-    <p class="hero-lead">{p.hero.lead}</p>
+  <div class="hero-actions">
+    <a class="btn" href={localePath(locale, "#download")}>
+      {p.hero.primary}
+      <Icon name="down" size={14} />
+    </a>
+    <span class="hero-secondary">{p.hero.secondary}</span>
+  </div>
 
-    <div class="hero-actions">
-      <a class="btn-stamp" href={localePath(locale, "#download")}>
-        {p.hero.primary}
-        <Icon name="down" size={14} />
-      </a>
-      <span class="hero-secondary">{p.hero.secondary}</span>
-    </div>
+  <p class="hero-note">{p.hero.note}</p>
 
-    <p class="hero-note">{p.hero.note}</p>
-
-    <div class="log-index">
-      <div class="index-head">
-        <span>
-          {p.log.label} / {String(p.log.notes.length).padStart(2, "0")}
-        </span>
-        <span class="index-folder">{p.log.folder}</span>
-      </div>
-      <div class="note-list" role="group" aria-label={p.log.label}>
-        {p.log.notes.map((note, index) => (
-          <button
-            class="note-button"
-            type="button"
-            data-note={index}
-            aria-pressed={index === 0}
-            title={note.title}
-            disabled
-          >
-            <span class="note-date">
-              {note.date.slice(5).replace("-", ".")}
-            </span>
-            <span class="note-title">{note.title}</span>
-            <span class="note-meta">
-              <span>{note.words}</span>
-              <span class="agent-stamp">{note.author}</span>
-            </span>
-          </button>
-        ))}
-      </div>
-      <span class="saved">
-        <Icon name="check" size={11} />
-        {p.log.saved}
-      </span>
+  <div class="notes">
+    <p class="notes-label">{p.log.label}</p>
+    <div class="note-list" role="group" aria-label={p.log.label}>
+      {p.log.notes.map((note, index) => (
+        <button
+          class="note-button"
+          type="button"
+          data-note={index}
+          aria-pressed={index === 0}
+          title={note.title}
+          disabled
+        >
+          <span class="note-date">{note.date}</span>
+          <span class="note-title">{note.title}</span>
+        </button>
+      ))}
     </div>
   </div>
 </div>

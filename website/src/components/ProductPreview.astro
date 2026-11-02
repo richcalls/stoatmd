@@ -1,10 +1,9 @@
 ---
 import { type Locale } from "../i18n";
-import { FIELDLOG, type NoteCopy } from "../i18n/fieldlog";
-import Icon from "./Icon.astro";
+import { SITE_COPY, type NoteCopy } from "../i18n/copy";
 
 const { locale } = Astro.props as { locale: Locale };
-const p = FIELDLOG[locale];
+const p = SITE_COPY[locale];
 const notes = p.log.notes;
 const first = notes[0]!;
 
@@ -24,89 +23,57 @@ function source(note: NoteCopy): string {
 }
 ---
 
-<div class="page page-right">
-  <div class="page-pad">
-    <div class="sheet-wrap">
-      <div class="sheet" data-preview data-view="read">
-        <span class="tape tape-a" aria-hidden="true"></span>
-        <span class="tape tape-b" aria-hidden="true"></span>
-
-        <div class="sheet-toolbar">
-          <span class="filename" data-filename title={first.path}>
-            {first.path}
-          </span>
-          <div
-            class="mode-switch"
-            role="group"
-            aria-label={p.a11y.preview}
-          >
-            {(["source", "split", "read"] as const).map((mode, index) => (
-              <button
-                class="mode-btn"
-                type="button"
-                data-mode={mode}
-                aria-label={p.log.modes[index]}
-                title={p.log.modes[index]}
-                aria-pressed={mode === "read"}
-                disabled
-              >
-                <Icon name={mode} size={11} />
-                <span>{p.log.modes[index]}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div class="sheet-state">
-          <span class="state-live">{p.log.state[1]}</span>
-          <span data-note-meta>{first.author} / {first.words}</span>
-        </div>
-
-        <div class="sheet-body" aria-live="polite" aria-atomic="false">
-          {notes.map((note, index) => (
-            <div
-              class="note-panel"
-              data-panel={index}
-              data-path={note.path}
-              data-meta={`${note.author} / ${note.words}`}
-              hidden={index !== 0}
-            >
-              <pre
-                class="source-view"
-                tabindex="0"
-                aria-label={p.log.modes[0]}
-              >{source(note)}</pre>
-
-              <article class="reading-view" aria-label={p.log.modes[2]}>
-                <div class="doc-meta">
-                  <span class="doc-path">{note.path}</span>
-                  <time datetime={note.date}>{note.date}</time>
-                  <span>{note.words}</span>
-                </div>
-                <h2>{note.title}</h2>
-                <svg
-                  class="pencil-underline"
-                  viewBox="0 0 240 8"
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                >
-                  <path d="M2 5.5C38 2.4 76 6.2 112 4.1c32-1.9 64-.4 96 1.2 8 .4 18 .6 30-.2" />
-                </svg>
-                <p>{note.body[0]}</p>
-                <p>{note.body[1]}</p>
-                <blockquote>{note.quote}</blockquote>
-                <ul>
-                  {note.list.map((item) => (
-                    <li>{item}</li>
-                  ))}
-                </ul>
-                <p class="doc-ending">{note.ending}</p>
-              </article>
-            </div>
-          ))}
-        </div>
-      </div>
+<div class="preview" data-preview data-view="read">
+  <div class="preview-bar">
+    <span class="filename" data-filename title={first.path}>
+      {first.path}
+    </span>
+    <div class="mode-switch" role="group" aria-label={p.a11y.preview}>
+      {(["source", "split", "read"] as const).map((mode, index) => (
+        <button
+          class="mode-btn"
+          type="button"
+          data-mode={mode}
+          aria-label={p.log.modes[index]}
+          title={p.log.modes[index]}
+          aria-pressed={mode === "read"}
+          disabled
+        >
+          {p.log.modes[index]}
+        </button>
+      ))}
     </div>
+  </div>
+
+  <div class="preview-body" aria-live="polite" aria-atomic="false">
+    {notes.map((note, index) => (
+      <div
+        class="note-panel"
+        data-panel={index}
+        data-path={note.path}
+        hidden={index !== 0}
+      >
+        <pre class="source-view" tabindex="0" aria-label={p.log.modes[0]}>{source(note)}</pre>
+
+        <article class="reading-view" aria-label={p.log.modes[2]}>
+          <div class="doc-meta">
+            <span>{note.path}</span>
+            <time datetime={note.date}>{note.date}</time>
+            <span>{note.words}</span>
+          </div>
+          <h2>{note.title}</h2>
+          <p>{note.body[0]}</p>
+          <p>{note.body[1]}</p>
+          <blockquote>{note.quote}</blockquote>
+          <ul>
+            {note.list.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+          <p class="doc-ending">{note.ending}</p>
+        </article>
+      </div>
+    ))}
   </div>
 </div>
 
