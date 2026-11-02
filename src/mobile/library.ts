@@ -6,6 +6,8 @@ type MaybeAsync<T> = T | Promise<T>;
 export interface LocalVault {
   /** 库根绝对路径；测试里的内存库可以没有。 */
   readonly root?: string;
+  /** 查询文件是否存在；测试里的内存库可以没有。 */
+  mtime?(path: string): number;
   listRecursive(dir: string): MaybeAsync<VaultEntryDto[]>;
   read(path: string): MaybeAsync<VaultFileDto>;
   write(path: string, content: string, expectedMtimeMs: number | null): MaybeAsync<VaultWriteDto>;
@@ -32,6 +34,9 @@ export function mobileLibrary(vault: LocalVault) {
   const saving = signal(false);
   const recovered = signal(false);
   const recycled = signal<RecycledNote[]>([]);
+  /** 每次库内容可能变化就加一；阅读页靠它重新判断附件是否已就位。 */
+  const generation = signal(0);
+  const bump = () => generation.set(generation() + 1);
   let pending: Promise<boolean> | null = null;
   let journal: Promise<void> = Promise.resolve();
   const persist = (snapshot: MobileNote) => {
@@ -45,7 +50,7 @@ export function mobileLibrary(vault: LocalVault) {
   const dirty = () => !!note() && note()!.content !== note()!.saved;
   const refresh = async () => {
     const next = await vault.listRecursive("");
-    if (JSON.stringify(next) !== JSON.stringify(entries())) entries.set(next);
+    if (JSON.stringify(next) !== JSON.stringify(entries())) { entries.set(next); bump(); }
   };
 
   const flush = (): Promise<boolean> => {
@@ -244,7 +249,7 @@ export function mobileLibrary(vault: LocalVault) {
     await refresh();
     return true;
   };
-  return { vault, entries, note, error, conflict, saving, recovered, recycled, dirty, refresh, flush, edit, openNote, createNote, renameNote, copy, reload, createFolder,
+  return { vault, entries, note, error, conflict, saving, recovered, recycled, generation, bump, dirty, refresh, flush, edit, openNote, createNote, renameNote, copy, reload, createFolder,
     recover, reconcile, move, loadTrash, recycle, recyclePath, restore, removePermanently, importNote };
 }
 export type MobileLibrary = ReturnType<typeof mobileLibrary>;

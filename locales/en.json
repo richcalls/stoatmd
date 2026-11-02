@@ -251,6 +251,8 @@
   "mobile.read": "Read",
   "mobile.actions": "More",
   "mobile.writeHint": "Start writing in Markdown…",
+  "mobile.imagePending": "Image not yet downloaded to this device",
+  "mobile.imageFailed": "Couldn't load image",
   "mobile.selectNote": "Select a note",
   "mobile.emptyHint": "Create a note to start writing.",
   "mobile.loading": "Opening your library…",
