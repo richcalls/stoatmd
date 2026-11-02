@@ -90,6 +90,24 @@ test("EditorWorkspace：代码块右上角复制按钮写入剪贴板", async ()
   expect(app.clipboard()).toBe("const a = 1;");
 });
 
+test("EditorWorkspace：编辑器接收 macOS 复制、剪切、粘贴和全选快捷键", async () => {
+  const app = await open("./EditorWorkspace.harness.tsx", {
+    width: 1000,
+    height: 700,
+    platform: "macos",
+    host: { params: { locale: "en" } },
+  });
+  await app.paste("id:document-editor", { text: "clipboard source" });
+  await app.keyboard.press("cmd+a");
+  await app.keyboard.press("cmd+c");
+  expect(app.clipboard()).toContain("clipboard source");
+  await app.keyboard.press("backspace");
+  await app.keyboard.press("cmd+v");
+  await app.keyboard.press("cmd+f");
+  await app.type("id:document-find-input", "clipboard source");
+  expect(app.texts()).toContain("1 of 1");
+});
+
 for (const platform of ["macos", "windows", "linux"] as const) {
   test(`EditorWorkspace：${platform} 文件内搜索、跳转、关闭及恢复焦点`, async () => {
     const app = await open("./EditorWorkspace.harness.tsx", {

@@ -607,7 +607,6 @@ export function SettingsSheet(props: Props) {
         accessibilityLabel={t("settings.title")}
         style={{ flex: 1, flexDirection: "column", minHeight: 0, backgroundColor: colors().paper }}
       >
-        {/* 与主窗口同一套统一窗口栏：系统标题栏隐藏，红绿灯浮在这条栏上。 */}
         <View
           testID="settings-window-bar"
           desktop={{ windowDrag: true }}
