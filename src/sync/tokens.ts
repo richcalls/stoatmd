@@ -52,7 +52,8 @@ export class TokenSession {
     if (this.loaded) return this.bundle;
     const stored = await this.store.load(this.provider);
     this.bundle = validBundle(stored) ? stored : null;
-    this.loaded = true;
+    // 没读到不标记已加载：另一台设备的授权可能刚同步进钥匙串，下次调用再读一次。
+    if (this.bundle) this.loaded = true;
     return this.bundle;
   }
 

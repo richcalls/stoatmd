@@ -1048,7 +1048,7 @@ fn valid_provider(provider: &str) -> Result<(), String> {
     Ok(())
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 const KEYCHAIN_SERVICE: &str = "com.stoatmd.app.sync";
 
 #[cfg(target_os = "macos")]
@@ -1224,26 +1224,101 @@ fn start_watcher(
     Some(watcher)
 }
 
+/// iOS 的授权 token 存进 iCloud 钥匙串（kSecAttrSynchronizable）：
+/// 同一 Apple ID 下的 iPhone / iPad 只授权一次，其余设备直接读到同一份 token。
+#[cfg(target_os = "ios")]
+fn ios_token_options(
+    provider: &str,
+    synchronized: bool,
+) -> security_framework::passwords::PasswordOptions {
+    let mut options = security_framework::passwords::PasswordOptions::new_generic_password(
+        KEYCHAIN_SERVICE,
+        provider,
+    );
+    options.set_access_synchronized(Some(synchronized));
+    options
+}
+
 #[cfg(target_os = "ios")]
 fn token_set(provider: &str, secret: &str) -> Result<(), String> {
     valid_provider(provider)?;
-    security_framework::passwords::set_generic_password("com.stoatmd.app.sync", provider, secret.as_bytes()).map_err(|e| e.to_string())
+    // 优先写 iCloud 同步条目；模拟器或关闭了 iCloud 钥匙串时退回设备本地，
+    // 应用照常可用，只是不跨设备。
+    if security_framework::passwords::set_generic_password_options(
+        secret.as_bytes(),
+        ios_token_options(provider, true),
+    )
+    .is_ok()
+    {
+        // 旧版本把 token 写在设备本地；迁移后删掉，避免同一个 token 存两份。
+        let _ = security_framework::passwords::delete_generic_password_options(
+            ios_token_options(provider, false),
+        );
+        return Ok(());
+    }
+    security_framework::passwords::set_generic_password_options(
+        secret.as_bytes(),
+        ios_token_options(provider, false),
+    )
+    .map_err(|err| err.to_string())
 }
+
 #[cfg(target_os = "ios")]
 fn token_get(provider: &str) -> Result<Option<String>, String> {
     valid_provider(provider)?;
-    match security_framework::passwords::get_generic_password("com.stoatmd.app.sync", provider) {
-        Ok(bytes) => String::from_utf8(bytes).map(Some).map_err(|e| e.to_string()),
-        Err(err) if err.code() == -25300 => Ok(None),
+    // 先读 iCloud 同步条目：另一台设备的授权会同步到这里。
+    let mut sync_error: Option<String> = None;
+    match security_framework::passwords::generic_password(ios_token_options(provider, true)) {
+        Ok(bytes) => {
+            let secret = String::from_utf8(bytes).map_err(|err| err.to_string())?;
+            // 同步条目可用时清掉旧版本遗留的本地副本，免得同步中断后读到旧 token。
+            let _ = security_framework::passwords::delete_generic_password_options(
+                ios_token_options(provider, false),
+            );
+            return Ok(Some(secret));
+        }
+        Err(err) if err.code() == -25300 => {}
+        Err(err) => sync_error = Some(err.to_string()),
+    }
+    // 退回设备本地：升级前写的条目，或同步不可用时刚写入的条目。
+    // 读到后迁移到同步条目，之后就跨设备可用。
+    match security_framework::passwords::generic_password(ios_token_options(provider, false)) {
+        Ok(bytes) => {
+            let secret = String::from_utf8(bytes).map_err(|err| err.to_string())?;
+            // 只有同步条目写成功才删本地副本，否则会把这台设备上唯一的 token 弄丢。
+            if security_framework::passwords::set_generic_password_options(
+                secret.as_bytes(),
+                ios_token_options(provider, true),
+            )
+            .is_ok()
+            {
+                let _ = security_framework::passwords::delete_generic_password_options(
+                    ios_token_options(provider, false),
+                );
+            }
+            Ok(Some(secret))
+        }
+        Err(err) if err.code() == -25300 => match sync_error {
+            Some(message) => Err(message),
+            None => Ok(None),
+        },
         Err(err) => Err(err.to_string()),
     }
 }
+
 #[cfg(target_os = "ios")]
 fn token_delete(provider: &str) -> Result<(), String> {
     valid_provider(provider)?;
-    match security_framework::passwords::delete_generic_password("com.stoatmd.app.sync", provider) {
-        Ok(()) => Ok(()),
-        Err(err) if err.code() == -25300 => Ok(()),
-        Err(err) => Err(err.to_string()),
+    // 两边都删：同步条目要跨设备撤销，本地条目是旧版本遗留。
+    for synchronized in [true, false] {
+        match security_framework::passwords::delete_generic_password_options(ios_token_options(
+            provider,
+            synchronized,
+        )) {
+            Ok(()) => {}
+            Err(err) if err.code() == -25300 => {}
+            Err(err) => return Err(err.to_string()),
+        }
     }
+    Ok(())
 }
