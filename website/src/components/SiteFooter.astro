@@ -1,30 +1,43 @@
 ---
-import { localePath, type Locale, t } from "../i18n";
-import { PAPER } from "../i18n/paper";
+import { localePath, type Locale } from "../i18n";
+import { SITE_COPY } from "../i18n/copy";
+
 const { locale } = Astro.props as { locale: Locale };
-const m = t(locale);
-const p = PAPER[locale];
+const p = SITE_COPY[locale];
 ---
 
-<footer class="foot wrap">
-  <div class="footer-main">
-    <a class="brand" href={localePath(locale)}>
-      <img src="/assets/mark.svg" width="26" height="26" alt="" />
-      <span>
-        Stoat<span class="md">MD</span>
-      </span>
-    </a>
-    <span>{p.footer}</span>
-    <span class="copyright">© {new Date().getUTCFullYear()} StoatMD</span>
-  </div>
-  <div class="legal">
-    <details id="privacy">
-      <summary>{m["foot.privacy"]}</summary>
-      <p>{m["foot.privacy.body"]}</p>
-    </details>
-    <details id="terms">
-      <summary>{m["foot.terms"]}</summary>
-      <p>{m["foot.terms.body"]}</p>
-    </details>
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <a class="brand" href={localePath(locale)} aria-label="StoatMD">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-word">Stoat<span class="md">MD</span></span>
+        </a>
+        <p class="footer-line">{p.footer.line}</p>
+        <p class="footer-copy">{p.footer.copyright}</p>
+      </div>
+
+      <div class="footer-right">
+        <a
+          class="footer-feedback"
+          href="https://github.com/richcalls/stoatmd-community/issues"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {p.footer.feedback}
+        </a>
+        <div class="footer-legal">
+          <details>
+            <summary>{p.footer.privacy}</summary>
+            <p>{p.footer.privacyBody}</p>
+          </details>
+          <details>
+            <summary>{p.footer.terms}</summary>
+            <p>{p.footer.termsBody}</p>
+          </details>
+        </div>
+      </div>
+    </div>
   </div>
 </footer>

@@ -15,9 +15,95 @@ const htmlLang = LOCALE_META[locale].htmlLang;
 ---
 
 <!doctype html>
-<html lang={htmlLang} data-theme="paper">
+<html lang={htmlLang}>
   <head>
     <SeoHead locale={locale} />
+    <script is:inline>
+      // Apply a saved theme before first paint; otherwise follow the system.
+      try {
+        const pref = localStorage.getItem("stoatmd.theme");
+        if (pref === "light" || pref === "dark")
+          document.documentElement.dataset.theme = pref;
+      } catch {}
+    </script>
+    <script is:inline>
+      // Send first-time visitors to their browser language before paint.
+      try {
+        const path = location.pathname;
+        if (path !== "/" && path !== "/index.html") throw 0;
+        if (
+          /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|linkedinbot|twitterbot|googlebot|baiduspider|yandex|duckduck|semrush|ahrefs|bytespider|gptbot|claudebot|anthropic|perplexity|applebot|ia_archiver/i.test(
+            navigator.userAgent || "",
+          )
+        )
+          throw 0;
+        const touched = localStorage.getItem("stoatmd.langTouched");
+        const saved = localStorage.getItem("stoatmd.langPref");
+        const supported = [
+          "en",
+          "zh-hans",
+          "zh-hant",
+          "ja",
+          "ko",
+          "de",
+          "fr",
+          "es",
+        ];
+        let pref =
+          touched && saved && (saved === "system" || supported.includes(saved))
+            ? saved
+            : "system";
+        if (pref === "system") {
+          const list =
+            navigator.languages && navigator.languages.length
+              ? navigator.languages
+              : [navigator.language || "en"];
+          pref = "en";
+          for (const raw of list) {
+            const l = (raw || "").toLowerCase();
+            if (
+              l.startsWith("zh-hant") ||
+              l.startsWith("zh-tw") ||
+              l.startsWith("zh-hk") ||
+              l.startsWith("zh-mo") ||
+              l === "zh-cht"
+            ) {
+              pref = "zh-hant";
+              break;
+            }
+            if (l.startsWith("zh")) {
+              pref = "zh-hans";
+              break;
+            }
+            if (l.startsWith("ja")) {
+              pref = "ja";
+              break;
+            }
+            if (l.startsWith("ko")) {
+              pref = "ko";
+              break;
+            }
+            if (l.startsWith("de")) {
+              pref = "de";
+              break;
+            }
+            if (l.startsWith("fr")) {
+              pref = "fr";
+              break;
+            }
+            if (l.startsWith("es")) {
+              pref = "es";
+              break;
+            }
+            if (l.startsWith("en")) {
+              pref = "en";
+              break;
+            }
+          }
+        }
+        if (pref !== "en") location.replace("/" + pref + "/" + location.hash);
+      } catch {}
+    </script>
     <JsonLd locale={locale} />
   </head>
   <body>
@@ -26,6 +112,7 @@ const htmlLang = LOCALE_META[locale].htmlLang;
     <SiteFooter locale={locale} />
     <script>
       import "../scripts/lang.ts";
+      import "../scripts/theme.ts";
     </script>
   </body>
 </html>

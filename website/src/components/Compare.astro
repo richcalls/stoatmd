@@ -1,41 +1,42 @@
 ---
-import type { Locale } from '../i18n';
-import { t } from '../i18n';
+import type { Locale } from "../i18n";
+import { SITE_COPY } from "../i18n/copy";
 
-interface Props {
-  locale: Locale;
-}
-
-const { locale } = Astro.props;
-const m = t(locale);
+const { locale } = Astro.props as { locale: Locale };
+const p = SITE_COPY[locale].comparison;
 ---
 
-<section class="sec" id="why" aria-labelledby="why-title">
+<section class="section" id="why" aria-labelledby="why-title">
   <div class="wrap">
-    <div class="sec-head">
-      <h2 id="why-title">{m['why.title']}</h2>
-      <p class="sub">{m['why.sub']}</p>
+    <div class="section-head">
+      <h2 id="why-title">{p.title}</h2>
+      <p class="section-lead">{p.body}</p>
     </div>
-    <div class="compare">
-      <div class="compare-row">
-        <div class="name">Obsidian<span class="label">{m['cmp.obsidian.label']}</span></div>
-        <div class="body" set:html={m['cmp.obsidian.body']} />
+
+    <div class="section-body">
+      <div class="compare">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th scope="col"></th>
+              {p.columns.map((column) => (
+                <th scope="col">{column}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {p.rows.map((row) => (
+              <tr class:list={{ ours: row.ours }}>
+                <th scope="row">{row.name}</th>
+                {row.cells.map((cell, index) => (
+                  <td data-label={p.columns[index]}>{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      <div class="compare-row">
-        <div class="name">Typora<span class="label">{m['cmp.typora.label']}</span></div>
-        <div class="body" set:html={m['cmp.typora.body']} />
-      </div>
-      <div class="compare-row">
-        <div class="name">
-          <span>{m['cmp.miaoyan.name']}</span>
-          <span class="label">{m['cmp.miaoyan.label']}</span>
-        </div>
-        <div class="body" set:html={m['cmp.miaoyan.body']} />
-      </div>
-      <div class="compare-row ours">
-        <div class="name">StoatMD<span class="label">{m['cmp.stoat.label']}</span></div>
-        <div class="body" set:html={m['cmp.stoat.body']} />
-      </div>
+      <p class="section-note">{p.footnote}</p>
     </div>
   </div>
 </section>

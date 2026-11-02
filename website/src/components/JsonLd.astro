@@ -1,24 +1,23 @@
 ---
 import { LOCALE_META, SITE_ORIGIN, absoluteUrl, type Locale } from "../i18n";
-
-import { PAPER } from "../i18n/paper";
+import { SITE_COPY } from "../i18n/copy";
 
 interface Props {
   locale: Locale;
 }
 
 const { locale } = Astro.props;
-const p = PAPER[locale];
+const p = SITE_COPY[locale];
 
-/** SoftwareApplication：本机免费写实价 $0；买断同步金额未定，不写假价格 */
 const data = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   name: "StoatMD",
-  applicationCategory: "UtilitiesApplication",
+  applicationCategory: "ProductivityApplication",
   applicationSubCategory: "Markdown notebook",
-  operatingSystem: "macOS",
-  description: p.intro,
+  operatingSystem: "macOS, iOS",
+  softwareVersion: "1.0",
+  description: p.meta.description,
   url: absoluteUrl(locale),
   image: `${SITE_ORIGIN}/assets/og-${locale}.png`,
   inLanguage: LOCALE_META[locale].htmlLang,
@@ -34,12 +33,11 @@ const data = {
   },
   offers: {
     "@type": "Offer",
-    name: p.pricing.local,
-    category: "Local editing",
+    name: p.pricing.desktop.name,
     price: "0",
     priceCurrency: "USD",
-    description: p.pricing.localBody,
-    availability: "https://schema.org/OnlineOnly",
+    availability: "https://schema.org/InStock",
+    description: `${p.pricing.desktop.unit}. ${p.pricing.note}`,
   },
 };
 ---

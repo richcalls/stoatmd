@@ -1,33 +1,53 @@
 # StoatMD — full brief for AI agents
 
-StoatMD is a local-first Markdown notebook aimed at people who want multi-device sync that AI agents can reach, without locking notes into a closed subscription sync pipe.
+StoatMD is a Markdown notebook for making notes with an agent. Agent and human read and write the same plain folder: the agent drafts and files, the person reads, edits, and continues the work. The library is a folder of `.md` files that both a local agent and a human can reach, carried between devices by the user's own Google Drive or Dropbox.
 
 ## Positioning
 
-Compared with Obsidian: official Obsidian sync is a subscription and a closed channel; hard to hand to remote AI. GitHub sync is painful on phones; stacking GitHub with iCloud balloons .git until storage and file counts explode. StoatMD syncs via the user's own Google Drive or Dropbox.
+The notebook is not a database and not a closed sync service. The folder is the product surface: an agent can write to it through the filesystem (local) or through the cloud folder (remote), and StoatMD adds the reading, editing, and library layer on top.
 
-Compared with Typora: Typora is strong WYSIWYG. StoatMD keeps plain Markdown source with a separate preview (edit / split / preview) so files stay portable and agents can rewrite .md.
+Compared with apps that require an official subscription sync: StoatMD uses the storage the user already pays for, and does not add an account or a StoatMD server.
 
-Compared with Miaoyan-class apps: similar spirit (native, light, source + preview, ordinary .md) but often Apple-only and usually cannot let an agent remotely push notes into the same library. StoatMD does not lock to the full Apple ecosystem for sync.
+Compared with a plain Markdown editor: StoatMD keeps the source visible, adds a separate reading surface, a file tree that agents can write to, and a conflict picker. The files remain portable.
+
+Compared with Apple-only note apps: StoatMD is available on macOS now and iPhone is planned/listed separately; sync is not tied to iCloud.
+
+The comparison on the website is about the sync and agent path, not a feature checklist. Product names belong to their owners.
 
 ## Business model
 
-- Local editing on Mac: always free ($0).
-- Turning on sync: one-time purchase (Buy once · sync). Price is TBA — never invent or guess a dollar amount.
-- No subscription for sync. No iCloud. No self-hosted sync server in v1. No WebDAV in v1. No MCP product surface.
+- Desktop app (Mac): free, including cloud sync. Price $0.
+- iPhone app: one-time purchase. The price is TBA — never invent or guess a dollar amount.
+- No subscription. No account. No StoatMD server.
+- Sync providers v1: Google Drive and Dropbox only. No iCloud, OneDrive, WebDAV, or self-hosted server.
+- Conflict handling: keep local, keep cloud, or keep both. The “keep both” copy is `original (cloud conflict yyyy-mm-dd).md`.
 
-## Downloads (as of site launch)
+## Capabilities
 
-- macOS: Coming soon (no fake download URLs).
-- iOS / iPad: Planned after Mac.
-- Windows / Linux: not listed.
+- Plain Markdown files, ordinary filenames, offline by default on macOS.
+- Source / split / read views; the reading view gets the space.
+- 25 Otty themes (9 light / 16 dark); Paper is the default. Typography settings.
+- Google Drive or Dropbox library on macOS and iOS. iOS has no local-only library; the cloud folder is the source of truth and is cached offline.
+- Local agents write straight into the folder. Remote agents archive through the same Drive/Dropbox folder. Teams can share one folder, with permissions staying in Drive/Dropbox.
+- Eight site languages: English, Simplified Chinese, Traditional Chinese, Japanese, Korean, German, French, Spanish.
+
+## Not built
+
+- MCP / AgentBridge, WYSIWYG editing, real-time collaboration, accounts, an own sync server.
+- Windows or Linux builds are not listed.
+
+## Release status (as of 2026-11)
+
+- macOS: downloadable through the public GitHub Releases page of `richcalls/stoatmd-community` (that repository hosts builds and issues; the source repository is private).
+- iOS: not listed in the App Store yet.
+- Do not fabricate an App Store link, release date, user count, testimonial, benchmark, or iPhone price.
 
 ## Site structure
 
-Single long-scroll page per language: Hero → Why/Compare → Features → Pricing → Download → Footer (privacy/terms stubs). Dark-only UI (warm charcoal #1C1A17, indigo #7A9BC2).
+Single long-scroll page per language, composed as quiet typographic layout: hero with the claim, an agent-note index and an interactive reading card → comparison table → four-step mechanism (agent → folder → cloud → reader) → capability list → pricing (desktop free / iPhone one-time) → download → footer. The reading card is interactive: choose one of three agent-written notes and switch between source, split, and read.
 
-Language detection: default follows browser (zh-TW/HK/MO/Hant → Traditional Chinese; other zh → Simplified; else match ja/ko/de/fr/es/en; fallback English). Manual choice remembered. Auto-redirect only on first visit to `/` without a stored manual preference; crawlers should not be redirected away from language URLs.
+Language detection: default follows the browser (zh-TW/HK/MO/Hant → Traditional Chinese; other zh → Simplified; ja/ko/de/fr/es/en prefix match; fallback English). Manual choice is remembered in `localStorage`. Auto-redirect only on a first visit to `/` without a stored manual preference; crawlers should not be redirected away from language URLs.
 
 ## Contact / brand
 
-Brand name: StoatMD. Domain: stoatmd.com. Do not attribute the product to unrelated personal names in marketing copy.
+Brand name: StoatMD. Domain: stoatmd.com. Do not attribute the product to unrelated personal names in marketing copy. Do not invent a working download URL beyond the public GitHub Releases page.

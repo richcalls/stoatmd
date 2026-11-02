@@ -1,6 +1,8 @@
 # StoatMD 官网（stoatmd.com）
 
-纸间 · 编辑部方案：暖纸色、衬线标题、鼠尾草绿，以及可切换笔记和阅读模式的产品示意。8 种语言拥有独立可索引 URL；页面文案、笔记预览和分享图片按语言配套。设计规范见 [DESIGN.md](./DESIGN.md)，历史方案保存在 `docs/website-v1/`。
+**Quiet** 方案：白纸、墨字、细线，深浅两套主题。首屏给出一句主张、一段说明和一个可读的笔记预览；没有纹理、胶带、印章或装饰性插画。默认跟随浏览器语言与系统主题，用户可手动切换。8 种语言拥有独立可索引 URL；页面文案、笔记预览和分享图片按语言配套。设计规范见 [DESIGN.md](./DESIGN.md)，历史方案保存在 `docs/website-v1/`。
+
+产品事实：Agent 和用户在同一个普通文件夹里一起做 Markdown 笔记。桌面版免费（含云盘同步），iPhone 一次买断，无订阅。同步仅支持 Google Drive / Dropbox。
 
 ## 本地开发
 
@@ -15,9 +17,25 @@ npm run preview  # 预览构建产物
 ## 技术选型
 
 - **Astro 5** 静态输出（零客户端框架，文案 SSR 进 HTML）
-- 自托管 **Instrument Sans / Newsreader / Noto Serif**（woff2），中日韩衬线字体按文案子集化
-- 原生 HTML / TypeScript：语言菜单、笔记选择、源码 / 分栏 / 阅读切换
-- 预览为界面示意，使用与页面相同的语言字典；产品状态以 `docs/product/PRODUCT.md` 为准
+- 自托管 **Archivo**（界面 / 标题）、**Newsreader + Paper SC/TC/JP/KR**（阅读预览衬线）
+- 原生 HTML / TypeScript：主题菜单、语言菜单、笔记选择、源码 / 分栏 / 阅读切换
+- CSS `light-dark()` + `data-theme` 手工覆盖；首屏内联脚本在绘制前应用已保存主题与浏览器语言
+- 全部 8 语言文案、笔记预览和界面标签集中在 `src/i18n/copy.ts`
+- 预览为界面示意，使用与页面相同的数据；产品状态以 `PRODUCT.md` 与 `docs/product/` 为准
+- 无 WebGL、无第三方脚本、无外部字体请求
+
+## 页面结构
+
+单页顺序：首屏主张 + 笔记索引 + 可交互阅读预览 → 竞品对照 → 四步机制（Agent 起草 → 文件夹 → 云盘 → 你接着做）→ 四条能力 → 定价（桌面免费 / iPhone 买断）→ 下载 → 页脚。
+
+交互预览保留三篇示例笔记与源码 / 分栏 / 阅读三种视图；阅读正文使用衬线字体，路径与日期使用系统等宽字体。没有 JavaScript 时默认显示第一篇笔记的阅读视图，切换按钮保持禁用。
+
+## 主题
+
+- 默认跟随系统：`color-scheme: light dark` + `light-dark()`，不写 `data-theme`。
+- 顶栏菜单可选「跟随系统 / 浅色 / 深色」，保存在 `localStorage["stoatmd.theme"]`；首屏内联脚本在绘制前应用，避免闪烁。
+- 手动选择会同步更新 `<meta name="theme-color">`；品牌标用 `mask` 跟随 `--ink` 变色。
+- `prefers-color-scheme` 变化时只有「跟随系统」模式实时响应。
 
 ## 语言与 URL
 
@@ -118,13 +136,20 @@ npx wrangler@4 pages deploy dist --project-name=stoatmd-website --branch=main
 
 - [x] 每语言 `title` / `description`
 - [x] `canonical` + 完整 `hreflang`（含 `x-default`）
-- [x] Open Graph / Twitter Card
-- [x] JSON-LD `SoftwareApplication`（本机 $0；买断价未写入假价格）
+- [x] Open Graph / Twitter Card（Quiet 分享图，1200 × 630）
+- [x] JSON-LD `SoftwareApplication`（桌面 $0；iPhone 买断价未写入假价格）
 - [x] `sitemap.xml`（含 xhtml alternate）
 - [x] `robots.txt`
 - [x] `llms.txt` + `llms-full.txt`
 - [x] 语义化 HTML；关键文案不依赖 JS 渲染
 
+## 发布状态
+
+- macOS：通过公开的 [`richcalls/stoatmd-community`](https://github.com/richcalls/stoatmd-community) Releases 下载；源码仓保持私有，该公开仓需至少有一个已发布 Release，`releases/latest` 才能解析
+- iOS：尚未上架；售价发布时公布
+- 问题反馈：公开仓的 Issues / Discussions；安全报告走私密披露
+- 页面上的 iPhone 价格使用「一次买断 / price at launch」，不要填入虚构数字
+
 ## 第三方许可
 
-字体授权见 `public/fonts/*OFL.txt`。保留的历史织线素材许可见 `public/vendor/pro-threads/LICENSE`（MIT © Kubai087）。
+字体授权见 `public/fonts/*OFL.txt`（Archivo、Newsreader、Noto Serif）。所有图标为项目内联 SVG；没有第三方脚本或 WebGL 素材。

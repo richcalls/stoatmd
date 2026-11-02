@@ -7,15 +7,22 @@ const locales = ["en", "zh-hans", "zh-hant", "ja", "ko", "de", "fr", "es"];
 
 // Capture through CDP: the browser's fullPage wrapper can alter mobile metrics.
 async function screenshot(page, path, fullPage = false) {
-  const clip = await page.evaluate((full) => ({
-    x: 0, y: 0, width: innerWidth,
-    height: full ? document.documentElement.scrollHeight : innerHeight,
-    scale: 1,
-  }), fullPage);
-  const { data } = await page.cdp('Page.captureScreenshot', {
-    format: 'png', captureBeyondViewport: true, clip,
+  const clip = await page.evaluate(
+    (full) => ({
+      x: 0,
+      y: 0,
+      width: innerWidth,
+      height: full ? document.documentElement.scrollHeight : innerHeight,
+      scale: 1,
+    }),
+    fullPage,
+  );
+  const { data } = await page.cdp("Page.captureScreenshot", {
+    format: "png",
+    captureBeyondViewport: true,
+    clip,
   });
-  await writeFile(path, Buffer.from(data, 'base64'));
+  await writeFile(path, Buffer.from(data, "base64"));
 }
 
 /** Run inside ego-browser nodejs; pass the goal's existing TaskSpace. */
@@ -30,6 +37,7 @@ export async function capturePreviews(
   await mkdir(reviewDir, { recursive: true });
   const assets = join(website, "public/assets");
   await mkdir(assets, { recursive: true });
+
   for (const locale of locales) {
     await page.cdp("Emulation.setDeviceMetricsOverride", {
       width: 1440,
@@ -45,10 +53,14 @@ export async function capturePreviews(
     });
     await page.goto(`${origin}${locale === "en" ? "/" : `/${locale}/`}`);
     await page.evaluate(async () => {
+      // Share cards are always light; the page tokens would otherwise follow
+      // the capture browser's dark mode and render light ink on white.
+      document.documentElement.dataset.theme = "light";
       await document.fonts.ready;
       document.getAnimations().forEach((animation) => animation.finish());
     });
     await screenshot(page, join(reviewDir, `${locale}-desktop.png`), true);
+
     await page.cdp("Emulation.setDeviceMetricsOverride", {
       width: 390,
       height: 844,
@@ -56,43 +68,89 @@ export async function capturePreviews(
       mobile: true,
     });
     await screenshot(page, join(reviewDir, `${locale}-mobile.png`), true);
-    // Compose the share card from the same localized heading, intro and notebook.
+
+    // Compose the 1200 × 630 share card from the same localized page.
     await page.cdp("Emulation.setDeviceMetricsOverride", {
       width: 1200,
       height: 630,
       deviceScaleFactor: 1,
       mobile: false,
     });
-    await page.evaluate(() => {
-      const brand = document.querySelector(".brand").cloneNode(true);
-      const heading = document.querySelector(".hero h1").cloneNode(true);
-      const intro = document.querySelector(".lead").cloneNode(true);
-      const notebook = document.querySelector(".app-window").cloneNode(true);
-      const card = document.createElement("div");
-      card.className = "share-card";
-      const copy = document.createElement("div");
-      copy.className = "share-copy";
-      copy.append(heading, intro);
-      card.append(brand, copy, notebook);
-      document.body.replaceChildren(card);
+    const built = await page.evaluate(() => {
+      const brand = document.querySelector(".brand")?.cloneNode(true);
+      const title = document.querySelector(".hero-title")?.cloneNode(true);
+      const lead = document.querySelector(".hero-lead")?.cloneNode(true);
+      const action = document
+        .querySelector(".hero-actions .btn")
+        ?.cloneNode(true);
+      const noteText =
+        document.querySelector(".hero-note")?.textContent?.trim() || "";
+      const reading = document.querySelector(".reading-view")?.cloneNode(true);
+      const filename =
+        document.querySelector(".filename")?.textContent?.trim() || "";
+      if (!brand || !title || !lead || !action || !reading) return false;
+
       const style = document.createElement("style");
       style.textContent = `
-        html,body {width:1200px;height:630px;overflow:hidden;scroll-behavior:auto}
-        .share-card {position:fixed;inset:0;background:var(--paper);overflow:hidden}
-        .share-card>.brand {position:absolute;top:52px;left:56px;font-size:26px}
-        .share-copy {position:absolute;left:56px;top:178px;width:450px}
-        .share-copy h1 {font:400 56px/1.12 var(--serif);letter-spacing:-.03em;text-wrap:balance}
-        .share-copy h1 span {color:var(--sage)}
-        :lang(zh) .share-copy h1,:lang(ja) .share-copy h1,:lang(ko) .share-copy h1 {font-size:62px;line-height:1.4}
-        .share-copy .lead {margin:28px 0 0;font-size:18px;max-width:405px;line-height:1.8}
-        .share-card>.app-window {position:absolute;left:548px;top:118px;width:900px;transform:scale(.68);transform-origin:top left;animation:none}
-        .share-card .app-body {grid-template-columns:205px minmax(0,1fr);min-height:550px}
-        .share-card .reading-view {padding:34px 40px}
-        .share-card .app-window {box-shadow:var(--window-shadow)}
+        html, body { margin:0 !important; padding:0 !important; overflow:hidden !important; width:1200px; height:630px; background:#fbfbf8; }
+        #og { position:fixed; inset:0; width:1200px; height:630px; padding:56px 64px 52px; display:grid; grid-template-columns:minmax(0,1fr) 428px; gap:56px; background:#fbfbf8; font-family:var(--font-ui); color:var(--ink); }
+        #og .og-left { display:flex; flex-direction:column; min-width:0; }
+        #og .brand { display:flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink); }
+        #og .brand-mark { width:28px; height:28px; }
+        #og .brand-word { font-size:20px; font-weight:600; letter-spacing:-.02em; line-height:1; }
+        #og .hero-title { margin:44px 0 0; max-width:640px; font-size:52px; font-weight:600; line-height:1.04; letter-spacing:-.035em; text-wrap:balance; }
+        #og .hero-lead { margin:20px 0 0; max-width:520px; color:var(--muted); font-size:17px; line-height:1.6; }
+        #og .og-bottom { margin-top:auto; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+        #og .og-bottom .btn { min-height:42px; padding:10px 16px; font-size:13px; }
+        #og .og-note { color:var(--muted); font-size:12px; line-height:1.5; max-width:230px; }
+        #og .og-preview { align-self:start; height:518px; overflow:hidden; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+        #og .og-bar { display:flex; justify-content:space-between; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line); color:var(--muted); font-family:var(--font-mono); font-size:10.5px; }
+        #og .og-preview .reading-view { padding:28px 30px 32px; }
+        #og .og-preview .doc-meta { margin-bottom:14px; font-size:9.5px; }
+        #og .og-preview .reading-view h2 { margin-bottom:14px; font-size:28px; line-height:1.18; }
+        #og .og-preview .reading-view p { margin-bottom:11px; font-size:12.5px; line-height:1.68; }
+        #og .og-preview .reading-view blockquote { margin:16px 0; padding-left:14px; font-size:14px; line-height:1.5; }
+        #og .og-preview .reading-view ul { gap:4px; margin:14px 0; padding-left:17px; }
+        #og .og-preview .reading-view li { font-size:11px; }
+        #og .og-preview .doc-ending { margin-top:16px !important; padding-top:12px; font-size:9.5px !important; }
       `;
-      document.head.append(style);
+      document.head.appendChild(style);
+
+      const og = document.createElement("div");
+      og.id = "og";
+      const left = document.createElement("div");
+      left.className = "og-left";
+      left.appendChild(brand);
+      left.appendChild(title);
+      left.appendChild(lead);
+
+      const bottom = document.createElement("div");
+      bottom.className = "og-bottom";
+      bottom.appendChild(action);
+      const note = document.createElement("span");
+      note.className = "og-note";
+      note.textContent = noteText;
+      bottom.appendChild(note);
+      left.appendChild(bottom);
+
+      const preview = document.createElement("div");
+      preview.className = "og-preview";
+      const bar = document.createElement("div");
+      bar.className = "og-bar";
+      const file = document.createElement("span");
+      file.textContent = filename;
+      bar.appendChild(file);
+      preview.appendChild(bar);
+      preview.appendChild(reading);
+      og.append(left, preview);
+
+      document.body.innerHTML = "";
+      document.body.appendChild(og);
       window.scrollTo(0, 0);
+      return { filename };
     });
+    if (!built) throw new Error(`Could not compose share card for ${locale}`);
+    await page.waitForTimeout(150);
     await screenshot(page, join(assets, `og-${locale}.png`));
     console.log(`Captured ${locale}: desktop, mobile, 1200 × 630 share card`);
   }

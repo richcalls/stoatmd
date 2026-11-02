@@ -1,19 +1,58 @@
 ---
 import type { Locale } from "../i18n";
-import { PAPER } from "../i18n/paper";
+import { SITE_COPY } from "../i18n/copy";
+import Icon from "./Icon.astro";
+
 const { locale } = Astro.props as { locale: Locale };
-const p = PAPER[locale];
+const p = SITE_COPY[locale];
+const r = p.release;
+
+/**
+ * Public download target. The community repository is public and hosts the
+ * signed macOS build in its Releases; the source repository stays private.
+ */
+const DOWNLOAD_URL =
+  "https://github.com/richcalls/stoatmd-community/releases/latest";
 ---
 
-<section class="release wrap" id="download" aria-labelledby="release-title">
-  <div>
-    <h2 id="release-title">{p.release.title}</h2>
-    <p>{p.release.body}</p>
-    <p>{p.release.ios}</p>
-  </div>
-  <div class="release-status">
-    <span class="status-dot"></span>
-    {p.release.soon}
-    <span class="system-requirement">macOS 14+</span>
+<section class="section" id="download" aria-labelledby="download-title">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="download-title">{r.title}</h2>
+      <p class="section-lead">{r.body}</p>
+    </div>
+
+    <div class="section-body">
+      <div class="download">
+        <div class="download-copy">
+          <a
+            class="btn"
+            href={DOWNLOAD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {r.mac}
+            <Icon name="down" size={14} />
+          </a>
+          <p class="download-note">{r.macNote}</p>
+          <p class="download-ios">{r.ios}</p>
+        </div>
+
+        <dl class="download-specs">
+          <div>
+            <dt>{p.pricing.desktop.label}</dt>
+            <dd>{p.pricing.desktop.name}</dd>
+          </div>
+          <div>
+            <dt>{p.pricing.desktop.unit}</dt>
+            <dd>{p.pricing.desktop.price}</dd>
+          </div>
+          <div>
+            <dt>{p.pricing.mobile.label}</dt>
+            <dd>{p.pricing.mobile.price}</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
   </div>
 </section>

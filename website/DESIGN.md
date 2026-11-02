@@ -1,55 +1,101 @@
-# 纸间 · 编辑部
+# Quiet
 
-以用户选定的第一版为基础，按 Impeccable 的 typography、polish、harden 指引打磨。产品事实以 [`docs/product/PRODUCT.md`](../docs/product/PRODUCT.md) 和同步专章为准。
+StoatMD 官网的视觉方向是**安静的排版**：白纸、墨字、细线，把注意力留给产品本身。没有纹理、胶带、印章、旋转纸张或装饰性插画；界面只做层级和留白。
 
-## 视觉与结构
+## 论点
 
-- 暖纸 `#f8f6f0`、墨色 `#2d302d`、鼠尾草绿 `#596b4d`；细线、低对比窗口投影。
-- Instrument Sans 用于导航和说明，Newsreader 用于拉丁衬线标题，Noto Serif 的四个地区字形用于中日韩。字体自托管，许可证随文件保留。
-- 顺序：写作主张 → 可交互笔记预览 → 简短利益点 → 自有云盘与 Agent → 四组核心功能 → 免费本机 / 买断同步 → 发布状态。
-- 保留普通 Markdown、三种视图、离线、25 套主题、字体设置、Drive / Dropbox、Agent 共用文件夹、冲突选择、本地免费与同步买断等产品观点。
-- Mac 安装包以“即将推出”呈现；iPhone / iPad 标为后续计划。售价随正式发布公布。
+笔记不是一个人写完的。StoatMD 的用法是**和 Agent 一起做笔记**：Agent 往文件夹里写初稿，你打开同一个文件夹阅读、编辑，再把下一轮交回去。页面因此把「一起做」的主张、一段说明和一个可读的笔记预览放在首屏，其余部分按证据、机制、能力、价格、下载依次展开。
 
-## 多语言与预览
+## 色板
 
-8 个语言路由共享版式，文案由 `src/i18n/paper.ts` 与 `details.ts` 管理。笔记内容、标题、侧栏、模式、保存状态与日期均随路由语言变化。
+颜色用 CSS `light-dark()` 定义，`color-scheme: light dark` 跟随系统；用户手动选择时在 `<html>` 上写 `data-theme="light|dark"` 覆盖。
 
-主预览采用 HTML 实现，支持三篇笔记和源码 / 分栏 / 阅读切换，标注为“界面示意”。它可随文案和屏幕宽度重新排版。真实应用截图加入官网时，应按相同语言矩阵提供资源，配套本地化替代文本。
+| Token | 浅色 | 深色 | 用途 |
+|-------|------|------|------|
+| `--bg` | `#fbfbf8` | `#121311` | 页面底色 |
+| `--surface` | `#ffffff` | `#191a17` | 预览卡、定价卡 |
+| `--surface-soft` | `#f6f5f1` | `#1f201c` | 源码视图、提示条 |
+| `--ink` | `#171815` | `#f1f0e9` | 标题、正文、主按钮 |
+| `--ink-soft` | `#3f423c` | `#d2d1c7` | 次级正文 |
+| `--muted` | `#6b6f66` | `#a3a69b` | 说明、元数据 |
+| `--line` | `#e4e3dc` | `#2c2e29` | 分隔线与描边 |
+| `--line-strong` | `#cfcdc4` | `#40433c` | 引用线、悬停下划线 |
+| `--accent` | `#24408f` | `#a8b9ea` | 选中笔记、焦点环 |
+| `--on-ink` | `#ffffff` | `#121311` | 墨色底上的文字 |
 
-手机端：760px 以下导航换行；480px 以下笔记侧栏变为横向三项选择。分栏模式在窄屏上下排列。所有预览文字均在静态 HTML 中，JavaScript 负责启用切换按钮。原生语言菜单支持键盘、Escape 和点击外部关闭；尊重减少动态效果设置。
+两套主题都保持正文与背景对比度 ≥ 4.5:1；标题与正文用墨色，说明文字用 `--muted`。全站只有一个强调色，不用于装饰。品牌标使用 `mask` + `var(--ink)`，随主题变色。
 
-## 更新图片
+## 字体
 
-分享图位于 `public/assets/og-{locale}.png`，各语言尺寸为 1200 × 630。生成器从对应语言页面提取标题、说明和产品预览，桌面与手机整页截图用于人工检查。
+- **Archivo** 400–800：界面、标题、按钮。可变字体，按拉丁 / 拉丁扩展两个 unicode-range 自托管。
+- **Newsreader** 400：阅读预览中的拉丁正文。
+- **Paper SC / TC / JP / KR**：阅读预览中的中日韩衬线，通过 `:lang()` 选择对应地区字形。
+- 界面中的中日韩文字回落到系统 UI 字体（PingFang / Hiragino / Apple SD Gothic Neo / Microsoft YaHei 等）。
+- 路径、日期、字数使用系统等宽字体，仅服务数据，不做装饰。
 
-先运行 `npm run build`，再在独立终端运行 `npm run preview -- --port 4322`。使用 ego-browser 技能开始一个截图目标，记录 TaskSpace ID；后续截图轮次复用该 ID：
+## 版面
+
+1. **顶栏**：64px 高，纸色半透明 + 细线底边。品牌、四个锚点、主题菜单、语言菜单、小型下载按钮。900px 以下隐藏下载按钮、两个菜单只留图标；760px 以下隐藏锚点；380px 以下进一步收紧内边距。
+2. **首屏**：两列（约 0.92 / 1.08），左列主张、导语、主按钮、说明与三篇 Agent 笔记索引；右列一张白底细线预览卡。
+   - 标题按第一句 / 第二句分成两行，第二句用 `--muted`，不做彩色强调。
+   - 笔记索引只有日期与标题；选中项标题变成强调色。
+3. **竞品对照**：真正的 `<table>`，细线行，StoatMD 行用浅底；移动端每行转成带 `data-label` 的定义列表。
+4. **机制**：四列，列顶一条墨色短线 + 序号 + 标题 + 说明；移动端堆叠。
+5. **能力**：序号 + 标题 + 说明的细线行，不是图标卡片。
+6. **定价**：一张白底圆角卡，两列（桌面 / iPhone），中间一条竖线；底部说明与 CTA。
+7. **下载**：左侧红色实心按钮改为墨色主按钮 + 说明；右侧四行规格表。
+8. **页脚**：细线顶边，品牌、说明、版权；右侧反馈链接与隐私 / 条款折叠。
+
+## 主题与语言
+
+- 默认跟随系统：`color-scheme: light dark` + `light-dark()`，不写 `data-theme`。
+- 顶栏主题菜单提供「跟随系统 / 浅色 / 深色」；选择写入 `localStorage["stoatmd.theme"]`，并在首屏渲染前用内联脚本应用到 `<html>`，避免闪白 / 闪黑。
+- 手动主题同时更新 `<meta name="theme-color">`（浅 `#fbfbf8` / 深 `#121311`）。
+- 语言默认跟随浏览器：首次访问 `/` 时按 `navigator.languages` 跳到对应语言路径；爬虫 UA 不跳转。用户手动选择后写入 `stoatmd.langPref` / `stoatmd.langTouched`，之后不再自动覆盖。
+- 主题与语言选择互不影响；`en` 的规范 URL 是 `/`，其余语言是 `/<locale>/`。
+
+## 交互
+
+- 三篇笔记切换：左列索引与右列预览共享 `data-note`；切换时同步文件名与 `AGENT / 字数`。
+- 三种视图：`data-view="source|split|read"`；分栏只对当前可见的 `.note-panel:not([hidden])` 启用网格。
+- 键盘：笔记组支持 ArrowUp / ArrowDown；所有按钮有 `:focus-visible` 强调色描边。
+- 菜单：`<details>` 原生展开；点击外部或按 Escape 关闭；当前项用 `aria-pressed` / `aria-current` 标记。
+- 无 JavaScript：默认显示第一篇的阅读视图；切换按钮以 `disabled` 输出；主题与语言降级为系统默认。
+- 动效：只有 150ms 的颜色 / 边框过渡；没有入场动画。`prefers-reduced-motion` 全部关闭。
+
+## 响应式
+
+- `≤1000px`：两列间距收紧，标题略小。
+- `≤900px`：顶栏下载按钮与主题 / 语言菜单的文字标签隐藏，避免长语言（de / fr / es）挤压导航。
+- `≤880px`：首屏单列，预览在索引之后；机制两列；下载单列；阅读区高度 440px。
+- `≤760px`：隐藏顶栏锚点；对照表转定义列表；定价与机制堆叠；预览分栏在窄屏改为上下。
+- `≤560px`：语言菜单只留图标；主按钮全宽；预览工具栏换成两行；阅读区内边距收紧。
+- `≤380px`：顶栏只留品牌与两个图标菜单；日文标题缩到 1.7rem，避免片假名断行。
+
+## 分享图
+
+`public/assets/og-{locale}.png`，1200 × 630。由 `scripts/capture-previews.mjs` 从当前语言页面克隆品牌、标题、导语、按钮和第一篇阅读页，排成白底细线的分享卡（分享图固定浅色，不随访客主题变化）。文案改动后重新生成。
 
 ```js
-// 在 ego-browser nodejs 中执行，替换绝对路径与已有 TaskSpace ID。
+// 在 ego-browser nodejs 中运行；origin 指向本地 preview。
 const task = await taskSpace(existingSpaceId);
-const { capturePreviews } = await import('file:///absolute/path/to/website/scripts/capture-previews.mjs');
+const { capturePreviews } = await import(
+  "file:///absolute/path/to/website/scripts/capture-previews.mjs"
+);
 await capturePreviews(task, {
-  origin: 'http://localhost:4322',
-  reviewDir: '/tmp/stoatmd-website-shots',
+  origin: "http://localhost:4321",
+  reviewDir: "/tmp/stoatmd-website-shots",
 });
-// 完成当前目标的全部浏览器检查后调用一次。
 await task.finish({ keep: [] });
 ```
 
-生成器会在预览站点记录英语偏好，稳定截取 `/`。该偏好仅影响此本地站点。文案改动后重新生成分享图，再构建一次，让图片进入 `dist/`。
-
-## 更新字体子集
-
-新增中日韩文案后，运行以下命令刷新地区衬线字形：
-
-```sh
-python3 -m venv /tmp/stoatmd-font-tools
-/tmp/stoatmd-font-tools/bin/pip install 'fonttools[woff]'
-/tmp/stoatmd-font-tools/bin/python website/scripts/subset-fonts.py
-```
-
-脚本从两个文案文件收集字符，通过 Google Fonts 获取 Noto Serif 的地区字体并转为 WOFF2。字体子集生成后提交资源文件，构建环境可直接使用。刷新已有字体文件时同步刷新 CDN 缓存。
+脚本同时输出八种语言的桌面 / 手机整页截图到 `reviewDir`，用于人工检查。
 
 ## 验证
 
-运行 `npm run check` 和 `npm run build`；检查八种语言在 320 / 390 / 768 / 1440px 的布局，并切换所有笔记和视图。复核长文本、地区字形、语言偏好、锚点、分享图与本地资源链接。
+```sh
+npm run check
+npm run build
+```
+
+检查 320 / 390 / 768 / 1440px；八种语言；三篇笔记；三种视图；键盘与减少动效；分享图尺寸；语言菜单与锚点。注意 320px 下德语 / 法语长标题、日文片假名断行与顶栏是否溢出。

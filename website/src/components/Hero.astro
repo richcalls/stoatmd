@@ -1,27 +1,55 @@
 ---
 import { localePath, type Locale } from "../i18n";
-import { PAPER } from "../i18n/paper";
+import { SITE_COPY } from "../i18n/copy";
 import Icon from "./Icon.astro";
+
 const { locale } = Astro.props as { locale: Locale };
-const p = PAPER[locale];
+const p = SITE_COPY[locale];
+
+function splitTitle(title: string): [string, string] {
+  const sentence = title.match(/^(.+?[.。])\s*(.+)$/);
+  if (sentence) return [sentence[1]!, sentence[2]!];
+  const clause = title.match(/^(.+?[、,，])\s*(.+)$/);
+  if (clause) return [clause[1]!, clause[2]!];
+  return [title, ""];
+}
+
+const [titleA, titleB] = splitTitle(p.hero.title);
 ---
 
-<section class="hero wrap" aria-labelledby="hero-title">
-  <h1 id="hero-title">
-    {p.hero[0]}
-    <br />
-    <span>{p.hero[1]}</span>
+<div class="hero-copy">
+  <h1 class="hero-title" id="hero-title">
+    {titleA}{titleB && <span class="hero-title-second">{titleB}</span>}
   </h1>
-  <p class="lead">{p.intro}</p>
+
+  <p class="hero-lead">{p.hero.lead}</p>
+
   <div class="hero-actions">
-    <a class="btn btn-primary" href={localePath(locale, "#download")}>
-      {p.cta[0]}
-      <Icon name="down" size={17} />
+    <a class="btn" href={localePath(locale, "#download")}>
+      {p.hero.primary}
+      <Icon name="down" size={14} />
     </a>
-    <a class="text-link" href={localePath(locale, "#features")}>
-      {p.cta[1]}
-      <Icon name="arrow" size={17} />
-    </a>
+    <span class="hero-secondary">{p.hero.secondary}</span>
   </div>
-  <p class="hero-note">{p.note}</p>
-</section>
+
+  <p class="hero-note">{p.hero.note}</p>
+
+  <div class="notes">
+    <p class="notes-label">{p.log.label}</p>
+    <div class="note-list" role="group" aria-label={p.log.label}>
+      {p.log.notes.map((note, index) => (
+        <button
+          class="note-button"
+          type="button"
+          data-note={index}
+          aria-pressed={index === 0}
+          title={note.title}
+          disabled
+        >
+          <span class="note-date">{note.date}</span>
+          <span class="note-title">{note.title}</span>
+        </button>
+      ))}
+    </div>
+  </div>
+</div>

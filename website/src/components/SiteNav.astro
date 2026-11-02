@@ -1,57 +1,92 @@
 ---
-import { LOCALES, LOCALE_META, localePath, type Locale, t } from "../i18n";
-import { PAPER } from "../i18n/paper";
+import { LOCALES, LOCALE_META, localePath, type Locale } from "../i18n";
+import { SITE_COPY } from "../i18n/copy";
 import Icon from "./Icon.astro";
+
 const { locale } = Astro.props as { locale: Locale };
-const m = t(locale);
-const p = PAPER[locale];
+const p = SITE_COPY[locale];
 ---
 
-<a class="skip-link" href="#top">
-  {p.skip}
-</a>
-<header class="nav wrap">
-  <a class="brand" href={localePath(locale)} aria-label="StoatMD">
-    <img src="/assets/mark.svg" width="36" height="36" alt="" />
-    <span>
-      Stoat<span class="md">MD</span>
-    </span>
-  </a>
-  <nav class="nav-links" aria-label={m["a11y.primaryNav"]}>
-    {p.nav.map((label, i) => (
-      <a href={localePath(locale, ["#features", "#sync", "#pricing"][i]!)}>
-        {label}
-      </a>
-    ))}
-  </nav>
-  <div class="nav-tools">
-    <details class="language-picker" id="languagePicker">
-      <summary aria-label={m["a11y.lang"]}>
-        <Icon name="globe" size={17} />
-        <span>{LOCALE_META[locale].label}</span>
-        <Icon name="chevron" size={13} />
-      </summary>
-      <div class="language-options">
-        <button type="button" data-lang="system">
-          {m["lang.system"]}
-        </button>
-        {LOCALES.map((loc) => (
-          <a
-            href={localePath(loc)}
-            data-lang={loc}
-            lang={LOCALE_META[loc].htmlLang}
-            hreflang={LOCALE_META[loc].htmlLang}
-            aria-current={loc === locale ? "page" : undefined}
-          >
-            {LOCALE_META[loc].label}
-            {loc === locale && <Icon name="check" size={16} />}
-          </a>
-        ))}
-      </div>
-    </details>
-    <a class="nav-cta" href={localePath(locale, "#download")}>
-      macOS
-      <Icon name="arrow" size={15} />
+<a class="skip-link" href="#top">{p.a11y.skip}</a>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href={localePath(locale)} aria-label="StoatMD">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-word">Stoat<span class="md">MD</span></span>
     </a>
+
+    <nav class="site-nav" aria-label={p.a11y.nav}>
+      <a href={localePath(locale, "#why")}>{p.nav.why}</a>
+      <a href={localePath(locale, "#features")}>{p.nav.features}</a>
+      <a href={localePath(locale, "#pricing")}>{p.nav.pricing}</a>
+      <a href={localePath(locale, "#download")}>{p.nav.download}</a>
+    </nav>
+
+    <div class="header-tools">
+      <details class="picker theme-menu" id="themePicker">
+        <summary aria-label={p.theme.label} title={p.theme.label}>
+          <svg
+            class="theme-icon"
+            viewBox="0 0 16 16"
+            width="14"
+            height="14"
+            aria-hidden="true"
+          >
+            <circle
+              cx="8"
+              cy="8"
+              r="5.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+            ></circle>
+            <path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"></path>
+          </svg>
+          <span class="theme-name" data-theme-current>{p.theme.system}</span>
+          <span class="chev"><Icon name="chevron" size={12} /></span>
+        </summary>
+        <div class="picker-options theme-options">
+          <button type="button" data-theme-pref="system">
+            {p.theme.system}
+          </button>
+          <button type="button" data-theme-pref="light">
+            {p.theme.light}
+          </button>
+          <button type="button" data-theme-pref="dark">
+            {p.theme.dark}
+          </button>
+        </div>
+      </details>
+
+      <details class="picker lang-menu" id="languagePicker">
+        <summary aria-label={p.a11y.lang}>
+          <Icon name="globe" size={14} />
+          <span class="lang-name">{LOCALE_META[locale].label}</span>
+          <span class="chev"><Icon name="chevron" size={12} /></span>
+        </summary>
+        <div class="picker-options lang-options">
+          <button type="button" data-lang="system">
+            {p.footer.system}
+          </button>
+          {LOCALES.map((loc) => (
+            <a
+              href={localePath(loc)}
+              data-lang={loc}
+              lang={LOCALE_META[loc].htmlLang}
+              hreflang={LOCALE_META[loc].htmlLang}
+              aria-current={loc === locale ? "page" : undefined}
+            >
+              {LOCALE_META[loc].label}
+              {loc === locale && <Icon name="check" size={14} />}
+            </a>
+          ))}
+        </div>
+      </details>
+
+      <a class="header-cta" href={localePath(locale, "#download")}>
+        {p.nav.cta}
+        <Icon name="down" size={12} />
+      </a>
+    </div>
   </div>
 </header>
