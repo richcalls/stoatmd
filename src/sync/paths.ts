@@ -1,4 +1,5 @@
 import { normalizeVaultPath } from "../ui/vaultModel";
+import type { ProviderId } from "./types";
 
 /** 同步路径统一成 NFC + POSIX 分隔，并去掉首尾斜杠。 */
 export function normalizeSyncPath(path: string): string {
@@ -51,4 +52,13 @@ export function relativeToRoot(rootPath: string, absolute: string): string | nul
   if (full === root) return "";
   if (!full.startsWith(root + "/")) return null;
   return full.slice(root.length + 1);
+}
+
+/** 用户复制云盘笔记路径时使用的稳定显示路径，不暴露本机离线缓存位置。 */
+export function remoteNotePath(provider: ProviderId, rootPath: string, notePath: string): string {
+  const providerName = provider === "google" ? "Google Drive" : "Dropbox";
+  return [providerName, rootPath, notePath]
+    .map(normalizeSyncPath)
+    .filter(Boolean)
+    .join("/");
 }

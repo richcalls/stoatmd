@@ -5,6 +5,7 @@ import { Menu, Window } from "nsh/desktop";
 import { Vault, VaultDialog, type VaultEntryDto } from "stoatmd/native";
 import { activeStorage, readActiveStorage, storageBusy } from "../storage/state";
 import { syncRuntime } from "../sync/runtime";
+import { remoteNotePath } from "../sync/paths";
 import { ArticleInspector, type InspectorTab } from "./ArticleInspector";
 import { articleModel, type OutlineEntry } from "./articleModel";
 import { ConflictDialog } from "./ConflictDialog";
@@ -471,9 +472,15 @@ export function MacShell() {
 
   const copyNotePath = async (v: Vault, id: string, relative: boolean) => {
     try {
-      const text = relative ? normalizeVaultPath(id) : v.absolute(id);
+      const connection = syncRuntime.connection();
+      const cloud = !relative && connection?.localRoot === v.root ? connection : null;
+      const text = relative
+        ? normalizeVaultPath(id)
+        : cloud
+          ? remoteNotePath(cloud.provider, cloud.remotePath, id)
+          : v.absolute(id);
       await Clipboard.writeText(text);
-      status.set(t(relative ? "context.copiedRelative" : "context.copiedPath"));
+      status.set(t(relative ? "context.copiedRelative" : cloud ? "context.copiedCloudPath" : "context.copiedPath"));
     } catch (err) {
       status.set(String(err));
     }
@@ -491,6 +498,7 @@ export function MacShell() {
     const v = vault();
     if (!v) return;
     const mac = platform.os === "macos";
+    const cloud = syncRuntime.connection()?.localRoot === v.root;
     void Menu.popup(
       [
         {
@@ -505,7 +513,7 @@ export function MacShell() {
           onSelect: () => revealNote(v, id),
         },
         {
-          label: t("context.copyPath"),
+          label: t(cloud ? "context.copyCloudPath" : "context.copyPath"),
           onSelect: () => {
             void copyNotePath(v, id, false);
           },
