@@ -188,9 +188,9 @@ Mac 两栏主界面（浅/深）+ 折叠态 + iPhone 编辑 + Mac 设置（主�
 - 相对时间（今天 / 昨天 / N 分钟前）改走文案表，日期与时刻用各语言的 Intl 写法（如 `2. Jan.`、`1月2日`）。
 - 冲突徽标由「数字 + 单词」改为整句模板 `{n}`，避免韩语等语序不自然。
 
-## 决策记录 · 主题收敛为 Rex 两套（forecho · 2026-11-03）
+## 决策记录 · 主题扩展为 Rex 20 套（forecho · 2026-11-03）
 
-- 主题采用本机 Rex Beta 的 **Merino Light** 与 **Silver Point Dark** 两套内置颜色，默认 Merino Light；完整 token 在 `src/ui/theme.ts`。
+- 主题采用本机 Rex Beta 的 20 套内置颜色（10 浅色 / 10 深色），默认 Merino Light；完整 token 在 `src/ui/theme.ts`。
 - 界面 surface 使用 Rex 的中性灰阶层次；正文、引用、行内代码和代码块使用中性色，标题和链接保留轻量强调色。
 - `accentInk` 继续为强调色背景提供可读文字色；设置、同步与空态按钮统一读取它。
 - 软件尚未发布，直接移除旧主题 id，不保留兼容映射；未知值回落 Merino Light。
