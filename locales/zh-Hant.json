@@ -251,6 +251,8 @@
   "mobile.read": "閱讀",
   "mobile.actions": "更多",
   "mobile.writeHint": "開始用 Markdown 寫作…",
+  "mobile.imagePending": "圖片尚未同步到這台裝置",
+  "mobile.imageFailed": "圖片載入失敗",
   "mobile.selectNote": "選擇一篇筆記",
   "mobile.emptyHint": "建立一篇筆記，開始記錄。",
   "mobile.loading": "正在開啟筆記庫…",

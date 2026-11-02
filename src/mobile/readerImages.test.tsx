@@ -23,6 +23,14 @@ test("图片路径：带 scheme 的地址原样保留，查询串与锚点去掉
   expect(resolveImageSrc("my%20pic.png", "note.md", ROOT)).toBe("/cache/vault/my pic.png");
 });
 
+test("图片路径：笔记目录找不到时回退到库根，反斜杠按分隔符处理", () => {
+  const files = new Set(["/cache/vault/attachments/a.png"]);
+  const exists = (rel: string) => files.has(`/cache/vault/${rel}`);
+  expect(resolveImageSrc("attachments/a.png", "日记/note.md", ROOT, exists)).toBe("/cache/vault/attachments/a.png");
+  expect(resolveImageSrc("missing.png", "日记/note.md", ROOT, exists)).toBe("/cache/vault/日记/missing.png");
+  expect(resolveImageSrc("images\\a.png", "note.md", ROOT)).toBe("/cache/vault/images/a.png");
+});
+
 const image = (src: string) => ({ type: "image", src, alt: "图" }) as const;
 
 test("摘图：段落里的图片连同链接包着的图片都摘出来，文字保留", () => {

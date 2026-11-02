@@ -251,6 +251,8 @@
   "mobile.read": "阅读",
   "mobile.actions": "更多",
   "mobile.writeHint": "开始用 Markdown 写作…",
+  "mobile.imagePending": "图片尚未同步到这台设备",
+  "mobile.imageFailed": "图片加载失败",
   "mobile.selectNote": "选择一篇笔记",
   "mobile.emptyHint": "创建一篇笔记，开始记录。",
   "mobile.loading": "正在打开笔记库…",

@@ -23,7 +23,7 @@ import { LINE_HEIGHT_MAX, LINE_HEIGHT_MIN, LINE_HEIGHT_STEP, applyEditorFontSize
 import { formatDateTime, formatWhen, titleFromName } from "../ui/vaultModel";
 import { mobileLibrary, type MobileLibrary } from "./library";
 import { flattenTree } from "./libraryTree";
-import { resolveImageSrc, stripImages } from "./readerImages";
+import { imageRelPath, resolveImageSrc, stripImages } from "./readerImages";
 import { MOBILE_THEMES, glass, mobileColors, mobileIsDark, mobileThemeId, type MobileTheme } from "./palette";
 import { syncStatus } from "./syncStatus";
 
@@ -286,14 +286,33 @@ function ConnectPage(props: { loading: boolean; error: string; onRetry: () => vo
   </Scroll>;
 }
 
+/** 加载失败的图片来源；放在模块级，避免组件重渲染时信号被重置又去重试、来回闪。 */
+const failedImages = signal<Record<string, true>>({});
+
 /** 阅读页图片：按原始宽高比铺满正文宽度；onLoad 之前先占位，避免列表高度跳动。 */
 function ReaderImage(props: { src: string; alt?: string; width?: number | `${number}%`; height?: number | `${number}%` }) {
   const ratio = signal<number | null>(null);
+  if (failedImages()[props.src]) return <ReaderImageNotice alt={props.alt} hint={t("mobile.imageFailed")} testID="mobile-image-failed" />;
   return <Image src={props.src} accessibilityLabel={props.alt} resizeMode="contain"
     onLoad={size => { if (size.width > 0 && size.height > 0) ratio.set(size.width / size.height); }}
+    onError={() => failedImages.set({ ...failedImages(), [props.src]: true })}
     style={{ width: props.width ?? "100%", maxWidth: "100%",
       ...(props.height ? { height: props.height } : ratio() ? { aspectRatio: ratio()! } : { height: 140 }),
       borderRadius: 6, backgroundColor: mobileColors().thread }} />;
+}
+
+/**
+ * 图片没法显示时的占位。
+ * nsh 的 <Image> 加载失败后不会自动重试（同一 source 直接跳过），
+ * 所以附件还没同步到本机时先不挂 <Image>，等库 generation 变化后再首次挂载。
+ */
+function ReaderImageNotice(props: { alt?: string; hint: string; testID?: string }) {
+  return <View testID={props.testID} style={{ width: "100%", minHeight: 140, borderRadius: 6, backgroundColor: mobileColors().thread,
+    alignItems: "center", justifyContent: "center", paddingHorizontal: 16, paddingVertical: 20 }}>
+    <Text style={{ fontSize: 13, lineHeight: 18, textAlign: "center", color: mobileColors().ink3 }}>
+      {props.alt ? `${props.alt} · ${props.hint}` : props.hint}
+    </Text>
+  </View>;
 }
 
 function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeChrome: boolean; initialTab?: Tab; settingsTap?: boolean; onStorageActivated: (root: string) => Promise<void> }) {
@@ -470,6 +489,8 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     await syncRuntime.syncNow();
     const failure = syncRuntime.error();
     syncFails.set(!failure || failure.kind !== "network" ? 0 : manual ? SYNC_ERROR_AFTER : syncFails() + 1);
+    // 附件随同同步下载；bump 让阅读页重新检查图片文件是否已就位。
+    lib.bump();
     await lib.reconcile();
   };
   const shownSyncError = (): SyncErrorView | null => {
@@ -582,11 +603,19 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
       {(block, index) => {
         const stripped = stripImages(block());
         const root = lib.vault.root;
+        const notePath = lib.note()?.path ?? "";
+        // 订阅库版本：同步下载附件后重新判断文件是否就位。
+        lib.generation();
+        const exists = lib.vault.mtime
+          ? (rel: string) => { try { lib.vault.mtime!(rel); return true; } catch { return false; } }
+          : undefined;
         return <View style={{ paddingTop: previewGap(index() > 0 ? model().blocks[index() - 1] : undefined, block(), fontSize() / 15),
           backgroundColor: finding() && currentBlock() === index() ? mobileColors().accentSoft : "transparent" }}>
           <TextView document={{ blocks: [displayBlock(stripped.block, renderMode())] }} selectable links="open" onLinkPress={event => onLink(event.url)} styles={readerStyles()} />
           {stripped.images.map(image => {
-            const src = root ? resolveImageSrc(image.src, lib.note()?.path ?? "", root) : image.src;
+            const rel = root && exists ? imageRelPath(image.src, notePath, exists) : null;
+            if (root && exists && rel && !exists(rel)) return <ReaderImageNotice alt={image.alt} hint={t("mobile.imagePending")} testID="mobile-image-pending" />;
+            const src = root ? resolveImageSrc(image.src, notePath, root, exists) : image.src;
             return <ReaderImage src={src} alt={image.alt} width={image.width} height={image.height} />;
           })}
         </View>;
