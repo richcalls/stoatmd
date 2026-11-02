@@ -17,6 +17,7 @@
     "host": [
       "settings"
     ],
+    "clipboard": true,
     "openUrl": {
       "schemes": ["https", "http", "mailto", "tel"]
     },

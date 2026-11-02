@@ -299,10 +299,14 @@ export function Sidebar(props: Props) {
                 paddingLeft: 5 + row().depth * 12,
                 paddingRight: 7,
                 borderRadius: 6,
-                borderWidth: 1,
-                borderColor: selected() ? chromeColors().selectionEdge : "transparent",
+                // Keep the selected row flat against the sidebar. A full
+                // border plus shadow produced dark vertical bands at both
+                // sides of the row, especially while the list was clipped.
+                borderWidth: 0,
+                borderBottomWidth: selected() ? 1 : 0,
+                borderBottomColor: selected() ? chromeColors().selectionEdge : "transparent",
                 backgroundColor: selected() ? chromeColors().selection : "transparent",
-                boxShadow: selected() ? "0 1px 2px rgba(0,0,0,0.03)" : "none",
+                boxShadow: "none",
               }}
             >
               <If when={isFolder()}>

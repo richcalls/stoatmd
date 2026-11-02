@@ -36,6 +36,7 @@ function connectionFor(root: string): SyncConnection {
 type Calls = {
   inventories: number;
   uploads: { path: string; existing: RemoteFile | null }[];
+  removals: { path: string; id: string; rev: string }[];
 };
 
 function fakeProvider(calls: Calls, failure: () => Error | null = () => null): SyncProvider {
@@ -45,6 +46,11 @@ function fakeProvider(calls: Calls, failure: () => Error | null = () => null): S
     inventory: async () => {
       calls.inventories += 1;
       return { files: [] as RemoteFile[], directories: [] as string[] };
+    },
+    remove: async (file: RemoteFile) => {
+      calls.removals.push({ path: file.path, id: file.id, rev: file.rev });
+      const error = failure();
+      if (error) throw error;
     },
     uploadBytes: async (
       _root: unknown,
@@ -93,7 +99,7 @@ async function baseEntry(path: string) {
 }
 
 test("单文件推送：新文件直接上传，不列远端目录，并写入锚点", async () => {
-  const calls: Calls = { inventories: 0, uploads: [] };
+  const calls: Calls = { inventories: 0, uploads: [], removals: [] };
   const { vault, restore } = await setup(calls);
   try {
     vault.createBytes("a.md", new TextEncoder().encode("hello"));
@@ -115,7 +121,7 @@ test("单文件推送：新文件直接上传，不列远端目录，并写入�
 });
 
 test("单文件推送：再次保存用锚点 rev 条件更新，仍然不列目录", async () => {
-  const calls: Calls = { inventories: 0, uploads: [] };
+  const calls: Calls = { inventories: 0, uploads: [], removals: [] };
   const { vault, restore } = await setup(calls);
   try {
     vault.createBytes("a.md", new TextEncoder().encode("hello"));
@@ -135,7 +141,7 @@ test("单文件推送：再次保存用锚点 rev 条件更新，仍然不列目
 });
 
 test("单文件推送：远端版本已变时不覆盖，交回全量同步", async () => {
-  const calls: Calls = { inventories: 0, uploads: [] };
+  const calls: Calls = { inventories: 0, uploads: [], removals: [] };
   let fail = false;
   const { vault, restore } = await setup(calls, () =>
     fail ? new RemoteConflictError("remote changed", "a.md") : null,
@@ -159,7 +165,7 @@ test("单文件推送：远端版本已变时不覆盖，交回全量同步", as
 });
 
 test("单文件推送：本地文件已删除时交回全量同步", async () => {
-  const calls: Calls = { inventories: 0, uploads: [] };
+  const calls: Calls = { inventories: 0, uploads: [], removals: [] };
   const { vault, restore } = await setup(calls);
   try {
     vault.createBytes("gone.md", new TextEncoder().encode("bye"));
@@ -177,7 +183,7 @@ test("单文件推送：本地文件已删除时交回全量同步", async () =>
 });
 
 test("单文件推送：冲突未解决时不写入云端", async () => {
-  const calls: Calls = { inventories: 0, uploads: [] };
+  const calls: Calls = { inventories: 0, uploads: [], removals: [] };
   const { vault, restore } = await setup(calls);
   try {
     syncRuntime.phase.set("conflict");
@@ -190,6 +196,76 @@ test("单文件推送：冲突未解决时不写入云端", async () => {
     expect(syncRuntime.phase()).toBe("conflict");
   } finally {
     syncRuntime.phase.set("synced");
+    await restore();
+  }
+});
+
+test("删除推送：用锚点删远端并清掉锚点，不列目录", async () => {
+  const calls: Calls = { inventories: 0, uploads: [], removals: [] };
+  const { vault, restore } = await setup(calls);
+  try {
+    vault.createBytes("a.md", new TextEncoder().encode("hello"));
+    await syncRuntime.pushPaths(["a.md"]);
+    vault.delete("a.md");
+
+    const result = await syncRuntime.pushDeletions(["a.md"]);
+
+    expect(result?.deletedRemote).toBe(1);
+    expect(calls.removals).toEqual([{ path: "a.md", id: "id-a.md", rev: "1" }]);
+    expect(calls.inventories).toBe(0);
+    expect(await baseEntry("a.md")).toBe(undefined);
+    expect(syncRuntime.phase()).toBe("synced");
+  } finally {
+    await restore();
+  }
+});
+
+test("删除推送：从没同步过的路径不访问云端", async () => {
+  const calls: Calls = { inventories: 0, uploads: [], removals: [] };
+  const { restore } = await setup(calls);
+  try {
+    const result = await syncRuntime.pushDeletions(["never.md"]);
+
+    expect(result?.deletedRemote).toBe(0);
+    expect(calls.removals.length).toBe(0);
+  } finally {
+    await restore();
+  }
+});
+
+test("删除推送：云端也被改过时留锚点交回全量同步", async () => {
+  const calls: Calls = { inventories: 0, uploads: [], removals: [] };
+  let fail = false;
+  const { vault, restore } = await setup(calls, () =>
+    fail ? new RemoteConflictError("remote changed", "a.md") : null,
+  );
+  try {
+    vault.createBytes("a.md", new TextEncoder().encode("hello"));
+    await syncRuntime.pushPaths(["a.md"]);
+    fail = true;
+
+    const result = await syncRuntime.pushDeletions(["a.md"]);
+
+    expect(result?.needsFullSync).toBe(true);
+    expect(result?.deletedRemote).toBe(0);
+    expect((await baseEntry("a.md")).remoteRev).toBe("1");
+  } finally {
+    await restore();
+  }
+});
+
+test("后台静默推送失败不写全局错误，也不改同步状态", async () => {
+  const calls: Calls = { inventories: 0, uploads: [], removals: [] };
+  const { vault, restore } = await setup(calls, () => new Error("offline"));
+  try {
+    vault.createBytes("a.md", new TextEncoder().encode("hello"));
+
+    const result = await syncRuntime.pushPaths(["a.md"], true);
+
+    expect(result?.ok).toBe(false);
+    expect(syncRuntime.error()).toBe(null);
+    expect(syncRuntime.phase()).toBe("synced");
+  } finally {
     await restore();
   }
 });

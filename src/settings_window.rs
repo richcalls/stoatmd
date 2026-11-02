@@ -253,7 +253,8 @@ mod macos {
                 let style = NSWindowStyleMask::Titled
                     | NSWindowStyleMask::Closable
                     | NSWindowStyleMask::Miniaturizable
-                    | NSWindowStyleMask::Resizable;
+                    | NSWindowStyleMask::Resizable
+                    | NSWindowStyleMask::FullSizeContentView;
                 let window = unsafe {
                     NSWindow::initWithContentRect_styleMask_backing_defer(
                         NSWindow::alloc(mtm),
@@ -263,6 +264,9 @@ mod macos {
                         false,
                     )
                 };
+                // Let the settings surface provide the titlebar material so AppKit's
+                // native controls sit on the same light/dark chrome as the content.
+                window.setTitlebarAppearsTransparent(true);
                 unsafe { window.setReleasedWhenClosed(false) };
                 window.setTitle(&NSString::from_str(&title));
                 window.setContentMinSize(NSSize::new(680., 480.));

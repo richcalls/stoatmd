@@ -1,19 +1,11 @@
 ---
 import type { Locale } from "../i18n";
 import { SITE_COPY } from "../i18n/copy";
-import Icon from "./Icon.astro";
+import DownloadCta from "./DownloadCta.astro";
 
 const { locale } = Astro.props as { locale: Locale };
 const p = SITE_COPY[locale];
 const r = p.release;
-
-/**
- * Public download target. The community repository is public and hosts the
- * signed macOS build in its Releases; the source repository stays private.
- * Windows and Linux builds will land in the same Releases page later.
- */
-const DOWNLOAD_URL =
-  "https://github.com/richcalls/stoatmd-community/releases/latest";
 ---
 
 <section class="section" id="download" aria-labelledby="download-title">
@@ -26,15 +18,7 @@ const DOWNLOAD_URL =
     <div class="section-body">
       <div class="download">
         <div class="download-copy">
-          <a
-            class="btn"
-            href={DOWNLOAD_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {r.mac}
-            <Icon name="arrow" size={14} />
-          </a>
+          <DownloadCta mac={r.mac} soon={r.soon} ios={r.ios} iconName="arrow" />
           <p class="download-note">{r.macNote}</p>
           <p class="download-platforms">{r.platforms}</p>
           <p class="download-ios">{r.ios}</p>

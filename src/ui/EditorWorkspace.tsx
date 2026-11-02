@@ -145,6 +145,11 @@ export function EditorWorkspace(props: Props) {
   const findResult = signal<EditorSearchResult>({ count: 0, current: null });
   const findFocused = signal(false);
   let editor: EditorRef | null = null;
+  // macOS sends Command editing keystrokes through the application keymap
+  // before the native editor receives them. Keep the focused state so the
+  // fallback bindings only act on the document editor, while find inputs keep
+  // their own native editing behavior.
+  const editorFocused = signal(false);
   let findInput: YNode | null = null;
   let findGeneration = 0;
   let selectPending = false;
@@ -196,6 +201,16 @@ export function EditorWorkspace(props: Props) {
   keymap.bind(shortcuts.open, openFind, { when: "always" });
   keymap.bind(shortcuts.next, () => moveMatch(true), { when: "always" });
   keymap.bind(shortcuts.previous, () => moveMatch(false), { when: "always" });
+  effect(() => {
+    if (!editorFocused()) return;
+    const off = keymap.bind({
+      "mod+a": () => editor?.run("selectAll"),
+      "mod+c": () => editor?.run("copy"),
+      "mod+x": () => editor?.run("cut"),
+      "mod+v": () => editor?.run("paste"),
+    }, { when: "always" });
+    cleanup(off);
+  });
   effect(() => {
     if (!findOpen() || props.searchEnabled === false) return;
     const off = keymap.bind("escape", closeFind, { when: "always" });
@@ -320,8 +335,8 @@ export function EditorWorkspace(props: Props) {
           value={props.source}
           readOnly={props.readOnly}
           onChange={props.onChange}
-          onFocus={() => markEditorFocus(true)}
-          onBlur={() => markEditorFocus(false)}
+          onFocus={() => { editorFocused.set(true); markEditorFocus(true); }}
+          onBlur={() => { editorFocused.set(false); markEditorFocus(false); }}
           search={findOpen() ? { query: findQuery() } : null}
           onSearchChange={onSearchChange}
           onFindWithSelection={(query) => {

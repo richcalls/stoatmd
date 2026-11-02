@@ -38,7 +38,7 @@ The comparison on the website is about the sync and agent path, not a feature ch
 
 ## Release status (as of 2026-11)
 
-- macOS: downloadable through the public GitHub Releases page of `richcalls/stoatmd-community` (that repository hosts builds and issues; the source repository is private).
+- macOS: downloadable through the public GitHub Releases page of `richcalls/stoatmd-community`; the fixed installer is `releases/latest/download/StoatMD-macos.dmg`, requiring macOS 14+ on Apple Silicon. (That repository hosts builds and issues; the source repository is private.)
 - Windows / Linux: builds are planned; do not link to or imply an existing installer yet.
 - iOS: not listed in the App Store yet.
 - Do not fabricate an App Store link, release date, user count, testimonial, benchmark, or iPhone price.

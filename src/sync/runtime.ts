@@ -297,8 +297,8 @@ export class SyncRuntime {
     return this.running;
   }
 
-  /** 保存后只推变化的文件，不列远端目录。 */
-  async pushPaths(paths: string[]): Promise<SyncRunResult | null> {
+  /** 保存后只推变化的文件，不列远端目录。`quiet` 用于后台自动推送：失败不打断界面。 */
+  async pushPaths(paths: string[], quiet = false): Promise<SyncRunResult | null> {
     await this.load();
     if (this.resolving) await this.resolving.catch(() => {});
     if (storageBusy() || !this.isAttached()) return null;
@@ -309,7 +309,7 @@ export class SyncRuntime {
     if (this.running) await this.running.catch(() => {});
     if (this.pushing) await this.pushing.catch(() => {});
     if (storageBusy() || !this.isAttached() || this.phase() === "conflict") return null;
-    const operation = this.push(paths);
+    const operation = this.push(paths, quiet);
     this.pushing = operation;
     try {
       return await operation;
@@ -318,14 +318,37 @@ export class SyncRuntime {
     }
   }
 
-  private async push(paths: string[]): Promise<SyncRunResult | null> {
+  /** 本地删除 / 移动后只删对应的远端文件；云端版本变了就交回全量同步。 */
+  async pushDeletions(paths: string[], quiet = false): Promise<SyncRunResult | null> {
+    await this.load();
+    if (this.resolving) await this.resolving.catch(() => {});
+    if (storageBusy() || !this.isAttached()) return null;
+    if (loadSyncConfig(true).purchaseRequired) {
+      return this.finishError(new SyncError("config", "purchase required"));
+    }
+    if (this.phase() === "conflict") return null;
+    if (this.running) await this.running.catch(() => {});
+    if (this.pushing) await this.pushing.catch(() => {});
+    if (storageBusy() || !this.isAttached() || this.phase() === "conflict") return null;
+    const operation = this.removeRemote(paths, quiet);
+    this.pushing = operation;
+    try {
+      return await operation;
+    } finally {
+      if (this.pushing === operation) this.pushing = null;
+    }
+  }
+
+  private async push(paths: string[], quiet = false): Promise<SyncRunResult | null> {
     const conn = this.connection();
     if (!conn) return null;
     const vault = this.requireVault();
     const result: SyncRunResult = { ...EMPTY, conflicts: [], changedLocal: [], error: null };
     const previous = this.phase();
-    this.phase.set("syncing");
-    this.error.set(null);
+    if (!quiet) {
+      this.phase.set("syncing");
+      this.error.set(null);
+    }
     try {
       const remote = await this.providerFor(conn.provider);
       const root = this.rootDir(conn);
@@ -369,6 +392,8 @@ export class SyncRuntime {
         return result;
       }
       this.phase.set("synced");
+      // 后台推送成功说明云端可达，顺手清掉上一轮全量同步留下的错误。
+      this.error.set(null);
       const now = Date.now();
       this.lastSyncAt.set(now);
       await Storage.setItem(this.lastKey(), String(now));
@@ -380,13 +405,77 @@ export class SyncRuntime {
         err instanceof SyncError
           ? { kind: err.kind, message: err.message }
           : { kind: "unknown", message: err instanceof Error ? err.message : String(err) };
-      this.error.set(error);
-      this.phase.set(
-        error.kind === "network" && isRecoverableNetworkError(err) ? "offline" : "error",
-      );
+      if (!quiet) {
+        this.error.set(error);
+        this.phase.set(
+          error.kind === "network" && isRecoverableNetworkError(err) ? "offline" : "error",
+        );
+      }
       result.ok = false;
       result.error = error;
-      result.conflicts = this.conflicts();
+      if (!quiet) result.conflicts = this.conflicts();
+      return result;
+    }
+  }
+
+  private async removeRemote(paths: string[], quiet = false): Promise<SyncRunResult | null> {
+    const conn = this.connection();
+    if (!conn) return null;
+    const result: SyncRunResult = { ...EMPTY, conflicts: [], changedLocal: [], error: null };
+    if (!quiet) {
+      this.phase.set("syncing");
+      this.error.set(null);
+    }
+    try {
+      const remote = await this.providerFor(conn.provider);
+      for (const raw of paths) {
+        const path = normalizeSyncPath(raw);
+        if (!path) continue;
+        // 没有锚点说明远端本来就没有这份文件（或从没同步过），不必请求。
+        const anchor = this.base.entries[path];
+        if (!anchor) continue;
+        const file: RemoteFile = {
+          path,
+          id: anchor.remoteId,
+          rev: anchor.remoteRev,
+          mtimeMs: 0,
+          size: anchor.localSize,
+        };
+        try {
+          await remote.remove(file);
+          delete this.base.entries[path];
+          result.deletedRemote += 1;
+        } catch (err) {
+          // 云端也被改过：不在删除路径上裁决，交回全量同步让用户选。
+          if (err instanceof RemoteConflictError) {
+            result.needsFullSync = true;
+            continue;
+          }
+          throw err;
+        }
+      }
+      await this.persistBase();
+      if (result.needsFullSync) return result;
+      this.phase.set("synced");
+      this.error.set(null);
+      const now = Date.now();
+      this.lastSyncAt.set(now);
+      await Storage.setItem(this.lastKey(), String(now));
+      return result;
+    } catch (err) {
+      await this.persistBase().catch(() => {});
+      const error: { kind: SyncErrorKind; message: string } =
+        err instanceof SyncError
+          ? { kind: err.kind, message: err.message }
+          : { kind: "unknown", message: err instanceof Error ? err.message : String(err) };
+      if (!quiet) {
+        this.error.set(error);
+        this.phase.set(
+          error.kind === "network" && isRecoverableNetworkError(err) ? "offline" : "error",
+        );
+      }
+      result.ok = false;
+      result.error = error;
       return result;
     }
   }

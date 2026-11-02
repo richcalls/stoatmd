@@ -1,10 +1,11 @@
 import { uiTextSize, uiLineHeight } from "./typography";
 import { Clipboard, Text, View, cleanup, effect, keymap, platform, signal } from "nsh";
-import { AlertDialog, Button, Dialog, Input } from "nsh/base";
+import { AlertDialog, Button, Dialog, Input, ResizablePanel, ResizablePanelGroup } from "nsh/base";
 import { Menu, Window } from "nsh/desktop";
 import { Vault, VaultDialog, type VaultEntryDto } from "stoatmd/native";
 import { activeStorage, readActiveStorage, storageBusy } from "../storage/state";
 import { syncRuntime } from "../sync/runtime";
+import { remoteNotePath } from "../sync/paths";
 import { ArticleInspector, type InspectorTab } from "./ArticleInspector";
 import { articleModel, type OutlineEntry } from "./articleModel";
 import { ConflictDialog } from "./ConflictDialog";
@@ -54,6 +55,7 @@ export function MacShell() {
   Window.setTitle("StoatMD");
   Window.setTitleBar("hidden", WINDOW_BAR_HEIGHT);
   const sidebarMode = signal<SidebarMode>("expanded");
+  const sidebarWidth = signal(SIDEBAR_WIDTH);
   const mode = signal<ViewMode>("split");
   const findRequest = signal<FindRequest>({ id: 0, action: "open" });
   const inspectorOpen = signal(false);
@@ -470,9 +472,15 @@ export function MacShell() {
 
   const copyNotePath = async (v: Vault, id: string, relative: boolean) => {
     try {
-      const text = relative ? normalizeVaultPath(id) : v.absolute(id);
+      const connection = syncRuntime.connection();
+      const cloud = !relative && connection?.localRoot === v.root ? connection : null;
+      const text = relative
+        ? normalizeVaultPath(id)
+        : cloud
+          ? remoteNotePath(cloud.provider, cloud.remotePath, id)
+          : v.absolute(id);
       await Clipboard.writeText(text);
-      status.set(t(relative ? "context.copiedRelative" : "context.copiedPath"));
+      status.set(t(relative ? "context.copiedRelative" : cloud ? "context.copiedCloudPath" : "context.copiedPath"));
     } catch (err) {
       status.set(String(err));
     }
@@ -490,6 +498,7 @@ export function MacShell() {
     const v = vault();
     if (!v) return;
     const mac = platform.os === "macos";
+    const cloud = syncRuntime.connection()?.localRoot === v.root;
     void Menu.popup(
       [
         {
@@ -504,7 +513,7 @@ export function MacShell() {
           onSelect: () => revealNote(v, id),
         },
         {
-          label: t("context.copyPath"),
+          label: t(cloud ? "context.copyCloudPath" : "context.copyPath"),
           onSelect: () => {
             void copyNotePath(v, id, false);
           },
@@ -764,13 +773,13 @@ export function MacShell() {
       {
         label: t("menu.edit"),
         submenu: [
-          { role: "undo" },
-          { role: "redo" },
+          { role: "undo", shortcut: "mod+z" },
+          { role: "redo", shortcut: "mod+shift+z" },
           { type: "separator" },
-          { role: "cut" },
-          { role: "copy" },
-          { role: "paste" },
-          { role: "selectAll" },
+          { role: "cut", shortcut: "mod+x" },
+          { role: "copy", shortcut: "mod+c" },
+          { role: "paste", shortcut: "mod+v" },
+          { role: "selectAll", shortcut: "mod+a" },
           { type: "separator" },
           { label: t("find.open"), shortcut: findKeys.open, disabled: !searchEnabled(), onSelect: () => requestFind("open") },
           { label: t("find.next"), shortcut: findKeys.next, disabled: !searchEnabled(), onSelect: () => requestFind("next") },
@@ -976,9 +985,25 @@ export function MacShell() {
       </If>
 
       <If when={!!vault()}>
-        <View style={{ flex: 1, flexDirection: "row", minHeight: 0 }}>
-          <If when={sidebarMode() !== "hidden"}>
-            <View style={{ width: SIDEBAR_WIDTH, flexShrink: 0 }}>
+        <ResizablePanelGroup
+          axis="horizontal"
+          style={{ flex: 1, minHeight: 0 }}
+          // Canvas edge is the visible divider; keep the resizer hit target visually clear.
+          handleStyle={{ width: 1, backgroundColor: "transparent" }}
+          handleThumbStyle={{ width: 3, borderRadius: 2, backgroundColor: "transparent" }}
+          handleAccessibilityLabel="Adjust sidebar width"
+          onResize={(sizes) => {
+            const width = sizes[0];
+            if (width !== undefined && Number.isFinite(width)) sidebarWidth.set(width);
+          }}
+        >
+          <ResizablePanel
+            size={sidebarWidth()}
+            minSize={180}
+            maxSize={420}
+            visible={sidebarMode() !== "hidden"}
+          >
+            <View style={{ flex: 1, minWidth: 0 }}>
               <Sidebar
                 folders={folders()}
                 notes={notes()}
@@ -1013,17 +1038,18 @@ export function MacShell() {
                 syncConflictCount={syncRuntime.conflicts().length}
               />
             </View>
-          </If>
+          </ResizablePanel>
 
-          {/* 工作区是一块内嵌画布：距右、底 9px，圆角 10px */}
-          <View
-            style={{
-              flex: 1,
-              minWidth: 0,
-              paddingLeft: sidebarMode() === "hidden" ? 9 : 0,
-              paddingRight: 9,
-              paddingBottom: 9,
-            }}
+          {/* 工作区左边框兼作分隔线；右、底留白 9px。 */}
+          <ResizablePanel minSize={360}>
+            <View
+              style={{
+                flex: 1,
+                minWidth: 0,
+                paddingLeft: 0,
+                paddingRight: 9,
+                paddingBottom: 9,
+              }}
           >
             <View
               testID="workspace-canvas"
@@ -1127,8 +1153,9 @@ export function MacShell() {
                 </Button>
               </If>
             </View>
-          </View>
-        </View>
+            </View>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </If>
 
       <If when={renamePath() !== null}>
