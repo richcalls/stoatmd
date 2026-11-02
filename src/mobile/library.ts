@@ -4,6 +4,8 @@ import { duplicateNotePath, nextUntitledPath, notesInFolder, renamedNotePath } f
 
 type MaybeAsync<T> = T | Promise<T>;
 export interface LocalVault {
+  /** 库根绝对路径；测试里的内存库可以没有。 */
+  readonly root?: string;
   listRecursive(dir: string): MaybeAsync<VaultEntryDto[]>;
   read(path: string): MaybeAsync<VaultFileDto>;
   write(path: string, content: string, expectedMtimeMs: number | null): MaybeAsync<VaultWriteDto>;

@@ -1,4 +1,4 @@
-import { Keyboard, List, Scroll, Text, View, cleanup, computed, createAnimatedValue, effect, keymap, keyboardFrame, platform, safeAreaInsets, signal, windowSize, type JSX, type YNode } from "nsh";
+import { Image, Keyboard, List, Scroll, Text, View, cleanup, computed, createAnimatedValue, effect, keymap, keyboardFrame, platform, safeAreaInsets, signal, windowSize, type JSX, type YNode } from "nsh";
 import { Button, Dialog, Input, NavPage, NavStack, TextView, createNavStack } from "nsh/base";
 import { InputAccessoryView, TabBar } from "nsh/mobile";
 import { MobileFiles, Vault } from "stoatmd/native";
@@ -23,14 +23,13 @@ import { LINE_HEIGHT_MAX, LINE_HEIGHT_MIN, LINE_HEIGHT_STEP, applyEditorFontSize
 import { formatDateTime, formatWhen, titleFromName } from "../ui/vaultModel";
 import { mobileLibrary, type MobileLibrary } from "./library";
 import { flattenTree } from "./libraryTree";
+import { resolveImageSrc, stripImages } from "./readerImages";
 import { MOBILE_THEMES, glass, mobileColors, mobileIsDark, mobileThemeId, type MobileTheme } from "./palette";
 import { syncStatus } from "./syncStatus";
 
 type Route = { kind: "library" } | { kind: "document" };
 type SyncErrorView = { kind: SyncErrorKind; message: string };
-/** 自动拉取间隔：和 Mac 的 SYNC_PULL_MS 一样是 90 秒。 */
-const SYNC_PULL_MS = 90_000;
-/** 自动同步连续失败几次，才把网络错误显示到界面上（约 7.5 分钟）。 */
+/** 自动同步连续失败几次，才把网络错误显示到界面上。 */
 const SYNC_ERROR_AFTER = 5;
 type Panel = "settings" | "storage" | "outline" | "type" | "actions" | "info" | "rename" | "folder" | "move" | "trash" | "erase" | "cloudConflicts" | null;
 type Tab = "recent" | "all" | "favorites";
@@ -287,6 +286,16 @@ function ConnectPage(props: { loading: boolean; error: string; onRetry: () => vo
   </Scroll>;
 }
 
+/** 阅读页图片：按原始宽高比铺满正文宽度；onLoad 之前先占位，避免列表高度跳动。 */
+function ReaderImage(props: { src: string; alt?: string; width?: number | `${number}%`; height?: number | `${number}%` }) {
+  const ratio = signal<number | null>(null);
+  return <Image src={props.src} accessibilityLabel={props.alt} resizeMode="contain"
+    onLoad={size => { if (size.width > 0 && size.height > 0) ratio.set(size.width / size.height); }}
+    style={{ width: props.width ?? "100%", maxWidth: "100%",
+      ...(props.height ? { height: props.height } : ratio() ? { aspectRatio: ratio()! } : { height: 140 }),
+      borderRadius: 6, backgroundColor: mobileColors().thread }} />;
+}
+
 function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeChrome: boolean; initialTab?: Tab; settingsTap?: boolean; onStorageActivated: (root: string) => Promise<void> }) {
   const lib = props.library;
   const ios = props.nativeChrome && platform.os === "ios";
@@ -453,8 +462,8 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     await dismissPanel();
     await MobileFiles.exportMarkdown(current.path.split("/").pop()!, current.content);
   }); };
-  // 自动同步失败（网络抖动、切前后台、系统取消请求）先不打扰用户：
-  // 连续失败 SYNC_ERROR_AFTER 次才显示网络错误；手动同步失败立即显示。
+  // 打开 App 时同步一次；之后只在用户下拉刷新或设置里「立即同步」时打云盘，
+  // 使用和阅读过程中不再定时全量同步，避免反复弹网络错误。
   const syncFails = signal(0);
   const sync = async (manual = false) => {
     if (!props.connected || !await lib.flush()) return;
@@ -469,22 +478,23 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     return failure.kind === "network" && syncFails() < SYNC_ERROR_AFTER ? null : failure;
   };
   let reconciling = false;
-  let lastCloudCheck = 0;
   const timer = setInterval(() => {
     if (busy() || reconciling || panel() !== null || syncRuntime.phase() === "paused") return;
     reconciling = true;
     const current = nav.routes()[nav.routes().length - 1];
     void (async () => {
-      if (props.connected && Date.now() - lastCloudCheck >= SYNC_PULL_MS) {
-        lastCloudCheck = Date.now();
-        // 同步可能持续很久；不阻塞列表刷新，下载中的笔记会陆续出现。
-        void sync().catch(err => lib.error.set(String(err)));
-      }
+      // 只刷新本地列表；云端改动等用户下拉刷新或设置里手动同步。
       await (current?.kind === "document" ? lib.reconcile() : lib.refresh());
     })().catch(err => lib.error.set(String(err))).finally(() => { reconciling = false; });
   }, 3000);
   cleanup(() => clearInterval(timer));
-  if (props.connected) void sync().catch(err => lib.error.set(String(err)));
+  // 首次绑定云盘时激活流程还占着 storageBusy，等它放开后再做启动同步。
+  let launchSynced = false;
+  effect(() => {
+    if (!props.connected || launchSynced || storageBusy()) return;
+    launchSynced = true;
+    void sync().catch(err => lib.error.set(String(err)));
+  });
 
   const conflictBanner = () => lib.conflict() ? <View testID="mobile-conflict" style={{ padding: 14, borderRadius: 14, gap: 8, backgroundColor: mobileColors().accentSoft }}>
     <Text style={{ color: mobileColors().ink, fontWeight: 600 }}>{t("vault.conflict.title")}</Text>
@@ -569,10 +579,18 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   const previewPane = (compact: boolean, dock: boolean) => <View style={{ flex: 1 }}>
     <List ref={node => { reader = node; }} testID="mobile-preview" each={model().blocks} estimatedItemSize={model().estimatedItemSize}
       contentStyle={{ paddingHorizontal: compact ? 16 : 24, paddingTop: ios ? 10 : 70 + bottom().top, paddingBottom: dock ? 104 + bottom().bottom : 24 + bottom().bottom }} style={{ flex: 1, backgroundColor: mobileColors().preview }}>
-      {(block, index) => <View style={{ paddingTop: previewGap(index() > 0 ? model().blocks[index() - 1] : undefined, block(), fontSize() / 15),
-        backgroundColor: finding() && currentBlock() === index() ? mobileColors().accentSoft : "transparent" }}>
-        <TextView document={{ blocks: [displayBlock(block(), renderMode())] }} selectable links="open" onLinkPress={event => onLink(event.url)} styles={readerStyles()} />
-      </View>}
+      {(block, index) => {
+        const stripped = stripImages(block());
+        const root = lib.vault.root;
+        return <View style={{ paddingTop: previewGap(index() > 0 ? model().blocks[index() - 1] : undefined, block(), fontSize() / 15),
+          backgroundColor: finding() && currentBlock() === index() ? mobileColors().accentSoft : "transparent" }}>
+          <TextView document={{ blocks: [displayBlock(stripped.block, renderMode())] }} selectable links="open" onLinkPress={event => onLink(event.url)} styles={readerStyles()} />
+          {stripped.images.map(image => {
+            const src = root ? resolveImageSrc(image.src, lib.note()?.path ?? "", root) : image.src;
+            return <ReaderImage src={src} alt={image.alt} width={image.width} height={image.height} />;
+          })}
+        </View>;
+      }}
     </List>
     {dock ? <ReaderDock content={lib.note()?.content ?? ""} bottom={bottom().bottom}
       onOutline={() => show("outline")} onType={() => show("type")} onFind={openFind}
@@ -691,11 +709,11 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
             </View>)}
           </View> : panel() === "settings" ? <MobileSettings connected={props.connected}
               onImport={() => importFile(selectedFolder())} onTrash={() => { void running(async () => { await lib.loadTrash(); show("trash"); }); }}
-              onStorage={() => show("storage")} onSync={() => { void running(sync); }} onConflicts={() => show("cloudConflicts")} />
+              onStorage={() => show("storage")} onSync={() => { void running(() => sync(true)); }} onConflicts={() => show("cloudConflicts")} />
             : panel() === "storage" ? <View style={{ gap: 20 }}>
               {props.connected ? <SyncSettings cloudOnly mobile vaultRoot={activeStorage()?.root}
                 onBeforeMigration={async () => { if (!await lib.flush()) throw new Error(t("mobile.saveFailed")); }}
-                onStorageActivated={props.onStorageActivated} onSyncNow={() => { void running(sync); }}
+                onStorageActivated={props.onStorageActivated} onSyncNow={() => { void running(() => sync(true)); }}
                 onManageConflicts={() => show("cloudConflicts")} /> : null}
               <SectionTitle>{t("settings.sync")}</SectionTitle>
               <SettingsGroup>
