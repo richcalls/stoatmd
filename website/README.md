@@ -1,6 +1,8 @@
 # StoatMD 官网（stoatmd.com）
 
-纸间 · 编辑部方案：暖纸色、衬线标题、鼠尾草绿，以及可切换笔记和阅读模式的产品示意。8 种语言拥有独立可索引 URL；页面文案、笔记预览和分享图片按语言配套。设计规范见 [DESIGN.md](./DESIGN.md)，历史方案保存在 `docs/website-v1/`。
+**Field Log** 方案：一本正在工作的野外日志。左页是 Agent 写下的条目索引，右页是贴在纸上的阅读页；织布书脊、方格纸、马尼拉胶带、红色橡皮章。8 种语言拥有独立可索引 URL；页面文案、笔记预览和分享图片按语言配套。设计规范见 [DESIGN.md](./DESIGN.md)，历史方案保存在 `docs/website-v1/`。
+
+产品事实：Agent 往普通文件夹里写 Markdown，人来读。桌面版免费（含云盘同步），iPhone 一次买断，无订阅。同步仅支持 Google Drive / Dropbox。
 
 ## 本地开发
 
@@ -15,9 +17,17 @@ npm run preview  # 预览构建产物
 ## 技术选型
 
 - **Astro 5** 静态输出（零客户端框架，文案 SSR 进 HTML）
-- 自托管 **Instrument Sans / Newsreader / Noto Serif**（woff2），中日韩衬线字体按文案子集化
+- 自托管 **Archivo**（界面 / 标题）、**Azeret Mono**（路径 / 日期 / 标签）、**Newsreader + Paper SC/TC/JP/KR**（阅读页衬线）
 - 原生 HTML / TypeScript：语言菜单、笔记选择、源码 / 分栏 / 阅读切换
-- 预览为界面示意，使用与页面相同的语言字典；产品状态以 `docs/product/PRODUCT.md` 为准
+- 全部 8 语言文案、笔记预览和界面标签集中在 `src/i18n/fieldlog.ts`
+- 预览为界面示意，使用与页面相同的数据；产品状态以 `PRODUCT.md` 与 `docs/product/` 为准
+- 无 WebGL、无第三方脚本、无外部字体请求
+
+## 页面结构
+
+单页顺序：Field Log 双页 hero（含 Agent 日志索引与阅读页）→ 竞品对照账本 → 四步机制（Agent → 文件夹 → 云盘 → 读者）→ 四条能力记录 → 定价账本（桌面免费 / iPhone 买断）→ 发布记录 → 页脚。
+
+交互预览保留三篇 Agent 笔记与源码 / 分栏 / 阅读三种视图；阅读页正文使用衬线字体，界面元数据使用等宽字体。没有 JavaScript 时默认显示第一篇笔记的阅读视图，切换按钮保持禁用。
 
 ## 语言与 URL
 
@@ -118,13 +128,19 @@ npx wrangler@4 pages deploy dist --project-name=stoatmd-website --branch=main
 
 - [x] 每语言 `title` / `description`
 - [x] `canonical` + 完整 `hreflang`（含 `x-default`）
-- [x] Open Graph / Twitter Card
-- [x] JSON-LD `SoftwareApplication`（本机 $0；买断价未写入假价格）
+- [x] Open Graph / Twitter Card（Field Log 分享图，1200 × 630）
+- [x] JSON-LD `SoftwareApplication`（桌面 $0；iPhone 买断价未写入假价格）
 - [x] `sitemap.xml`（含 xhtml alternate）
 - [x] `robots.txt`
 - [x] `llms.txt` + `llms-full.txt`
 - [x] 语义化 HTML；关键文案不依赖 JS 渲染
 
+## 发布状态
+
+- macOS：通过 GitHub Releases 下载（仓库与 release 需要公开，链接才能解析）
+- iOS：尚未上架；售价发布时公布
+- 页面上的 iPhone 价格使用「一次买断 / price at launch」，不要填入虚构数字
+
 ## 第三方许可
 
-字体授权见 `public/fonts/*OFL.txt`。保留的历史织线素材许可见 `public/vendor/pro-threads/LICENSE`（MIT © Kubai087）。
+字体授权见 `public/fonts/*OFL.txt`（Archivo、Azeret Mono、Newsreader、Noto Serif）。所有图标为项目内联 SVG；没有第三方脚本或 WebGL 素材。

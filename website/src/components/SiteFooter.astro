@@ -1,30 +1,38 @@
 ---
-import { localePath, type Locale, t } from "../i18n";
-import { PAPER } from "../i18n/paper";
+import { localePath, type Locale } from "../i18n";
+import { FIELDLOG } from "../i18n/fieldlog";
+
 const { locale } = Astro.props as { locale: Locale };
-const m = t(locale);
-const p = PAPER[locale];
+const p = FIELDLOG[locale];
 ---
 
-<footer class="foot wrap">
-  <div class="footer-main">
-    <a class="brand" href={localePath(locale)}>
-      <img src="/assets/mark.svg" width="26" height="26" alt="" />
-      <span>
-        Stoat<span class="md">MD</span>
-      </span>
-    </a>
-    <span>{p.footer}</span>
-    <span class="copyright">© {new Date().getUTCFullYear()} StoatMD</span>
-  </div>
-  <div class="legal">
-    <details id="privacy">
-      <summary>{m["foot.privacy"]}</summary>
-      <p>{m["foot.privacy.body"]}</p>
-    </details>
-    <details id="terms">
-      <summary>{m["foot.terms"]}</summary>
-      <p>{m["foot.terms.body"]}</p>
-    </details>
+<footer class="site-foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="foot-brand" href={localePath(locale)} aria-label="StoatMD">
+          <img
+            src="/assets/mark-on-dark.svg"
+            width="28"
+            height="28"
+            alt=""
+          />
+          <span class="brand-word">Stoat<span class="md">MD</span></span>
+        </a>
+        <p class="foot-line">{p.footer.line}</p>
+      </div>
+      <p class="foot-copy">{p.footer.copyright}</p>
+    </div>
+
+    <div class="legal">
+      <details id="privacy">
+        <summary>{p.footer.privacy}</summary>
+        <p>{p.footer.privacyBody}</p>
+      </details>
+      <details id="terms">
+        <summary>{p.footer.terms}</summary>
+        <p>{p.footer.termsBody}</p>
+      </details>
+    </div>
   </div>
 </footer>

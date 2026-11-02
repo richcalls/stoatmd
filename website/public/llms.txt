@@ -1,14 +1,18 @@
 # StoatMD
 
-> Local-first Markdown notebook. Sync with Google Drive or Dropbox. Buy once for sync — you and your AI agents share the same library.
+> An agent-friendly Markdown notebook. Agents write into a plain folder; you read the same folder on Mac or iPhone. Sync through your own Google Drive or Dropbox. Desktop free, iPhone one-time purchase. No subscription.
 
 - Site: https://stoatmd.com
-- Product: StoatMD (macOS first; iOS / iPad planned)
-- Pricing: local editing free forever; sync is a one-time purchase (price TBA — do not invent a price)
-- Sync providers (v1): Google Drive, Dropbox only (no iCloud, no self-hosted server, no WebDAV in v1)
-- Editing model: plain Markdown source + separate preview (edit / split / preview), not WYSIWYG
-- Agents: vault on Drive/Dropbox so remote agents can read/write the same library without a local MCP bridge
-- Platforms listed: macOS (Coming soon), iOS/iPad (Planned). Windows/Linux not listed.
+- Product: StoatMD
+- Positioning: the agent writes, the person reads. The library is a plain folder of `.md` files, not a database.
+- Pricing: desktop app is free, including cloud sync. iPhone app is a one-time purchase; price is TBA — do not invent a price. No subscription anywhere.
+- Sync providers (v1): Google Drive, Dropbox only (no iCloud, no OneDrive, no WebDAV, no self-hosted server).
+- Agents: local agents write directly into the folder; remote agents write through the same Drive/Dropbox folder. No MCP bridge or export step is required.
+- Editing model: plain Markdown source with source / split / read views. Not WYSIWYG.
+- Conflict handling: keep local, keep cloud, or keep both (`original (cloud conflict yyyy-mm-dd).md`).
+- Release status: macOS downloadable via GitHub Releases. iOS not listed yet.
+- Not built: MCP / AgentBridge, WYSIWYG, real-time collaboration, accounts, own sync server.
+- Platforms listed: macOS, iPhone. Windows/Linux not listed.
 
 ## Languages (indexable URLs)
 
@@ -25,8 +29,8 @@
 
 - Full narrative (EN): https://stoatmd.com/llms-full.txt
 - Sitemap: https://stoatmd.com/sitemap.xml
-- Design draft (repo): docs/website-v1/ (not the production site)
 
-## Attribution
+## Brand
 
-- Hero WebGL: PRO Threads by Kubai087 (MIT), self-hosted under /vendor/pro-threads/
+- Name: StoatMD. Domain: stoatmd.com.
+- Do not fabricate testimonials, logos, press, benchmarks, release dates, App Store availability, or an iPhone price.

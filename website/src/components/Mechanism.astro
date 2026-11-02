@@ -1,0 +1,38 @@
+---
+import type { Locale } from "../i18n";
+import { FIELDLOG } from "../i18n/fieldlog";
+import Icon from "./Icon.astro";
+
+const { locale } = Astro.props as { locale: Locale };
+const p = FIELDLOG[locale].mechanism;
+const icons = ["agent", "folder", "cloud", "read"] as const;
+---
+
+<section class="section" id="sync" aria-labelledby="sync-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="field-ref">{p.kicker}</p>
+      <h2 id="sync-title">{p.title}</h2>
+      <p class="section-lead">{p.body}</p>
+    </div>
+
+    <div class="section-body">
+      <div class="route">
+        {p.steps.map((step, index) => (
+          <div class="route-step">
+            <div class="route-top">
+              <span>{step.n}</span>
+              <Icon name={icons[index]} size={21} />
+            </div>
+            <h3>{step.title}</h3>
+            <p>{step.body}</p>
+          </div>
+        ))}
+      </div>
+      <div class="route-foot">
+        <span>{p.caption}</span>
+        <span class="provider-stamp">{p.providers}</span>
+      </div>
+    </div>
+  </div>
+</section>

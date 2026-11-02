@@ -1,14 +1,6 @@
-import type { Locale, LocaleMeta, Messages } from './types';
-import { en } from './en';
-import { zhHans } from './zh-hans';
-import { zhHant } from './zh-hant';
-import { ja } from './ja';
-import { ko } from './ko';
-import { de } from './de';
-import { fr } from './fr';
-import { es } from './es';
+import type { Locale, LocaleMeta } from './types';
 
-export type { Locale, LocaleMeta, Messages, MessageKey } from './types';
+export type { Locale, LocaleMeta } from './types';
 
 export const SITE_ORIGIN = 'https://stoatmd.com';
 
@@ -25,21 +17,6 @@ export const LOCALE_META: Record<Locale, LocaleMeta> = {
 };
 
 export const LOCALES = Object.keys(LOCALE_META) as Locale[];
-
-const DICTS: Record<Locale, Messages> = {
-  en,
-  'zh-hans': zhHans,
-  'zh-hant': zhHant,
-  ja,
-  ko,
-  de,
-  fr,
-  es,
-};
-
-export function t(locale: Locale): Messages {
-  return DICTS[locale] ?? en;
-}
 
 /** 该语言页的规范路径（含尾斜杠） */
 export function localePath(locale: Locale, hash = ''): string {

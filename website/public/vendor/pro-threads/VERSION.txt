@@ -1,1 +1,0 @@
-b2c7cd6 docs: add chinese readme and document embed reliability 2026-10-31 00:11:00 +0800

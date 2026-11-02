@@ -1,16 +1,29 @@
 ---
 import Hero from "./Hero.astro";
 import ProductPreview from "./ProductPreview.astro";
+import Compare from "./Compare.astro";
+import Mechanism from "./Mechanism.astro";
 import Features from "./Features.astro";
 import Pricing from "./Pricing.astro";
 import Download from "./Download.astro";
 import type { Locale } from "../i18n";
+
 const { locale } = Astro.props as { locale: Locale };
 ---
 
 <main id="top" tabindex="-1">
-  <Hero locale={locale} />
-  <ProductPreview locale={locale} />
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap">
+      <div class="spread">
+        <Hero locale={locale} />
+        <div class="binding" aria-hidden="true"></div>
+        <ProductPreview locale={locale} />
+      </div>
+    </div>
+  </section>
+
+  <Compare locale={locale} />
+  <Mechanism locale={locale} />
   <Features locale={locale} />
   <Pricing locale={locale} />
   <Download locale={locale} />

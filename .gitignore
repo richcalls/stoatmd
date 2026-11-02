@@ -5,3 +5,7 @@ node_modules/
 # generated QA screenshots and Python caches
 screenshots/
 scripts/__pycache__/
+
+# local design/agent tooling state
+.claude/
+.impeccable/
