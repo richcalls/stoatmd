@@ -148,11 +148,13 @@ export class GoogleDriveProvider implements SyncProvider {
     const current = JSON.parse(await readBodyText(metadata)) as GoogleItem;
     if (revOf(current) !== file.rev) throw new RemoteConflictError("remote file changed before delete", file.path);
     const etag = metadata.headers.get("ETag");
-    // Preserve the source when Drive cannot supply a conditional deletion token.
-    if (!etag) throw new RemoteConflictError("conditional deletion unavailable", file.path);
+    // Drive v3 的 files.get 实测不返回 ETag（2026-11-02 真机同步卡在删除上），
+    // 拿不到条件令牌时不能拒绝删除，否则一次待删文件会让之后每次同步都失败。
+    // 版本号刚核对过，竞态窗口只剩这一条 PATCH。
+    const headers: Record<string, string> = etag ? { "If-Match": etag } : {};
     const response = await this.request(
       `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}?fields=id`,
-      { method: "PATCH", headers: { "If-Match": etag }, body: JSON.stringify({ trashed: true }) },
+      { method: "PATCH", headers, body: JSON.stringify({ trashed: true }) },
       "application/json",
     );
     if (response.status === 404) return;
