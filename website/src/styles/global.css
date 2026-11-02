@@ -1031,38 +1031,6 @@ a[data-download-platform="ios"]:hover {
   border-color: var(--ink);
 }
 
-.footer-legal {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-}
-
-.footer-legal details {
-  max-width: 54ch;
-}
-
-.footer-legal summary {
-  color: var(--muted);
-  font-size: 12px;
-  list-style: none;
-  cursor: pointer;
-}
-.footer-legal summary::-webkit-details-marker {
-  display: none;
-}
-.footer-legal summary:hover {
-  color: var(--ink);
-}
-
-.footer-legal p {
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.55;
-  text-align: right;
-}
-
 /* Locale-specific reading faces */
 
 :lang(zh-hans) .reading-view {
@@ -1250,12 +1218,6 @@ a[data-download-platform="ios"]:hover {
   }
   .footer-right {
     align-items: flex-start;
-  }
-  .footer-legal {
-    align-items: flex-start;
-  }
-  .footer-legal p {
-    text-align: left;
   }
 }
 

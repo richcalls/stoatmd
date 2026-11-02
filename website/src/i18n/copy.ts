@@ -77,11 +77,7 @@ export interface SiteCopy {
   };
   footer: {
     line: string;
-    privacy: string;
-    terms: string;
     feedback: string;
-    privacyBody: string;
-    termsBody: string;
     langLabel: string;
     system: string;
     copyright: string;
@@ -231,11 +227,7 @@ const en: SiteCopy = {
   },
   footer: {
     line: "A notebook app made for notes written together with your agent.",
-    privacy: "Privacy",
-    terms: "Terms",
     feedback: "Feedback",
-    privacyBody: "Privacy policy will be published here.",
-    termsBody: "Terms of service will be published here.",
     langLabel: "Language",
     system: "Follow system",
     copyright: "© 2026 StoatMD",
@@ -385,11 +377,7 @@ const zhHans: SiteCopy = {
   },
   footer: {
     line: "一个用来放你和 Agent 共同写出来的笔记应用。",
-    privacy: "隐私政策",
-    terms: "用户协议",
     feedback: "问题反馈",
-    privacyBody: "隐私政策后续将在此更新。",
-    termsBody: "用户协议后续将在此更新。",
     langLabel: "语言",
     system: "跟随系统",
     copyright: "© 2026 StoatMD",
@@ -539,11 +527,7 @@ const zhHant: SiteCopy = {
   },
   footer: {
     line: "一個用來放你和 Agent 共同寫出來的筆記應用。",
-    privacy: "隱私政策",
-    terms: "使用者協議",
     feedback: "問題回饋",
-    privacyBody: "隱私政策後續將在此更新。",
-    termsBody: "使用者協議後續將在此更新。",
     langLabel: "語言",
     system: "跟隨系統",
     copyright: "© 2026 StoatMD",
@@ -693,11 +677,7 @@ const ja: SiteCopy = {
   },
   footer: {
     line: "あなたとエージェントが共に書き上げるためのノートアプリ。",
-    privacy: "プライバシーポリシー",
-    terms: "利用規約",
     feedback: "フィードバック",
-    privacyBody: "プライバシーポリシーは今後ここに掲載されます。",
-    termsBody: "利用規約は今後ここに掲載されます。",
     langLabel: "言語",
     system: "システム準拠",
     copyright: "© 2026 StoatMD",
@@ -847,11 +827,7 @@ const ko: SiteCopy = {
   },
   footer: {
     line: "당신과 에이전트가 함께 만들어가는 마크다운 노트 앱.",
-    privacy: "개인정보 처리방침",
-    terms: "이용약관",
     feedback: "피드백",
-    privacyBody: "개인정보 처리방침은 추후 여기에 게시됩니다.",
-    termsBody: "이용약관은 추후 여기에 게시됩니다.",
     langLabel: "언어",
     system: "시스템 설정",
     copyright: "© 2026 StoatMD",
@@ -1001,11 +977,7 @@ const de: SiteCopy = {
   },
   footer: {
     line: "Eine Notiz-App für Gedanken, die du gemeinsam mit deinem Agenten festhältst.",
-    privacy: "Datenschutz",
-    terms: "Nutzungsbedingungen",
     feedback: "Feedback",
-    privacyBody: "Die Datenschutzerklärung wird hier veröffentlicht.",
-    termsBody: "Die Nutzungsbedingungen werden hier veröffentlicht.",
     langLabel: "Sprache",
     system: "System",
     copyright: "© 2026 StoatMD",
@@ -1155,11 +1127,7 @@ const fr: SiteCopy = {
   },
   footer: {
     line: "Une application de notes pour les documents rédigés avec votre agent.",
-    privacy: "Confidentialité",
-    terms: "Conditions",
     feedback: "Retours",
-    privacyBody: "La politique de confidentialité sera publiée ici.",
-    termsBody: "Les conditions d'utilisation seront publiées ici.",
     langLabel: "Langue",
     system: "Système",
     copyright: "© 2026 StoatMD",
@@ -1309,11 +1277,7 @@ const es: SiteCopy = {
   },
   footer: {
     line: "Una app de notas para lo que escribís juntos tú y tu agente.",
-    privacy: "Privacidad",
-    terms: "Términos",
     feedback: "Comentarios",
-    privacyBody: "La política de privacidad se publicará aquí.",
-    termsBody: "Los términos de uso se publicarán aquí.",
     langLabel: "Idioma",
     system: "Sistema",
     copyright: "© 2026 StoatMD",
