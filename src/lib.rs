@@ -212,6 +212,29 @@ impl SyncConfig {
             }
             config.dropbox_app_secret.clear();
         }
+        #[cfg(not(target_os = "ios"))]
+        {
+            // 公开的 macOS 安装包没有开发机的环境变量与 sync.json。
+            // 打包时把 OAuth 凭据编进二进制，下载者才能直接连云盘；
+            // 用户自己的 sync.json / 环境变量仍然优先。
+            if config.google_client_id.is_empty() {
+                config.google_client_id = option_env!("STOATMD_GOOGLE_CLIENT_ID").unwrap_or("").to_owned();
+            }
+            if config.google_client_secret.is_empty() {
+                config.google_client_secret = option_env!("STOATMD_GOOGLE_CLIENT_SECRET").unwrap_or("").to_owned();
+            }
+            if config.dropbox_app_key.is_empty() {
+                config.dropbox_app_key = option_env!("STOATMD_DROPBOX_APP_KEY").unwrap_or("").to_owned();
+            }
+            // Dropbox 用 PKCE，公开包里只带 app key（公开标识），不带 app secret。
+            // 文件与运行时环境都没说要不要付费时，才用打包时的默认值。
+            if doc.get("purchaseRequired").and_then(|value| value.as_bool()).is_none()
+                && std::env::var_os("STOATMD_PURCHASE_REQUIRED").is_none()
+                && let Some(value) = option_env!("STOATMD_PURCHASE_REQUIRED")
+            {
+                config.purchase_required = matches!(value.trim(), "1" | "true" | "TRUE" | "yes");
+            }
+        }
         config
     }
 }

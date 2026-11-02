@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Run, test or package iOS with public OAuth identifiers from the Mac config."""
+"""Run, test or package with OAuth identifiers from the Mac config.
+
+The desktop package also reads the Google client secret and Dropbox app key
+from here, so a public build can sign in without a per-user config file.
+Values are copied into the environment without being printed.
+"""
 import json
 import os
 from pathlib import Path
@@ -14,6 +19,8 @@ def build_environment():
         config = json.loads(config_path.read_text(encoding="utf-8"))
         for target, keys in (
             ("STOATMD_GOOGLE_IOS_CLIENT_ID", ("googleIosClientId",)),
+            ("STOATMD_GOOGLE_CLIENT_ID", ("googleClientId", "google_client_id")),
+            ("STOATMD_GOOGLE_CLIENT_SECRET", ("googleClientSecret", "google_client_secret")),
             ("STOATMD_DROPBOX_APP_KEY", ("dropboxAppKey", "dropbox_app_key")),
         ):
             if not env.get(target):
