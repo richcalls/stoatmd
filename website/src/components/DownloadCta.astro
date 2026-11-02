@@ -1,0 +1,35 @@
+---
+import Icon from "./Icon.astro";
+import { MAC_DOWNLOAD_URL, RELEASES_URL } from "../lib/download";
+
+interface Props {
+  class?: string;
+  iconSize?: number;
+  mac: string;
+  soon: string;
+  ios: string;
+}
+
+const {
+  class: className = "btn",
+  iconSize = 14,
+  mac,
+  soon,
+  ios,
+} = Astro.props;
+---
+
+<a
+  class={className}
+  href={MAC_DOWNLOAD_URL}
+  data-download-cta
+  data-mac-label={mac}
+  data-soon-label={soon}
+  data-ios-label={ios}
+  data-mac-url={MAC_DOWNLOAD_URL}
+  data-soon-url={RELEASES_URL}
+  data-ios-url="#download"
+>
+  <span data-download-label>{mac}</span>
+  <Icon name="down" size={iconSize} />
+</a>

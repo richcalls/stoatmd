@@ -352,6 +352,21 @@ a {
   border-color: var(--ink-hover);
 }
 
+/* Platforms whose build is not published yet: keep the CTA readable but
+   visually secondary, so it does not promise an installer that does not exist. */
+a[data-download-platform="soon"],
+a[data-download-platform="ios"] {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+a[data-download-platform="soon"]:hover,
+a[data-download-platform="ios"]:hover {
+  background: var(--surface-soft);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
 /* Hero */
 
 .hero {
@@ -1091,8 +1106,9 @@ a {
 
 /* Tablet widths: long localised nav labels plus both pickers and the CTA
    overflow the header, so drop the CTA (still reachable from the nav) and
-   show the pickers icon-only. */
-@media (max-width: 900px) {
+   show the pickers icon-only. Windows/Linux CTA labels are longer, so the
+   range extends to 1000px. */
+@media (max-width: 1000px) {
   .header-cta,
   .lang-name,
   .theme-name {
