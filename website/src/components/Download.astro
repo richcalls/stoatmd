@@ -10,6 +10,7 @@ const r = p.release;
 /**
  * Public download target. The community repository is public and hosts the
  * signed macOS build in its Releases; the source repository stays private.
+ * Windows and Linux builds will land in the same Releases page later.
  */
 const DOWNLOAD_URL =
   "https://github.com/richcalls/stoatmd-community/releases/latest";
@@ -35,6 +36,7 @@ const DOWNLOAD_URL =
             <Icon name="down" size={14} />
           </a>
           <p class="download-note">{r.macNote}</p>
+          <p class="download-platforms">{r.platforms}</p>
           <p class="download-ios">{r.ios}</p>
         </div>
 

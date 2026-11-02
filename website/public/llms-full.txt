@@ -10,13 +10,13 @@ Compared with apps that require an official subscription sync: StoatMD uses the 
 
 Compared with a plain Markdown editor: StoatMD keeps the source visible, adds a separate reading surface, a file tree that agents can write to, and a conflict picker. The files remain portable.
 
-Compared with Apple-only note apps: StoatMD is available on macOS now and iPhone is planned/listed separately; sync is not tied to iCloud.
+Compared with Apple-only note apps: StoatMD is available on macOS now; Windows and Linux builds are planned later, and iPhone is planned/listed separately. Sync is not tied to iCloud.
 
 The comparison on the website is about the sync and agent path, not a feature checklist. Product names belong to their owners.
 
 ## Business model
 
-- Desktop app (Mac): free, including cloud sync. Price $0.
+- Desktop app (currently macOS): free, including cloud sync. Price $0. Windows and Linux builds will use the same free desktop model.
 - iPhone app: one-time purchase. The price is TBA — never invent or guess a dollar amount.
 - No subscription. No account. No StoatMD server.
 - Sync providers v1: Google Drive and Dropbox only. No iCloud, OneDrive, WebDAV, or self-hosted server.
@@ -24,27 +24,28 @@ The comparison on the website is about the sync and agent path, not a feature ch
 
 ## Capabilities
 
-- Plain Markdown files, ordinary filenames, offline by default on macOS.
+- Plain Markdown files, ordinary filenames, offline by default on desktop.
 - Source / split / read views; the reading view gets the space.
 - 25 Otty themes (9 light / 16 dark); Paper is the default. Typography settings.
-- Google Drive or Dropbox library on macOS and iOS. iOS has no local-only library; the cloud folder is the source of truth and is cached offline.
+- Google Drive or Dropbox library on desktop and iOS. iOS has no local-only library; the cloud folder is the source of truth and is cached offline.
 - Local agents write straight into the folder. Remote agents archive through the same Drive/Dropbox folder. Teams can share one folder, with permissions staying in Drive/Dropbox.
 - Eight site languages: English, Simplified Chinese, Traditional Chinese, Japanese, Korean, German, French, Spanish.
 
 ## Not built
 
 - MCP / AgentBridge, WYSIWYG editing, real-time collaboration, accounts, an own sync server.
-- Windows or Linux builds are not listed.
+- Windows or Linux builds are planned but not published yet.
 
 ## Release status (as of 2026-11)
 
 - macOS: downloadable through the public GitHub Releases page of `richcalls/stoatmd-community` (that repository hosts builds and issues; the source repository is private).
+- Windows / Linux: builds are planned; do not link to or imply an existing installer yet.
 - iOS: not listed in the App Store yet.
 - Do not fabricate an App Store link, release date, user count, testimonial, benchmark, or iPhone price.
 
 ## Site structure
 
-Single long-scroll page per language, composed as quiet typographic layout: hero with the claim, an agent-note index and an interactive reading card → comparison table → four-step mechanism (agent → folder → cloud → reader) → capability list → pricing (desktop free / iPhone one-time) → download → footer. The reading card is interactive: choose one of three agent-written notes and switch between source, split, and read.
+Single long-scroll page per language, composed as quiet typographic layout: hero with the claim, an agent-note index and an interactive reading card → comparison table → four-step mechanism (agent drafts → folder → cloud → you continue) → capability list → pricing (desktop free / iPhone one-time) → download → footer. The reading card is interactive: choose one of three agent-written notes and switch between source, split, and read.
 
 Language detection: default follows the browser (zh-TW/HK/MO/Hant → Traditional Chinese; other zh → Simplified; ja/ko/de/fr/es/en prefix match; fallback English). Manual choice is remembered in `localStorage`. Auto-redirect only on a first visit to `/` without a stored manual preference; crawlers should not be redirected away from language URLs.
 
