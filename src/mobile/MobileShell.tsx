@@ -292,13 +292,27 @@ const failedImages = signal<Record<string, true>>({});
 /** 阅读页图片：按原始宽高比铺满正文宽度；onLoad 之前先占位，避免列表高度跳动。 */
 function ReaderImage(props: { src: string; alt?: string; width?: number | `${number}%`; height?: number | `${number}%` }) {
   const ratio = signal<number | null>(null);
+  const loaded = signal(false);
   if (failedImages()[props.src]) return <ReaderImageNotice alt={props.alt} hint={t("mobile.imageFailed")} testID="mobile-image-failed" />;
-  return <Image src={props.src} accessibilityLabel={props.alt} resizeMode="contain"
-    onLoad={size => { if (size.width > 0 && size.height > 0) ratio.set(size.width / size.height); }}
-    onError={() => failedImages.set({ ...failedImages(), [props.src]: true })}
-    style={{ width: props.width ?? "100%", maxWidth: "100%",
-      ...(props.height ? { height: props.height } : ratio() ? { aspectRatio: ratio()! } : { height: 140 }),
-      borderRadius: 6, backgroundColor: mobileColors().thread }} />;
+  return <View style={{ position: "relative", width: props.width ?? "100%", maxWidth: "100%" }}>
+    <Image src={props.src} accessibilityLabel={props.alt} resizeMode="contain"
+      onLoad={size => {
+        if (size.width > 0 && size.height > 0) ratio.set(size.width / size.height);
+        loaded.set(true);
+      }}
+      onError={() => failedImages.set({ ...failedImages(), [props.src]: true })}
+      style={{ width: "100%",
+        ...(props.height ? { height: props.height } : ratio() ? { aspectRatio: ratio()! } : { height: 140 }),
+        borderRadius: 6, backgroundColor: mobileColors().thread }} />
+    {/* 网络图片和刚同步下来的本地图片都要读一会儿；在 onLoad 之前盖一层细转圈，别让读者以为图坏了。 */}
+    {loaded() ? null : <View testID="mobile-image-loading" pointerEvents="none"
+      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 6,
+        backgroundColor: mobileColors().thread, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2,
+        borderColor: mobileColors().thread, borderTopColor: mobileColors().ink3,
+        animationName: "spin", animationDuration: 850, animationIterationCount: "infinite" }} />
+    </View>}
+  </View>;
 }
 
 /**
