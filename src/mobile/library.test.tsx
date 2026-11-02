@@ -215,8 +215,7 @@ test("mobile external changes reload clean documents and preserve unsaved edits"
   expect(lib.note()!.content).toBe("unsaved");
 });
 
-test("mobile reconciliation never overwrites edits made during a disk read", async () => {
-  const memory = memoryVault();
+test("mobile reconciliation never overwrites edits made during a disk read", async () => {  const memory = memoryVault();
   let resume: (() => void) | null = null;
   let reading = false;
   const lib = mobileLibrary({ ...memory.vault, async read(path) {
@@ -232,4 +231,33 @@ test("mobile reconciliation never overwrites edits made during a disk read", asy
   resume!(); await checking; await lib.flush();
   expect(lib.note()!.content).toBe("new edit");
   expect(memory.files.get("note.md")!.content).toBe("new edit");
+});
+
+test("mobile hooks report saved and removed paths for cloud push", async () => {
+  const memory = memoryVault();
+  const saved: string[] = [];
+  const removed: string[] = [];
+  const lib = mobileLibrary(memory.vault, {
+    saved: path => saved.push(path),
+    removed: path => removed.push(path),
+  });
+  await lib.openNote("note.md");
+  lib.edit("changed");
+  expect(await lib.flush()).toBe(true);
+  expect(saved).toEqual(["note.md"]);
+
+  await lib.createFolder("", "Ideas");
+  expect(await lib.move("Ideas")).toBe(true);
+  expect(removed).toEqual(["note.md"]);
+  expect(saved).toEqual(["note.md", "Ideas/note.md"]);
+
+  expect(await lib.renameNote("想法")).toBe(true);
+  expect(removed).toEqual(["note.md", "Ideas/note.md"]);
+  expect(saved[saved.length - 1]).toBe("Ideas/想法.md");
+
+  expect(await lib.importNote("", "导入.md", "# 导入")).toBe(true);
+  expect(saved[saved.length - 1]).toBe("导入.md");
+
+  expect(await lib.recycle()).toBe(true);
+  expect(removed[removed.length - 1]).toBe("导入.md");
 });

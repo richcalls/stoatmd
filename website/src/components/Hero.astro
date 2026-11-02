@@ -1,7 +1,7 @@
 ---
-import { localePath, type Locale } from "../i18n";
+import type { Locale } from "../i18n";
 import { SITE_COPY } from "../i18n/copy";
-import Icon from "./Icon.astro";
+import DownloadCta from "./DownloadCta.astro";
 
 const { locale } = Astro.props as { locale: Locale };
 const p = SITE_COPY[locale];
@@ -25,10 +25,11 @@ const [titleA, titleB] = splitTitle(p.hero.title);
   <p class="hero-lead">{p.hero.lead}</p>
 
   <div class="hero-actions">
-    <a class="btn" href={localePath(locale, "#download")}>
-      {p.hero.primary}
-      <Icon name="down" size={14} />
-    </a>
+    <DownloadCta
+      mac={p.hero.primary}
+      soon={p.release.soon}
+      ios={p.release.ios}
+    />
     <span class="hero-secondary">{p.hero.secondary}</span>
   </div>
 

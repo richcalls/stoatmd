@@ -146,6 +146,8 @@ npx wrangler@4 pages deploy dist --project-name=stoatmd-website --branch=main
 ## 发布状态
 
 - macOS：已通过公开的 [`richcalls/stoatmd-community`](https://github.com/richcalls/stoatmd-community) Releases 发布；源码仓保持私有
+  - 官网下载按钮按系统切换：macOS 直链 `releases/latest/download/StoatMD-macos.dmg`；iOS 指向下载区；Windows / Linux 指向 Releases 并显示「准备中」
+  - 安装包要求 macOS 14+、Apple Silicon；改资源名时要同步 `src/lib/download.ts`
 - Windows / Linux：桌面版同一套代码库面向这两个平台，构建与发布随后补充；官网只写「稍后」，不要提前给下载链接
 - iOS：尚未上架；售价发布时公布
 - 问题反馈：公开仓的 Issues / Discussions；安全报告走私密披露

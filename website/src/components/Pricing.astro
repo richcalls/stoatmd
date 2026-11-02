@@ -1,10 +1,10 @@
 ---
-import { localePath, type Locale } from "../i18n";
+import type { Locale } from "../i18n";
 import { SITE_COPY } from "../i18n/copy";
-import Icon from "./Icon.astro";
 
 const { locale } = Astro.props as { locale: Locale };
-const p = SITE_COPY[locale].pricing;
+const copy = SITE_COPY[locale];
+const p = copy.pricing;
 const tiers = [p.desktop, p.mobile];
 ---
 
@@ -40,10 +40,6 @@ const tiers = [p.desktop, p.mobile];
 
         <div class="pricing-foot">
           <p class="pricing-note">{p.note}</p>
-          <a class="btn" href={localePath(locale, "#download")}>
-            {SITE_COPY[locale].hero.primary}
-            <Icon name="down" size={14} />
-          </a>
         </div>
       </div>
     </div>

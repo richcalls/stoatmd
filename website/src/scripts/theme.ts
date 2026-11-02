@@ -1,90 +1,52 @@
 /**
- * 主题切换：默认跟随系统，手动选择写入 localStorage。
- * 首屏防闪烁由 BaseLayout 里的内联脚本负责；这里负责菜单与状态同步。
+ * 主题切换：浅色 / 深色 单击无缝切换，写入 localStorage。
  */
 const KEY = "stoatmd.theme";
-type Pref = "system" | "light" | "dark";
+type Pref = "light" | "dark";
 
 const root = document.documentElement;
-const picker = document.querySelector<HTMLDetailsElement>("#themePicker");
-const current = picker?.querySelector<HTMLElement>("[data-theme-current]");
+const toggleBtn = document.querySelector<HTMLButtonElement>("#themeToggleBtn");
 const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
 const media = window.matchMedia("(prefers-color-scheme: dark)");
-
-function isPref(value: string | null): value is Pref {
-  return value === "system" || value === "light" || value === "dark";
-}
 
 function read(): Pref {
   try {
     const value = localStorage.getItem(KEY);
-    return isPref(value) ? value : "system";
-  } catch {
-    return "system";
-  }
+    if (value === "light" || value === "dark") return value;
+  } catch {}
+  return media.matches ? "dark" : "light";
 }
 
-function effective(pref: Pref): "light" | "dark" {
-  return pref === "system" ? (media.matches ? "dark" : "light") : pref;
-}
-
-function apply(pref: Pref, persist = false) {
-  if (pref === "system") root.removeAttribute("data-theme");
-  else root.dataset.theme = pref;
+function apply(theme: Pref, persist = false) {
+  root.dataset.theme = theme;
 
   if (persist) {
     try {
-      localStorage.setItem(KEY, pref);
-    } catch {
-      /* ignore */
-    }
+      localStorage.setItem(KEY, theme);
+    } catch {}
   }
 
-  const label = picker
-    ?.querySelector<HTMLElement>(`[data-theme-pref="${pref}"]`)
-    ?.textContent?.trim();
-  if (current && label) current.textContent = label;
-
-  picker
-    ?.querySelectorAll<HTMLElement>("[data-theme-pref]")
-    .forEach((button) =>
-      button.setAttribute(
-        "aria-pressed",
-        String(button.dataset.themePref === pref),
-      ),
-    );
-
-  if (meta)
-    meta.content = effective(pref) === "dark" ? "#121311" : "#fbfbf8";
+  if (meta) {
+    meta.content = theme === "dark" ? "#121311" : "#fbfbf8";
+  }
 }
 
+// 初始化
 apply(read());
 
-media.addEventListener("change", () => {
-  if (read() === "system") apply("system");
+// 监听系统深浅色偏好变更（仅在用户未显式设置时跟随）
+media.addEventListener("change", (e) => {
+  try {
+    if (!localStorage.getItem(KEY)) {
+      apply(e.matches ? "dark" : "light");
+    }
+  } catch {}
 });
 
-picker
-  ?.querySelectorAll<HTMLElement>("[data-theme-pref]")
-  .forEach((button) => {
-    button.addEventListener("click", () => {
-      apply(button.dataset.themePref as Pref, true);
-      picker.open = false;
-    });
-  });
-
-document.addEventListener("click", (event) => {
-  if (
-    picker?.open &&
-    event.target instanceof Node &&
-    !picker.contains(event.target)
-  )
-    picker.open = false;
+// 单击按钮直接切换
+toggleBtn?.addEventListener("click", () => {
+  const current = root.dataset.theme === "dark" ? "dark" : "light";
+  const next = current === "dark" ? "light" : "dark";
+  apply(next, true);
 });
 
-picker?.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    picker.open = false;
-    picker.querySelector("summary")?.focus();
-  }
-});
