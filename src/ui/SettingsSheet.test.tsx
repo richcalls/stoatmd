@@ -110,10 +110,12 @@ test("设置：字体下拉打开时 Esc 只收起下拉，浮窗保留", async 
   expect(app.texts()).toContain("open");
 });
 
-test("设置：两套 Rex 主题可选并持久化", async () => {
+test("设置：20 套 Rex 主题可选并持久化", async () => {
   const app = await open("./SettingsSheet.harness.tsx", desktop);
   expect(app.shows("id:theme-merino-light")).toBe(true);
   expect(app.shows("id:theme-silver-point-dark")).toBe(true);
+  expect(app.shows("id:theme-alpine-milk")).toBe(true);
+  expect(app.shows("id:theme-static-noir")).toBe(true);
 
   await app.press("id:theme-silver-point-dark");
   await app.waitUntil(() => app.storage()["prefs.theme"] === "silver-point-dark");

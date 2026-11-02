@@ -4,7 +4,25 @@ import { loadSavedTheme, saveTheme } from "./prefs";
 /** Rex Beta's currently selected built-in themes. */
 export type ThemeId =
   | "merino-light"
-  | "silver-point-dark";
+  | "silver-point-dark"
+  | "alpine-milk"
+  | "buttercream-diner"
+  | "coastal-linen"
+  | "glacier-mint"
+  | "ivory-gallery"
+  | "lavender-postcard"
+  | "newsprint-fog"
+  | "orchard-breeze"
+  | "porcelain-morning"
+  | "abyssal-trench"
+  | "cobalt-foundry"
+  | "heliotrope-haze"
+  | "ink-meridian"
+  | "merino-dark"
+  | "midnight-tundra"
+  | "petrol-lagoon"
+  | "static-noir"
+  | "velvet-dusk";
 
 export type ThemeMode = "light" | "dark";
 
@@ -146,6 +164,25 @@ export const THEMES: readonly ThemePreset[] = [
     codeBg: "#202020",
     searchBg: "#262626",
   }),
+  // Additional Rex themes selected from the local Rex Beta theme catalog.
+  definition("alpine-milk", "Alpine Milk", "light", "#FAFAFA", "#333940", "#4A90D9", "#4A9256", "#C94F46"),
+  definition("buttercream-diner", "Buttercream Diner", "light", "#FBF3DD", "#4D3F33", "#D1603D", "#5C8A3C", "#C8432F"),
+  definition("coastal-linen", "Coastal Linen", "light", "#FAF6EE", "#3D4652", "#2F8FA6", "#57904D", "#C25547"),
+  definition("glacier-mint", "Glacier Mint", "light", "#F0F9F6", "#2F4640", "#2AA88A", "#3D9060", "#C05045"),
+  definition("ivory-gallery", "Ivory Gallery", "light", "#FFFFFF", "#1F2328", "#1A6FD4", "#2F7D3C", "#C13A24"),
+  definition("lavender-postcard", "Lavender Postcard", "light", "#F7F4FB", "#40374F", "#7A5BBF", "#4A8F56", "#C04E56"),
+  definition("newsprint-fog", "Newsprint Fog", "light", "#F2F2F0", "#333331", "#B3402E", "#5D7F52", "#B3402E"),
+  definition("orchard-breeze", "Orchard Breeze", "light", "#F4F9EF", "#3A4A35", "#5DA24F", "#4F9440", "#C65043"),
+  definition("porcelain-morning", "Porcelain Morning", "light", "#F7F9FA", "#2E3A42", "#2277CC", "#3D8A4E", "#C74E42"),
+  definition("abyssal-trench", "Abyssal Trench", "dark", "#06101A", "#B8CDD9", "#4FE3C1", "#52C79A", "#E26A6A"),
+  definition("cobalt-foundry", "Cobalt Foundry", "dark", "#10151C", "#C2CEDB", "#4FA8FF", "#81B366", "#E57373"),
+  definition("heliotrope-haze", "Heliotrope Haze", "dark", "#14101F", "#DCD2EE", "#FF7EDB", "#72E0AA", "#F66E93"),
+  definition("ink-meridian", "Ink Meridian", "dark", "#101623", "#CCD6EA", "#83A8F2", "#7CBF8E", "#DE6E7C"),
+  definition("merino-dark", "Merino Dark", "dark", "#0D1117", "#E6EDF3", "#2F81F7", "#3FB950", "#FF7B72"),
+  definition("midnight-tundra", "Midnight Tundra", "dark", "#0E141B", "#C9D4DE", "#8FB8D8", "#7FB88A", "#D9707C"),
+  definition("petrol-lagoon", "Petrol Lagoon", "dark", "#0C1618", "#C2D8D8", "#35D0C0", "#6CC48E", "#E0736E"),
+  definition("static-noir", "Static Noir", "dark", "#0A0A0A", "#EDEDED", "#FF3B30", "#9FD08A", "#FF4D42"),
+  definition("velvet-dusk", "Velvet Dusk", "dark", "#171122", "#D6CBE6", "#C9A1F0", "#83BB8D", "#E07396"),
 ];
 
 const BY_ID = new Map(THEMES.map((theme) => [theme.id, theme]));

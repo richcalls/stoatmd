@@ -7,7 +7,9 @@ function isHex(value: string): boolean {
 
 test("主题色：每套调色板提供完整且有效的 UI token", () => {
   const keys: (keyof ThemePalette)[] = ["paper", "sidebar", "list", "editor", "preview", "ink", "ink2", "ink3", "thread", "accent", "accentInk", "accentSoft", "syntaxBold", "quote", "codeBg", "searchBg"];
-  expect(THEMES.length).toBe(2);
+  expect(THEMES.length).toBe(20);
+  expect(THEMES.filter((theme) => theme.mode === "light").length).toBe(10);
+  expect(THEMES.filter((theme) => theme.mode === "dark").length).toBe(10);
   for (const preset of THEMES) {
     for (const key of keys) expect(isHex(preset.palette[key])).toBe(true);
     for (const swatch of preset.swatches) expect(isHex(swatch)).toBe(true);

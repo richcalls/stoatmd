@@ -57,7 +57,7 @@ SOFTWARE.
 
 ## Rex theme tokens
 
-The `Merino Light` and `Silver Point Dark` color tokens in `src/ui/theme.ts`
-are read from the locally installed Rex Beta app's built-in theme catalog
-(`SuperUI_SuperDesignTokens.bundle`). StoatMD uses the color values only; it
-does not bundle Rex code, resources, or application assets.
+The 20 color themes in `src/ui/theme.ts` are selected from the locally installed
+Rex Beta app's built-in theme catalog (`SuperUI_SuperDesignTokens.bundle`).
+StoatMD uses the color values only; it does not bundle Rex code, resources, or
+application assets.

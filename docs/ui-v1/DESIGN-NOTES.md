@@ -30,7 +30,7 @@ Mac 两栏主界面（浅/深）+ 折叠态 + iPhone 编辑 + Mac 设置（主�
 | 11 | overview 屏号标签 | `01 · MAC…` 序号装饰 | 去掉序号，保留可读屏名 |
 | 12 | 文档 | 仅 DESIGN-NOTES | 补 `PRODUCT.md` + `DESIGN.md` |
 
-约定（仍有效）：默认 **Merino Light** 浅色 / **Silver Point Dark** 深色（Rex 两套主题）、Mac 默认分栏、非 WYSIWYG。**同步已升正式**（不再灰显）；文案中文示意、结构出海多语言。
+约定（仍有效）：默认 **Merino Light** 浅色，主题提供 Rex 的 20 套预设（10 浅色 / 10 深色）、Mac 默认分栏、非 WYSIWYG。**同步已升正式**（不再灰显）；文案中文示意、结构出海多语言。
 
 ## 交付清单
 
@@ -106,7 +106,7 @@ Mac 两栏主界面（浅/深）+ 折叠态 + iPhone 编辑 + Mac 设置（主�
 - Mac 顶栏：`Code` / `Split` / `Eye` | `TextT` / `Gear`——**去掉 Palette**
 - TextT → 字体相关；主题仅从 Gear → 设置
 - `05-mac-settings` 替换原 `05-mac-theme`：左导航（外观 / 字体 / 同步）+ 主题网格（示意）+ 字体（下拉/字号/行高/预览）；**已砍 MCP**（无自有服务器、远程无法挂本地 MCP）
-- 主题完整色号见 `src/ui/theme.ts`（Rex 的 Merino Light / Silver Point Dark）；设置网格 PNG **不必**随色板重出
+- 主题完整色号见 `src/ui/theme.ts`（Rex 的 20 套预设）；设置网格 PNG **不必**随色板重出
 
 
 ## 三栏折叠（本轮 · 正海反馈）
@@ -155,7 +155,7 @@ Mac 两栏主界面（浅/深）+ 折叠态 + iPhone 编辑 + Mac 设置（主�
 
 ## 决策记录 · 默认文章排版改用 Kami（forecho · 2026-10-30）
 
-> 2026-11-03 后续：默认色板改为 **Rex 两套主题**，Kami 仅保留文章排版 / 字体节奏；正文、引用和代码使用中性色，标题和链接保留轻量强调色。
+> 2026-11-03 后续：默认色板改为 **Rex 主题**，当前提供 20 套预设；Kami 仅保留文章排版 / 字体节奏；正文、引用和代码使用中性色，标题和链接保留轻量强调色。
 
 - 默认预览文章样式移植自 **[Kami](https://github.com/tw93/kami)**（MIT；归属见 `THIRD_PARTY_NOTICES.md`）。
 - 默认色板换成 Kami 羊皮纸 `#F5F4ED` + 墨蓝 `#1B365D`；主题 id `weave-paper` 保留，旧偏好不失效，显示名改为「Kami 羊皮纸」。
