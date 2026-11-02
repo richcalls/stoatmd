@@ -8,6 +8,7 @@ import { localEndpoint, remoteEndpoint } from "./endpoints";
 import { cleanupVerified, summarize, type Endpoint, type MigrationSummary,
   type MigrationProgress } from "./migration";
 import { activeStorage, writeActiveStorage, storageBusy, type Cleanup, type Location } from "./state";
+import type { PortableConnection } from "./portable";
 
 export type MigrationPhase = "idle" | "preparing" | "confirm" | "copying" | "verifying" |
   "cleaning" | "succeeded" | "failed";
@@ -47,6 +48,16 @@ export async function activateInitialStorage(target: Location,
   } finally {
     storageBusy.set(false);
   }
+}
+
+/**
+ * 新设备：用另一台设备同步来的绑定直接建缓存、绑库并进库，
+ * 不用重新授权，也不用再选一次文件夹。
+ */
+export async function restoreSharedStorage(record: PortableConnection,
+  activated: (root: string) => Promise<void>): Promise<void> {
+  await activateInitialStorage({ kind: record.provider, account: record.account,
+    remote: { id: record.remoteId, path: record.remotePath, name: record.remoteName } }, activated);
 }
 
 export function connectionLocation(conn: SyncConnection): Location {

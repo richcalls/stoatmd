@@ -291,6 +291,14 @@ impl TokenVault {
     pub fn delete(provider: String) -> Result<(), String> {
         token_delete(&provider)
     }
+
+    /// 当前是否运行在真正的 iOS 目标上。
+    ///
+    /// headless 测试在 macOS 宿主进程里模拟 iOS，`platform.os` 也会报 "ios"，
+    /// 但原生钥匙串调用会落到开发机的登录钥匙串；跨设备状态要据此挡住。
+    pub fn is_ios() -> bool {
+        cfg!(target_os = "ios")
+    }
 }
 
 /// 列表项（给 TSX）。
