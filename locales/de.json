@@ -91,7 +91,7 @@
   "settings.renderMode.monochrome": "Einfarbig",
   "settings.renderMode.desc": "Farben unterscheiden Überschriften, Zitate, Links und Code. Einfarbig bleiben Schriftgrößen, Strichstärken und Layout erhalten. Gilt für Editor und Vorschau.",
   "settings.theme": "Design",
-  "settings.theme.desc": "Nur Farben, das Layout bleibt. Presets aus den Otty-Themes.",
+  "settings.theme.desc": "Nur Farben; das Layout bleibt unverändert.",
   "settings.font.desc": "Editor und Vorschau verwenden dieselbe Textschrift. Schriftgrößen für Oberfläche, Editor und Lesen separat anpassen. Änderungen werden automatisch gespeichert.",
   "settings.font.interfaceSize": "Oberflächengröße",
   "settings.font.editorSize": "Editorgröße",

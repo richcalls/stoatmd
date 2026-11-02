@@ -91,7 +91,7 @@
   "settings.renderMode.monochrome": "單色呈現",
   "settings.renderMode.desc": "彩色區分標題、引用、連結與程式碼；單色保留字級、字重和排版層級。適用於編輯與預覽。",
   "settings.theme": "主題",
-  "settings.theme.desc": "只換顏色，不改版面。預設來自 Otty 主題。",
+  "settings.theme.desc": "只換顏色，不改版面。",
   "settings.font.desc": "編輯與預覽共用正文字體；介面、編輯與閱讀字級可獨立調整，變更會即時儲存。",
   "settings.font.interfaceSize": "介面字級",
   "settings.font.editorSize": "編輯字級",

@@ -44,7 +44,7 @@ function Harness() {
       <Text testID="mode-value">{mode()}</Text>
       <Button testID="render-color" onPress={() => applyRenderMode("color")}><Text>Color</Text></Button>
       <Button testID="render-monochrome" onPress={() => applyRenderMode("monochrome")}><Text>Monochrome</Text></Button>
-      <Button testID="theme-nord" onPress={() => applyTheme("nord")}><Text>Nord</Text></Button>
+      <Button testID="theme-aurora-borealis" onPress={() => applyTheme("aurora-borealis")}><Text>Aurora Borealis</Text></Button>
     </View>
   );
 }

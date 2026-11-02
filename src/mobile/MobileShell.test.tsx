@@ -1,5 +1,7 @@
 import { expect, open, test } from "nsh/test";
+import { themePreset } from "../ui/theme";
 
+const lightTheme = themePreset("everest").palette;
 const phone = { platform: "ios" as const, width: 390, height: 844, locale: "zh-CN", safeArea: { top: 47, right: 0, bottom: 34, left: 0 } };
 
 test("iPhone: create a folder and note, save Chinese text, read, rename and duplicate", async () => {
@@ -60,19 +62,19 @@ test("iPhone: create a folder and note, save Chinese text, read, rename and dupl
 test("iPhone: theme, language and font settings persist after restarting", async () => {
   const app = await open("./MobileShell.harness.tsx", phone);
   await app.press("id:mobile-settings");
-  await app.press("id:mobile-theme-nord");
+  await app.press("id:mobile-theme-aurora-borealis");
   await app.press("id:mobile-render-monochrome");
   await app.press("id:mobile-text-row");
   await app.press("id:settings.font.reading-increase");
   await app.press("id:settings.font.lineHeight-increase");
   await app.press("id:mobile-language-toggle");
   await app.press("id:mobile-language-en");
-  await app.waitUntil(() => app.storage()["prefs.locale"] === "en" && app.storage()["prefs.theme"] === "nord" && app.storage()["prefs.renderMode"] === "monochrome" && app.storage()["prefs.fontSize"] === "17" && app.storage()["prefs.fontLineHeight"] === "1.6");
+  await app.waitUntil(() => app.storage()["prefs.locale"] === "en" && app.storage()["prefs.theme"] === "aurora-borealis" && app.storage()["prefs.renderMode"] === "monochrome" && app.storage()["prefs.fontSize"] === "17" && app.storage()["prefs.fontLineHeight"] === "1.6");
   const again = await open("./MobileShell.harness.tsx", { ...phone, storage: app.storage() });
   await again.press("id:mobile-settings");
   expect(again.shows("text:Settings")).toBe(true);
   expect(again.shows("text:Kami · 17 / 1.60")).toBe(true);
-  expect(again.storage()["prefs.theme"]).toBe("nord");
+  expect(again.storage()["prefs.theme"]).toBe("aurora-borealis");
   // 重启后文稿配色仍是单色：选中的分段和未选中的颜色不同。
   expect(again.shows("id:mobile-render-mode")).toBe(true);
   expect(again.spanStyle("id:mobile-render-monochrome >> text:Monochrome").color)
@@ -154,8 +156,8 @@ test("iPhone: 库页三 Tab、文件树、搜索与阅读底栏工作", async ()
   await app.waitFor("id:mobile-tab-recent");
   expect(app.shows("text:还没有笔记")).toBe(true);
   // 选中 tab 的文字颜色要跟着切换（曾经因为把 active 算成常量而不刷新）。
-  expect(app.spanStyle("id:mobile-tab-recent >> text:最近").color).toBe("#1a1a1aff");
-  expect(app.spanStyle("id:mobile-tab-all >> text:全部").color).toBe("#6d6b65ff");
+  expect(app.spanStyle("id:mobile-tab-recent >> text:最近").color).toBe(`${lightTheme.ink.toLowerCase()}ff`);
+  expect(app.spanStyle("id:mobile-tab-all >> text:全部").color).toBe(`${lightTheme.ink3.toLowerCase()}ff`);
 
   await app.press("id:mobile-new-folder");
   await app.waitFor("id:mobile-name");
@@ -174,8 +176,8 @@ test("iPhone: 库页三 Tab、文件树、搜索与阅读底栏工作", async ()
   await app.press("id:mobile-tab-favorites");
   await app.waitFor("id:mobile-favorites-empty");
   expect(app.texts().includes("还没有收藏的笔记")).toBe(true);
-  expect(app.spanStyle("id:mobile-tab-favorites >> text:收藏").color).toBe("#1a1a1aff");
-  expect(app.spanStyle("id:mobile-tab-recent >> text:最近").color).toBe("#6d6b65ff");
+  expect(app.spanStyle("id:mobile-tab-favorites >> text:收藏").color).toBe(`${lightTheme.ink.toLowerCase()}ff`);
+  expect(app.spanStyle("id:mobile-tab-recent >> text:最近").color).toBe(`${lightTheme.ink3.toLowerCase()}ff`);
   expect(app.shows("id:mobile-note-随笔/untitled.md")).toBe(false);
 
   await app.press("id:mobile-tab-all");

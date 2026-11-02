@@ -157,26 +157,21 @@ function ThemeCard(props: { item: ThemePreset }) {
         paddingHorizontal: 10,
         borderRadius: 9,
         borderWidth: 1,
-        borderColor: on() ? colors().accent : colors().thread,
-        backgroundColor: on() ? colors().accentSoft : colors().list,
+        borderColor: on() ? props.item.swatches[3] : props.item.swatches[0],
+        backgroundColor: props.item.swatches[0],
       }}
     >
-      <View
-        style={{
-          width: 24,
-          height: 24,
-          borderRadius: 12,
-          backgroundColor: props.item.palette.paper,
-          borderWidth: 1,
-          borderColor: props.item.palette.thread,
-        }}
-      />
+      <View style={{ flexDirection: "row", gap: 3, flexShrink: 0 }}>
+        <Each of={props.item.swatches}>
+          {(swatch) => <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: swatch(), borderWidth: 1, borderColor: props.item.mode === "dark" ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.12)" }} />}
+        </Each>
+      </View>
       <Text
         style={{
           fontSize: uiTextSize(12.5),
           fontWeight: "560",
           letterSpacing: -0.12,
-          color: colors().ink,
+          color: props.item.mode === "dark" ? "#F4F6F8" : "#20242A",
           flex: 1,
         }}
         numberOfLines={1}

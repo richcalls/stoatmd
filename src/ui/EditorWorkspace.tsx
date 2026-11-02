@@ -111,7 +111,8 @@ export const previewTextStyles = (palette: ThemePalette = colors()): TextViewSty
       paddingHorizontal: 4,
     },
     codeBlock: {
-      backgroundColor: palette.list,
+      // Fenced code keeps a stable neutral surface across appearance themes.
+      backgroundColor: palette.codeBg,
       borderRadius: 5,
       paddingTop: 13,
       paddingBottom: 13,
@@ -121,7 +122,7 @@ export const previewTextStyles = (palette: ThemePalette = colors()): TextViewSty
       fontFamily: mono,
       fontSize: scale.code,
       lineHeight: Math.round(scale.code * 1.5),
-      color: ink.code,
+      color: palette.ink,
     },
     strong: { fontWeight: 500 },
     link: { color: ink.link, textDecorationLine: "underline" },

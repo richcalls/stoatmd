@@ -57,7 +57,7 @@ function ToolButton(props: {
 }
 
 /**
- * Otty 式窗口栏：标题始终居中，移入顶部时显露两侧工具。
+ * 主题窗口栏：标题始终居中，移入顶部时显露两侧工具。
  * 控件保持挂载与占位，键盘焦点也能显露，显隐不会改变布局。
  */
 export function WindowBar(props: Props) {
@@ -104,7 +104,7 @@ export function WindowBar(props: Props) {
             revealed={revealed()}
             selected={props.sidebarOpen}
           >
-            <Icon name="sidebar" color={colors().ink2} size={16} />
+            <Icon name="sidebar" color={colors().ink} size={16} />
           </ToolButton>
         </If>
       </View>
@@ -128,7 +128,7 @@ export function WindowBar(props: Props) {
           style={{
             fontSize: uiTextSize(),
             fontWeight: "500",
-            color: colors().ink2,
+            color: colors().ink,
             textAlign: "center",
             flexShrink: 1,
             minWidth: 0,
