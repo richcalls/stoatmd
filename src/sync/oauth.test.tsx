@@ -242,3 +242,17 @@ test("TokenSession：重新授权须匹配原账号，选错账号时保留原�
   expect(await store.load("google")).toEqual(original);
   expect(await session.accessToken()).toBe("original");
 });
+
+test("TokenSession：没读到令牌时不缓存，下次 restore 会重新读钥匙串", async () => {
+  const store = new MemoryTokenStore();
+  const deps: OAuthDeps = {
+    authorize: async () => { throw new Error("unused"); },
+    fetch: async () => jsonResponse({}),
+    now: () => NOW,
+  };
+  const session = new TokenSession("google", config(), deps, store);
+  expect(await session.restore()).toBe(null);
+  // 另一台设备的授权刚刚同步进钥匙串
+  await store.save("google", { accessToken: "synced", refreshToken: "refresh", expiresAt: NOW + 3600000, account: "me" });
+  expect((await session.restore())?.accessToken).toBe("synced");
+});

@@ -1260,17 +1260,9 @@ function MobileFindBar(props: { query: string; total: number; current: number; o
   </View>;
 }
 
-/** 阅读页标题与正文同色（稿：Kami 纸面阅读，不把 H1 染成强调色）。 */
+/** 阅读页与 Mac 预览共用同一套文稿配色：彩色模式下标题、引用、代码、链接都跟随强调色。 */
 function readerStyles() {
-  const c = mobileColors();
-  const base = previewTextStyles(c);
-  return {
-    ...base,
-    heading: { ...(base.heading ?? {}), color: c.ink },
-    heading1: { ...(base.heading1 ?? {}), color: c.ink },
-    heading2: { ...(base.heading2 ?? {}), color: c.ink },
-    heading3: { ...(base.heading3 ?? {}), color: c.ink },
-  };
+  return previewTextStyles(mobileColors());
 }
 
 function FormatButton(props: { label?: string; icon?: IconName; accessibilityLabel: string; onPress: () => void; bold?: boolean }) {
