@@ -2,7 +2,7 @@ import { expect, test } from "nsh/test";
 import { markdownDecorations } from "./markdownDecorations";
 import { themePreset } from "./theme";
 
-const palette = themePreset("everest").palette;
+const palette = themePreset("merino-light").palette;
 
 function stylesFor(text: string) {
   return markdownDecorations(text, palette).map((decoration) => ({

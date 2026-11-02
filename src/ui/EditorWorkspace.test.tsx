@@ -14,7 +14,7 @@ test("文稿配色：预览即时切换并保留正文、字号、链接下划�
   const app = await open("./EditorWorkspace.harness.tsx", { width: 1000, height: 900 });
   await app.press("id:mode-preview");
   const style = (text: string) => app.spanStyle(`id:pane-preview >> text:${text} >> nth=0`);
-  const paper = themePreset("everest").palette;
+  const paper = themePreset("merino-light").palette;
   const rgba = (hex: string) => `${hex.toLowerCase()}ff`;
   const headingSize = style("hi").fontSize;
   expect(style("hi").color).toBe(rgba(paper.accent));
@@ -32,18 +32,18 @@ test("文稿配色：预览即时切换并保留正文、字号、链接下划�
   await app.press("label:Copy code");
   await app.waitUntil(() => app.clipboard() === "const a = 1;");
 
-  await app.press("id:theme-aurora-borealis");
-  const nord = themePreset("aurora-borealis").palette;
-  expect(style("hi").color).toBe(rgba(nord.ink));
+  await app.press("id:theme-silver-point-dark");
+  const silverPointDark = themePreset("silver-point-dark").palette;
+  expect(style("hi").color).toBe(rgba(silverPointDark.ink));
   await app.press("id:render-color");
-  expect(style("hi").color).toBe(rgba(nord.accent));
-  expect(style("引用 quote").color).toBe(rgba(nord.quote));
+  expect(style("hi").color).toBe(rgba(silverPointDark.accent));
+  expect(style("引用 quote").color).toBe(rgba(silverPointDark.quote));
 });
 
 test("文稿配色：源码切换清除高亮并在恢复彩色后重新着色", async () => {
   const app = await open("./EditorWorkspace.harness.tsx", { width: 1000, height: 900 });
   const style = (text: string) => app.spanStyle(`id:document-editor >> text:${text}`);
-  const paper = themePreset("everest").palette;
+  const paper = themePreset("merino-light").palette;
   const rgba = (hex: string) => `${hex.toLowerCase()}ff`;
   expect(style("# hi").color).toBe(rgba(paper.accent));
   await app.press("id:render-monochrome");
@@ -53,10 +53,10 @@ test("文稿配色：源码切换清除高亮并在恢复彩色后重新着色",
   }
   await app.press("id:render-color");
   expect(style("# hi").color).toBe(rgba(paper.accent));
-  await app.press("id:theme-aurora-borealis");
-  const nord = themePreset("aurora-borealis").palette;
-  expect(style("# hi").color).toBe(rgba(nord.accent));
-  expect(style("> 引用 quote").color).toBe(rgba(nord.quote));
+  await app.press("id:theme-silver-point-dark");
+  const silverPointDark = themePreset("silver-point-dark").palette;
+  expect(style("# hi").color).toBe(rgba(silverPointDark.accent));
+  expect(style("> 引用 quote").color).toBe(rgba(silverPointDark.quote));
 });
 
 test("EditorWorkspace：三种模式切换应真正改变面板", async () => {

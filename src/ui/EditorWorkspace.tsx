@@ -161,6 +161,10 @@ export function EditorWorkspace(props: Props) {
   };
   const openFind = () => {
     if (props.searchEnabled === false) return;
+    // `keymap` bindings for the editor are intentionally allowed to run while
+    // a text field is focused. Clear that state before moving focus to the
+    // find field so Command+A/C/X/V stay native to the query input.
+    editorFocused.set(false);
     const generation = ++findGeneration;
     const selected = editor?.selectedText();
     if (props.mode === "preview") props.onRevealEditor();
@@ -182,6 +186,9 @@ export function EditorWorkspace(props: Props) {
     findFocused.set(false);
     findInput = null;
     editor?.focus();
+    // Keep the fallback command route available immediately. The editor's
+    // focus event follows on the next native turn on macOS.
+    editorFocused.set(true);
   };
   const moveMatch = (forward: boolean) => {
     if (props.searchEnabled === false) return;
@@ -203,7 +210,9 @@ export function EditorWorkspace(props: Props) {
   keymap.bind(shortcuts.next, () => moveMatch(true), { when: "always" });
   keymap.bind(shortcuts.previous, () => moveMatch(false), { when: "always" });
   effect(() => {
-    if (!editorFocused()) return;
+    // While the find overlay is mounted, its Input owns Command editing
+    // shortcuts even if the native focus transition has not reported yet.
+    if (!editorFocused() || findOpen()) return;
     const off = keymap.bind({
       "mod+a": () => editor?.run("selectAll"),
       "mod+c": () => editor?.run("copy"),
@@ -398,7 +407,10 @@ export function EditorWorkspace(props: Props) {
               selectPending = query !== findQuery();
               findQuery.set(query);
             }}
-            onFocus={(focused) => findFocused.set(focused)}
+            onFocus={(focused) => {
+              findFocused.set(focused);
+              if (focused) editorFocused.set(false);
+            }}
             onNext={() => moveMatch(true)}
             onPrevious={() => moveMatch(false)}
             onClose={closeFind}

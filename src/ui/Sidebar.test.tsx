@@ -50,7 +50,7 @@ test("文件树：后到的笔记嵌套显示，点击笔记回调路径", async
 test("文件树：文件名和文件夹使用清晰的正文墨色，图标使用次级色", async () => {
   const app = await open("./Sidebar.harness.tsx", options);
   await app.press("id:feed");
-  const palette = themePreset("everest").palette;
+  const palette = themePreset("merino-light").palette;
   expect(app.spanStyle("text:根级笔记").color).toBe(`${palette.ink2.toLowerCase()}ff`);
   expect(app.spanStyle("text:项目").color).toBe(`${palette.ink2.toLowerCase()}ff`);
 });

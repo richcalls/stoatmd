@@ -10,10 +10,10 @@
 - 源码编辑 + 仅编辑 / 分栏 / 仅预览；停顿自动保存；外部改文件冲突提示
 - 文件内搜索：编辑区右上角紧凑浮窗，macOS `⌘F`，Windows/Linux `Ctrl+F`；匹配高亮与计数，`Enter` / `Shift+Enter` 循环跳转，`Esc` 关闭并返回编辑器。系统结果快捷键为 macOS `⌘G` / `⇧⌘G`、Windows/Linux `F3` / `Shift+F3`；纯预览模式发起搜索时展开分栏显示匹配源码。
 - 分栏时**编辑区与预览 60fps 双向滚动同步，丝滑跟手**（硬性验收标准）
-- 预览默认采用 [Kami](https://github.com/tw93/kami) 文章排版（衬线正文、克制留白）；配色内置 **12 套主题**（默认 Everest，6 浅色 / 6 深色），设置 → 外观即切即换（归属见 `THIRD_PARTY_NOTICES.md`）
+- 预览默认采用 [Kami](https://github.com/tw93/kami) 文章排版（衬线正文、克制留白）；配色采用 Rex 的 **Merino Light / Silver Point Dark** 两套中性主题，正文与代码保持灰阶，标题和链接使用轻量强调色，设置 → 外观即切即换（颜色来源见 `THIRD_PARTY_NOTICES.md`）
 - **macOS** UI 图标用 [Phosphor Icons](https://phosphoricons.com/) **Regular**（`assets/icons/`，`src/ui/Icon.tsx` 以 fill + `tintColor` 着色）；场景映射见 [UI v1 设计说明 · 附录](docs/ui-v1/DESIGN-NOTES.md#附录--phosphor-映射短表)。**iOS 用 SF Symbols**，不用 Phosphor
 - 设置使用独立的 macOS 原生窗口，支持系统红黄绿按钮、拖动、调整大小、全屏与窗口平铺；关闭设置后主窗口继续工作。
-- 设置 → 外观 → **文稿配色**：默认彩色，标题、引用、链接与代码随主题着色；单色保留字号、字重与排版层级。源码与预览即时切换，偏好在重启后恢复。
+- 设置 → 外观 → **文稿配色**：默认保留标题与链接的强调色，正文、引用和代码使用中性色；单色模式进一步收敛标题与链接颜色，同时保留字号、字重与排版层级。源码与预览即时切换，偏好在重启后恢复。
 - macOS 提供本地 / Dropbox / Google Drive，切换时迁移并校验，原数据默认保留；**iOS 仅 Dropbox / Google Drive**（无本地库入口，也不做本地库迁移）
 - 桌面版（macOS / Windows / Linux）完全免费，含云盘同步；iOS 付费应用包含云盘同步（不做订阅制，不绑 iCloud）
 - **不做 MCP**
@@ -81,7 +81,7 @@ src/sync/               # 同步引擎、OAuth PKCE、Google Drive / Dropbox Pro
 src/storage/            # 单一存储记录、校验迁移、离线缓存、清理重试
 src/lib.rs              # stoatmd/native 薄桥（选文件夹 / 监视 / OAuth / 钥匙串）
 crates/stoatmd-core/    # Vault 路径沙箱与 CRUD
-theme.json              # Paper / Nord 基础 token（nsh 原生控件兜底）
+theme.json              # Rex 中性基础 token（nsh 原生控件兜底）
 locales/                # zh / en
 ```
 
@@ -108,10 +108,10 @@ nsh run --target macos
 
 1. 启动后点「打开文件夹…」（或菜单 文件 → 打开文件夹… / ⌘O）
 2. 选一个含 `.md` 的目录（或空目录后点「新建笔记」）
-3. 编辑正文，源码区按主题语法色高亮（标题 accent、粗体标记 syntaxBold、行内代码浅底、引用绿），停顿约 0.7s 应出现「已保存」
+3. 编辑正文，源码区按主题语法色高亮（标题与链接使用强调色，粗体标记、行内代码和引用使用中性色），停顿约 0.7s 应出现「已保存」
 4. 用外部编辑器改同一文件 → 应弹出冲突：保留本地 / 从磁盘重载
 5. 分栏模式下分别滚动编辑区和预览 → 两侧应保持 60fps 双向同步，跟手无迟滞
-6. 设置 → 外观：12 套主题（浅色 6 / 深色 6，默认 Everest）；切换后两栏、预览与设置自身配色即时更新
+6. 设置 → 外观：Merino Light / Silver Point Dark 两套 Rex 主题（默认 Merino Light）；切换后两栏、预览与设置自身配色即时更新
 7. 设置 → 字体：界面字号（默认 14，范围 12–18）、编辑字号（默认 15，范围 12–24）与阅读字号（默认 16，范围 12–24）独立调整，即时保存并在重启后恢复。阅读字体支持搜索系统字体、调整行高；「恢复默认」复位全部排版设置
 8. 左栏顶部可搜索全库笔记；文件夹可折叠、点笔记在右侧打开；鼠标移到顶栏右侧（或按 ⌘B）展开/隐藏文件树，工具条左侧显示当前笔记标题；⌘1–3 / ⌘, 均有菜单项
 9. 语言默认跟随系统（识别简体中文、繁體中文、日本語、한국어、Deutsch、Français、Español），也可在设置中强制其中任一种（菜单文案随之切换）
@@ -174,7 +174,7 @@ iOS 使用 `STOATMD_GOOGLE_IOS_CLIENT_ID`（iOS 客户端）和现有 `STOATMD_D
 
 - [x] Phase 0/1：混合工程 + Mac 两栏壳 + Editor/TextView 分栏
 - [x] Phase 2：Vault 读写、选文件夹、自动保存、冲突提示
-- [x] Phase 3：12 套主题网格、字体偏好、文件树折叠、菜单快捷键、跟随系统多语言（8 种界面语言）
+- [x] Phase 3：两套 Rex 主题、字体偏好、文件树折叠、菜单快捷键、跟随系统多语言（8 种界面语言）
 - [x] Phase 4：Google Drive / Dropbox 同步（OAuth PKCE、选/建远程库、锚点增量、冲突逐文件弹选、自动推送与定时拉取）
 
 - [x] 存储迁移：本地 / Dropbox / Google Drive 三选一，笔记与二进制附件校验，默认保留原数据，清理任务持久化

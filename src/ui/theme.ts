@@ -1,20 +1,10 @@
 import { setColorScheme, signal } from "nsh";
 import { loadSavedTheme, saveTheme } from "./prefs";
 
-/** Curated appearance presets. */
+/** Rex Beta's currently selected built-in themes. */
 export type ThemeId =
-  | "everest"
-  | "aurora-borealis"
-  | "sakura"
-  | "sequoia"
-  | "autumn"
-  | "roraima"
-  | "istanbul"
-  | "miami"
-  | "rio-de-janeiro"
-  | "paris"
-  | "tallinn"
-  | "tokyo";
+  | "merino-light"
+  | "silver-point-dark";
 
 export type ThemeMode = "light" | "dark";
 
@@ -42,11 +32,9 @@ export type ThemePreset = {
   name: string;
   mode: ThemeMode;
   palette: ThemePalette;
-  /** The four source swatches shown in the appearance picker. */
+  /** Background, accent, green and red source colors shown in the picker. */
   swatches: readonly [string, string, string, string];
 };
-
-type ThemeSwatches = readonly [string, string, string, string];
 
 function rgb(hex: string): [number, number, number] {
   const value = hex.slice(1);
@@ -54,69 +42,120 @@ function rgb(hex: string): [number, number, number] {
 }
 
 function hex(value: [number, number, number]): string {
-  return `#${value.map(channel => Math.round(Math.max(0, Math.min(255, channel))).toString(16).padStart(2, "0")).join("").toUpperCase()}`;
+  return `#${value.map((channel) => Math.round(Math.max(0, Math.min(255, channel))).toString(16).padStart(2, "0")).join("").toUpperCase()}`;
 }
 
 function mix(a: string, b: string, amount: number): string {
-  const left = rgb(a); const right = rgb(b);
-  return hex([left[0] + (right[0] - left[0]) * amount, left[1] + (right[1] - left[1]) * amount, left[2] + (right[2] - left[2]) * amount]);
+  const left = rgb(a);
+  const right = rgb(b);
+  return hex([
+    left[0] + (right[0] - left[0]) * amount,
+    left[1] + (right[1] - left[1]) * amount,
+    left[2] + (right[2] - left[2]) * amount,
+  ]);
 }
 
 function luminance(color: string): number {
-  const channels = rgb(color).map(channel => channel / 255).map(channel => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+  const channels = rgb(color)
+    .map((channel) => channel / 255)
+    .map((channel) => (channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4));
   return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
 }
 
-/** Map four theme swatches onto neutral Light/Dark document surfaces. */
-function palette(colors: ThemeSwatches, mode: ThemeMode): ThemePalette {
-  const [navigation, selected, presence, notifications] = colors;
-  if (mode === "light") {
-    const paper = "#FFFFFF";
-    const ink = "#20242A";
-    const syntax = mix(presence, "#000000", 0.18);
-    return {
-      paper, sidebar: navigation, list: mix(selected, navigation, 0.72), editor: paper, preview: paper, ink,
-      ink2: "#5F6873", ink3: "#8A939E", thread: "#D9DEE5",
-      accent: notifications, accentInk: luminance(notifications) > 0.48 ? "#111111" : "#FFFFFF",
-      accentSoft: mix(notifications, paper, 0.86), syntaxBold: syntax, quote: syntax,
-      codeBg: "#F5F6F8", searchBg: "#ECEFF2",
-    };
-  }
-  const paper = "#17191D";
-  const ink = "#F4F6F8";
+/** Keep the document surfaces faithful to the terminal scheme's background. */
+function palette(
+  background: string,
+  foreground: string,
+  accent: string,
+  green: string,
+  red: string,
+  mode: ThemeMode,
+  overrides: Partial<Pick<ThemePalette, "paper" | "sidebar" | "list" | "editor" | "preview" | "ink2" | "ink3" | "thread" | "codeBg" | "searchBg">> = {},
+): ThemePalette {
+  const light = mode === "light";
+  const paper = overrides.paper ?? background;
+  const sidebar = overrides.sidebar ?? mix(background, "#000000", light ? 0.035 : 0.08);
+  // Rex keeps navigation surfaces neutral; the accent belongs to selection and controls.
+  const list = overrides.list ?? mix(background, foreground, light ? 0.035 : 0.12);
+  const ink2 = overrides.ink2 ?? mix(foreground, background, light ? 0.28 : 0.32);
+  const ink3 = overrides.ink3 ?? mix(foreground, background, light ? 0.52 : 0.54);
+  const thread = overrides.thread ?? mix(foreground, background, light ? 0.82 : 0.78);
   return {
-    paper, sidebar: navigation, list: mix(selected, navigation, 0.48), editor: paper, preview: paper, ink,
-    ink2: "#B4BBC5", ink3: "#8E96A3", thread: "#353B45",
-    accent: notifications, accentInk: luminance(notifications) > 0.48 ? "#111111" : "#FFFFFF",
-    accentSoft: mix(notifications, paper, 0.65), syntaxBold: presence, quote: presence,
-    codeBg: "#20242A", searchBg: "#2A2F36",
+    paper,
+    sidebar,
+    list,
+    editor: overrides.editor ?? paper,
+    preview: overrides.preview ?? paper,
+    ink: foreground,
+    ink2,
+    ink3,
+    thread,
+    accent,
+    accentInk: luminance(accent) > 0.48 ? "#111111" : "#FFFFFF",
+    accentSoft: mix(accent, background, light ? 0.84 : 0.72),
+    // Keep Markdown readable: green/red remain reserved for status indicators.
+    syntaxBold: ink2,
+    quote: ink2,
+    codeBg: overrides.codeBg ?? mix(background, foreground, light ? 0.06 : 0.08),
+    searchBg: overrides.searchBg ?? mix(background, foreground, light ? 0.1 : 0.12),
   };
 }
 
-const definition = (id: ThemeId, name: string, mode: ThemeMode, colors: ThemeSwatches): ThemePreset => ({ id, name, mode, palette: palette(colors, mode), swatches: colors });
+const definition = (
+  id: ThemeId,
+  name: string,
+  mode: ThemeMode,
+  background: string,
+  foreground: string,
+  accent: string,
+  green: string,
+  red: string,
+  overrides?: Parameters<typeof palette>[6],
+): ThemePreset => ({
+  id,
+  name,
+  mode,
+  palette: palette(background, foreground, accent, green, red, mode, overrides),
+  swatches: [background, accent, green, red],
+});
 
 export const THEMES: readonly ThemePreset[] = [
-  definition("everest", "Everest", "light", ["#CADAE0", "#B6D8E5", "#EC9C81", "#246A89"]),
-  definition("aurora-borealis", "Aurora Borealis", "dark", ["#1A3746", "#1E3F53", "#A55CC8", "#7AC6F5"]),
-  definition("sakura", "Sakura", "light", ["#F8DBE6", "#FFC9DC", "#EFA5BF", "#B54B66"]),
-  definition("sequoia", "Sequoia", "dark", ["#394132", "#405133", "#788B40", "#73A621"]),
-  definition("autumn", "Autumn", "light", ["#EFE6E0", "#F4D3BD", "#DEA51D", "#A7714C"]),
-  definition("roraima", "Roraima", "dark", ["#372C2F", "#582F29", "#8F78B7", "#CC654E"]),
-  definition("istanbul", "Istanbul", "light", ["#91D1DA", "#A3DDE5", "#12ACC1", "#087E8E"]),
-  definition("miami", "Miami", "dark", ["#5D263A", "#722E47", "#17C7AC", "#FF5FA2"]),
-  definition("rio-de-janeiro", "Rio de Janeiro", "light", ["#85B778", "#B8E5AD", "#2287D5", "#375B2E"]),
-  definition("paris", "Paris", "dark", ["#6A3C4D", "#5D3F49", "#5E7BB3", "#D18FA8"]),
-  definition("tallinn", "Tallinn", "light", ["#A9B9DA", "#BECCEC", "#7179CC", "#3F4494"]),
-  definition("tokyo", "Tokyo", "dark", ["#323B66", "#354172", "#714CE3", "#7285DC"]),
+  // Rex's Merino Light source and semantic colors.
+  definition("merino-light", "Merino Light", "light", "#FFFFFF", "#1F2328", "#0969DA", "#116329", "#CF222E", {
+    paper: "#F6F7F9",
+    sidebar: "#ECEEF2",
+    list: "#F8F9FB",
+    editor: "#FFFFFF",
+    preview: "#F8F9FB",
+    ink2: "#696D71",
+    ink3: "#878A8E",
+    thread: "#D7DADF",
+    codeBg: "#F1F3F5",
+    searchBg: "#E7E9ED",
+  }),
+  // Rex's monochrome Silver Point Dark source and semantic colors.
+  definition("silver-point-dark", "Silver Point Dark", "dark", "#131313", "#B4B4B4", "#767676", "#707070", "#B4B4B4", {
+    paper: "#131313",
+    sidebar: "#1A1A1A",
+    list: "#171717",
+    editor: "#171717",
+    preview: "#171717",
+    ink2: "#898989",
+    ink3: "#6C6C6C",
+    thread: "#303030",
+    codeBg: "#202020",
+    searchBg: "#262626",
+  }),
 ];
 
 const BY_ID = new Map(THEMES.map((theme) => [theme.id, theme]));
+const DEFAULT_THEME_ID: ThemeId = "merino-light";
 
-export const themeId = signal<ThemeId>("everest");
+export const themeId = signal<ThemeId>(DEFAULT_THEME_ID);
 
-/** Accept string values at the persistence boundary so old, unpublished builds recover safely. */
+/** Accept string values at the persistence boundary so old builds recover safely. */
 export function themePreset(id: ThemeId | string = themeId()): ThemePreset {
-  return BY_ID.get(id as ThemeId) ?? THEMES[0];
+  return BY_ID.get(id as ThemeId) ?? BY_ID.get(DEFAULT_THEME_ID)!;
 }
 
 export function applyTheme(id: ThemeId | string) {
@@ -128,7 +167,7 @@ export function applyTheme(id: ThemeId | string) {
 
 export async function restoreTheme(): Promise<void> {
   const saved = await loadSavedTheme();
-  const preset = saved ? themePreset(saved) : THEMES[0];
+  const preset = saved ? themePreset(saved) : themePreset(DEFAULT_THEME_ID);
   themeId.set(preset.id);
   setColorScheme(preset.mode);
 }
@@ -148,7 +187,5 @@ export function colors(): ThemePalette {
 }
 
 export function statusColor(kind: "ok" | "danger"): string {
-  // Slack's Presence Indication and Notifications swatches carry status
-  // meaning in the shell, including the sync dot and error messages.
   return themePreset().swatches[kind === "ok" ? 2 : 3];
 }
