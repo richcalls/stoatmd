@@ -245,16 +245,23 @@ test("Google Drive：删除走回收站，404 视为已删除", async () => {
 });
 
 
-test("Google Drive：清理校验版本和 ETag，变化或缺少条件令牌时保留原文件", async () => {
-  for (const version of ["1", "2"]) {
-    const { fetchImpl, calls } = makeFetch(() => json({ id: "f1", version }));
-    const provider = new GoogleDriveProvider(tokens, fetchImpl, null);
-    let conflict = false;
-    try { await provider.remove({ path: "a.md", id: "f1", rev: "1", mtimeMs: 0, size: 1 }); }
-    catch (err) { conflict = err instanceof RemoteConflictError; }
-    expect(conflict).toBe(true);
-    expect(calls.some(c => c.method === "PATCH")).toBe(false);
-  }
+test("Google Drive：删除前核对版本；Drive 不返回 ETag 时仍然删除", async () => {
+  // 版本变了：保留原文件，不发 PATCH。
+  const changed = makeFetch(() => json({ id: "f1", version: "2" }));
+  const first = new GoogleDriveProvider(tokens, changed.fetchImpl, null);
+  let conflict = false;
+  try { await first.remove({ path: "a.md", id: "f1", rev: "1", mtimeMs: 0, size: 1 }); }
+  catch (err) { conflict = err instanceof RemoteConflictError; }
+  expect(conflict).toBe(true);
+  expect(changed.calls.some(c => c.method === "PATCH")).toBe(false);
+
+  // 版本一致但没有 ETag（Drive v3 实际行为）：照常移入回收站，不带 If-Match。
+  const plain = makeFetch((call) => call.method === "PATCH" ? json({ id: "f1" }) : json({ id: "f1", version: "1" }));
+  const provider = new GoogleDriveProvider(tokens, plain.fetchImpl, null);
+  await provider.remove({ path: "a.md", id: "f1", rev: "1", mtimeMs: 0, size: 1 });
+  const patch = plain.calls.find(c => c.method === "PATCH")!;
+  expect(JSON.parse(patch.body).trashed).toBe(true);
+  expect("If-Match" in patch.headers).toBe(false);
 });
 
 test("Google Drive：二进制 multipart 上传和下载保留全部字节", async () => {
