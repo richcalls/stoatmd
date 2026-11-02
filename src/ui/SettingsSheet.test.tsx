@@ -297,13 +297,11 @@ test("设置：启动时恢复上次选择的应用图标", async () => {
 });
 
 
-test("存储：免费用户选择云盘显示 Pro 提示，本地位置继续选中", async () => {
+test("存储：桌面版云盘免费，旧的付费标记不再拦截", async () => {
   const app = await open("./SettingsSheet.harness.tsx", { ...desktop, storage: { "test.locked": "true" } });
   await app.press("id:settings-tab-sync");
   await app.press("id:storage-location-dropbox");
-  await app.waitFor("id:sync-paywall");
-  expect(app.shows("id:sync-auth-cancel")).toBe(false);
+  expect(app.shows("id:sync-paywall")).toBe(false);
   expect(app.shows("id:storage-current-local")).toBe(true);
-  await app.press("id:sync-paywall-ok");
-  expect(app.shows("id:storage-current-local")).toBe(true);
+  expect(app.texts().some(text => text.includes("Pro"))).toBe(false);
 });

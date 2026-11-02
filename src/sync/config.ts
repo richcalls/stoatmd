@@ -20,9 +20,9 @@ export function fixSyncConfigForTest(config: SyncConfigDto | null): void {
 
 /** 开发者配置（环境变量 / sync.json），进程内缓存。 */
 export function loadSyncConfig(refresh = false): SyncConfigDto {
-  if (fixed) return platform.os === "ios" ? { ...fixed, purchaseRequired: false } : fixed;
-  if (!cached || refresh) cached = SyncConfig.load();
-  return platform.os === "ios" ? { ...cached, purchaseRequired: false } : cached;
+  const config = fixed ?? (refresh || !cached ? (cached = SyncConfig.load()) : cached);
+  // iOS 是付费 App，云盘同步已包含；桌面版现在也免费开放，不再按 Pro 加锁。
+  return { ...config, purchaseRequired: false };
 }
 
 export function credentialsFor(

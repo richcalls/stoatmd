@@ -1,0 +1,83 @@
+# 在目标系统上打包 Windows / Linux 桌面版。
+#
+# nsh 0.3.0 的桌面 runner 不能交叉编译：Windows 包必须在 Windows 上打，
+# Linux 包必须在 Linux 上打。本工作流只产出构建产物（artifact），不会自动
+# 发布到公开 Release；下载并核验后再手动上传。
+#
+# 需要的仓库 Secrets（Settings → Secrets and variables → Actions）：
+#   STOATMD_GOOGLE_CLIENT_ID       Google OAuth Desktop client id
+#   STOATMD_GOOGLE_CLIENT_SECRET   Google OAuth Desktop client secret
+#   STOATMD_DROPBOX_APP_KEY        Dropbox app key
+# 它们的用途、生成方式与轮换影响见 docs/product/RELEASE.md。
+
+name: Desktop · Windows & Linux
+
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: "Build number (nsh.json 的 build)"
+        required: false
+        default: "2"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: windows
+          - os: ubuntu-24.04
+            target: linux
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install GTK / WebKitGTK build dependencies
+        if: matrix.target == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev clang
+
+      - name: Install nsh (Linux)
+        if: matrix.target == 'linux'
+        run: |
+          curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.3.0 sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install nsh (Windows)
+        if: matrix.target == 'windows'
+        shell: pwsh
+        run: |
+          $env:NSH_VERSION = "v0.3.0"
+          irm https://nsh.dev/install.ps1 | iex
+          "$env:LOCALAPPDATA\nsh\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Package
+        shell: bash
+        env:
+          STOATMD_GOOGLE_CLIENT_ID: ${{ secrets.STOATMD_GOOGLE_CLIENT_ID }}
+          STOATMD_GOOGLE_CLIENT_SECRET: ${{ secrets.STOATMD_GOOGLE_CLIENT_SECRET }}
+          STOATMD_DROPBOX_APP_KEY: ${{ secrets.STOATMD_DROPBOX_APP_KEY }}
+        run: |
+          if [ "${{ matrix.target }}" = "windows" ]; then
+            python scripts/desktop_release.py --build "${{ inputs.build }}"
+          else
+            python3 scripts/desktop_release.py --build "${{ inputs.build }}"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stoatmd-${{ matrix.target }}
+          path: |
+            .nsh/release-desktop/StoatMD-*-${{ matrix.target }}.*
+            .nsh/release-desktop/SHA256SUMS.txt
+          if-no-files-found: error

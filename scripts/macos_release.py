@@ -66,8 +66,6 @@ def main():
     parser.add_argument("--version", help="Override nsh.json version")
     parser.add_argument("--build", type=int, help="Override nsh.json build number")
     parser.add_argument("--out", type=Path, default=ROOT / ".nsh/release-macos")
-    parser.add_argument("--purchase-required", action="store_true",
-                        help="Keep the cloud-sync paywall in this build (default: free, as advertised)")
     parser.add_argument("--skip-notarize", action="store_true",
                         help="Only package and sign (local smoke tests)")
     args = parser.parse_args()
@@ -83,9 +81,13 @@ def main():
     if missing:
         raise SystemExit("Configure these before packaging: " + ", ".join(missing)
                          + " (set them in the environment or the StoatMD sync.json)")
-    env.setdefault("STOATMD_PURCHASE_REQUIRED", "true" if args.purchase_required else "false")
+    # 桌面版云盘同步免费，不再生成付费墙所需的运行时开关。
+    env.setdefault("STOATMD_PURCHASE_REQUIRED", "false")
 
-    command = ["nsh", "package", "--target", "macos", "--out", str(out)]
+    # 不带 --icon 时 nsh 不会生成 .icns，Finder / DMG 里就是空白默认图标；
+    # 运行时 appLogo 只改 Dock 图标，改不了文件图标。
+    icon = ROOT / "assets/app-logos/thread.png"
+    command = ["nsh", "package", "--target", "macos", "--out", str(out), "--icon", str(icon)]
     if args.version:
         command.extend(["--app-version", args.version])
     if args.build is not None:

@@ -1,5 +1,5 @@
 import { Scroll, Text, View, effect, signal } from "nsh";
-import { Button, Checkbox, Dialog } from "nsh/base";
+import { Button, Checkbox } from "nsh/base";
 import { VaultDialog } from "stoatmd/native";
 import { credentialsFor, loadSyncConfig } from "../sync/config";
 import { SyncError, type RemoteDir } from "../sync/provider";
@@ -54,7 +54,6 @@ export function SyncSettings(props: SyncSettingsProps) {
   const subfolders = signal<RemoteDir[]>([]);
   const loading = signal(false);
   const localError = signal<string | null>(null);
-  const paywall = signal(false);
   const account = signal<string | null>(null);
   let generation = 0;
   const connected = () => {
@@ -63,7 +62,6 @@ export function SyncSettings(props: SyncSettingsProps) {
   };
   const currentKind = () => connected()?.provider ?? "local";
   const locations = props.cloudOnly ? LOCATIONS.filter(kind => kind !== "local") : LOCATIONS;
-  const locked = () => loadSyncConfig().purchaseRequired;
   const currentDir = () => stack()[stack().length - 1] ?? remoteRoot(provider() ?? "google");
   const currentLocation = (): Location => connected() ? connectionLocation(connected()!) : { kind: "local", root: props.vaultRoot ?? t("vault.none") };
 
@@ -132,7 +130,6 @@ export function SyncSettings(props: SyncSettingsProps) {
       return;
     }
     const config = loadSyncConfig(true);
-    if (config.purchaseRequired) { paywall.set(true); return; }
     if (!credentialsFor(kind, config)) {
       localError.set(t("sync.error.config"));
       return;
@@ -198,7 +195,6 @@ export function SyncSettings(props: SyncSettingsProps) {
     </View>
   );
   const status = () => {
-    if (locked()) return t("storage.expired");
     const phase = syncRuntime.phase();
     if (phase === "syncing") return t("sync.syncing");
     if (phase === "conflict") return t("sync.conflictsCount", { n: syncRuntime.conflicts().length });
@@ -242,7 +238,7 @@ export function SyncSettings(props: SyncSettingsProps) {
                     : <Text testID={`storage-current-${kind}`} style={{ fontSize: uiTextSize(12), color: colors().accent }}>{t("storage.inUse")} ✓</Text>}
                 </If>
                 <If when={currentKind() !== kind}>
-                  {ios ? <Icon name="caret-right" size={14} color={colors().ink3} /> : <Text style={{ fontSize: uiTextSize(12), color: colors().ink3 }}>{kind !== "local" && locked() ? "Pro" : "›"}</Text>}
+                  {ios ? <Icon name="caret-right" size={14} color={colors().ink3} /> : <Text style={{ fontSize: uiTextSize(12), color: colors().ink3 }}>›</Text>}
                 </If>
               </Button>
             );
@@ -257,7 +253,7 @@ export function SyncSettings(props: SyncSettingsProps) {
           <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", justifyContent: ios ? "flex-end" : undefined }}>
             {connected() || !props.cloudOnly ? button("storage-change-folder", t("storage.changeFolder"), () => void choose(currentKind()), false, loading()) : null}
             <If when={!!connected()}>
-              {button("sync-now", t("sync.syncNow"), () => props.onSyncNow?.(), false, locked() || syncRuntime.phase() === "syncing")}
+              {button("sync-now", t("sync.syncNow"), () => props.onSyncNow?.(), false, syncRuntime.phase() === "syncing")}
               <If when={syncRuntime.conflicts().length > 0}>
                 {button("sync-conflicts", t("sync.manageConflicts"), () => props.onManageConflicts?.())}
               </If>
@@ -366,12 +362,6 @@ export function SyncSettings(props: SyncSettingsProps) {
       </If>
       <If when={!!migration.warning() && !activeStorage()?.cleanup}>{detail(t("storage.activationWarning"))}</If>
       <If when={!!localError()}><Text testID="sync-local-error" style={{ fontSize: uiTextSize(12.5), lineHeight: uiLineHeight(19), color: statusColor("danger") }}>{localError()}</Text></If>
-      <Dialog open={paywall()} testID="sync-paywall" onOpenChange={next => paywall.set(next)} onCancel={() => paywall.set(false)}
-        closeOnBackdropPress closeOnEscape animation="fade" style={{ width: 360, margin: "auto", padding: 20, gap: 12, borderRadius: 12,
-          backgroundColor: colors().paper, borderWidth: 1, borderColor: colors().thread }}>
-        {label(t("sync.paywall.title"))}{detail(t("storage.paywallDescription"))}
-        <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>{button("sync-paywall-ok", t("sync.paywall.ok"), () => paywall.set(false), true)}</View>
-      </Dialog>
     </View>
   );
 }

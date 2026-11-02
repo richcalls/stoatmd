@@ -1,6 +1,6 @@
 # StoatMD
 
-使用自有文件与云盘的 Markdown 笔记本（**多语言 · 出海**）。用 [nsh](https://nsh.dev)（Rust + TSX 混合）构建，**macOS + iOS**。
+使用自有文件与云盘的 Markdown 笔记本（**多语言 · 出海**）。用 [nsh](https://nsh.dev)（Rust + TSX 混合）构建，**macOS + iOS**；Windows / Linux 构建在对应系统打包验证后发布。
 
 - 定名 **StoatMD** · 域名 [stoatmd.com](https://stoatmd.com) · 曾用名 LoomMD
 - macOS 自选本地文件夹或云盘；**iOS 无本地文件 / 本地库**，一期仅选 Google Drive / Dropbox；笔记使用普通 `.md` 文件（Vault：open / list / read / write / create / rename / delete）
@@ -15,7 +15,7 @@
 - 设置使用独立的 macOS 原生窗口，支持系统红黄绿按钮、拖动、调整大小、全屏与窗口平铺；关闭设置后主窗口继续工作。
 - 设置 → 外观 → **文稿配色**：默认彩色，标题、引用、链接与代码随主题着色；单色保留字号、字重与排版层级。源码与预览即时切换，偏好在重启后恢复。
 - macOS 提供本地 / Dropbox / Google Drive，切换时迁移并校验，原数据默认保留；**iOS 仅 Dropbox / Google Drive**（无本地库入口，也不做本地库迁移）
-- macOS 本机免费、云盘同步买断；iOS 付费应用包含云盘同步（不做订阅制，不绑 iCloud）
+- 桌面版（macOS / Windows / Linux）完全免费，含云盘同步；iOS 付费应用包含云盘同步（不做订阅制，不绑 iCloud）
 - **不做 MCP**
 
 ## iOS 产品约束（正海已定）
@@ -34,7 +34,7 @@
 
 Obsidian 要多端同步，基本得买它的官方订阅。但这套同步是封闭的：很难交给远程 AI / Agent 用，手机上也不好接可用的 AI 工作流。虽有 Git / GitHub 一类第三方办法，手机难用、各端同步也不顺；若再叠 iCloud，`.git` 目录会膨胀，容量与文件数指数级增加。
 
-StoatMD 要解决的就是这件事：**笔记用你自己的云盘（Google Drive、Dropbox）同步**，多端都能用，也方便交给 AI / Agent（含远程、手机）读写归档，而不是被锁进官方订阅同步里。应用本身是**买断制**，不为同步再绑一套订阅。**不做 iCloud**。
+StoatMD 要解决的就是这件事：**笔记用你自己的云盘（Google Drive、Dropbox）同步**，多端都能用，也方便交给 AI / Agent（含远程、手机）读写归档，而不是被锁进官方订阅同步里。桌面版完全免费；iOS 为买断制，不为同步再绑一套订阅。**不做 iCloud**。
 
 **典型场景**：用 Grok Bot 整理资料 → 汇总、归档进你自己的笔记库。
 
@@ -47,7 +47,7 @@ StoatMD **不做所见即所得**，而是保留纯 Markdown 源码编辑与独�
 - Obsidian 官方同步要订阅，且难交给远程 AI / Agent
 - GitHub 同步在手机上很难用；GitHub + iCloud 会让 `.git` 膨胀
 - StoatMD 用你自己的 **Google Drive / Dropbox** 多端同步；笔记对 Personal Agent / 远程 AI 可读写归档
-- macOS 本机免费、云盘同步买断；iOS 付费应用包含云盘同步（不做订阅制）
+- 桌面版（macOS / Windows / Linux）完全免费，含云盘同步；iOS 付费应用包含云盘同步（不做订阅制）
 
 ### 和妙言一类产品相比
 
@@ -160,7 +160,7 @@ iOS 使用 `STOATMD_GOOGLE_IOS_CLIENT_ID`（iOS 客户端）和现有 `STOATMD_D
 }
 ```
 
-macOS 的 `purchaseRequired` 默认 `true`，免费状态开放本地。`STOATMD_PURCHASE_REQUIRED=0` / 上例 `purchaseRequired: false` 用于开发测试 Pro；macOS 购买流程和真实权益校验仍待接入。iOS 的应用购买已包含云盘访问，运行时统一关闭额外付费墙。受限状态暂停云盘同步与写入，允许重新授权原账号并迁回本地，包含离线修改及远程独有文件。
+桌面版的 `purchaseRequired` 不再生效：云盘同步与本地写作一样免费。iOS 是付费应用，运行时统一关闭额外付费墙；`purchaseRequired` 仅保留给旧配置兼容。受限状态暂停云盘同步与写入，允许重新授权原账号并迁回本地，包含离线修改及远程独有文件。
 
 当前存储根、云盘连接与待清理任务统一保存在 `Storage` 的 `storage.active` 记录中。迁移校验完成后一次提交该记录；旧版本 `sync.connection` 仅用于兼容读取。配置变量参见 [.env.example](.env.example)，nsh 启动前需要显式导出环境变量。完整规则见 [存储与迁移](docs/product/SYNC.md)。
 
