@@ -34,23 +34,4 @@ const [titleA, titleB] = splitTitle(p.hero.title);
   </div>
 
   <p class="hero-note">{p.hero.note}</p>
-
-  <div class="notes">
-    <p class="notes-label">{p.log.label}</p>
-    <div class="note-list" role="group" aria-label={p.log.label}>
-      {p.log.notes.map((note, index) => (
-        <button
-          class="note-button"
-          type="button"
-          data-note={index}
-          aria-pressed={index === 0}
-          title={note.title}
-          disabled
-        >
-          <span class="note-date">{note.date}</span>
-          <span class="note-title">{note.title}</span>
-        </button>
-      ))}
-    </div>
-  </div>
 </div>

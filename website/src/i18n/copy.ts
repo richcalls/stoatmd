@@ -232,7 +232,7 @@ const en: SiteCopy = {
     system: "Follow system",
     copyright: "© 2026 StoatMD",
   },
-  a11y: { lang: "Language", nav: "Primary navigation", preview: "Interactive notebook preview", skip: "Skip to content" },
+  a11y: { lang: "Language", nav: "Primary navigation", preview: "StoatMD macOS reader with the outline open", skip: "Skip to content" },
 };
 
 const zhHans: SiteCopy = {
@@ -382,7 +382,7 @@ const zhHans: SiteCopy = {
     system: "跟随系统",
     copyright: "© 2026 StoatMD",
   },
-  a11y: { lang: "语言", nav: "主导航", preview: "笔记本预览", skip: "跳到正文" },
+  a11y: { lang: "语言", nav: "主导航", preview: "显示目录的 StoatMD macOS 阅读界面", skip: "跳到正文" },
 };
 
 const zhHant: SiteCopy = {
@@ -532,7 +532,7 @@ const zhHant: SiteCopy = {
     system: "跟隨系統",
     copyright: "© 2026 StoatMD",
   },
-  a11y: { lang: "語言", nav: "主導航", preview: "筆記本預覽", skip: "跳至內容" },
+  a11y: { lang: "語言", nav: "主導航", preview: "顯示目錄的 StoatMD macOS 閱讀介面", skip: "跳至內容" },
 };
 
 const ja: SiteCopy = {
@@ -682,7 +682,7 @@ const ja: SiteCopy = {
     system: "システム準拠",
     copyright: "© 2026 StoatMD",
   },
-  a11y: { lang: "言語", nav: "メインナビゲーション", preview: "ノートブックのプレビュー", skip: "本文へスキップ" },
+  a11y: { lang: "言語", nav: "メインナビゲーション", preview: "アウトラインを表示した StoatMD macOS の読書画面", skip: "本文へスキップ" },
 };
 
 const ko: SiteCopy = {
@@ -832,7 +832,7 @@ const ko: SiteCopy = {
     system: "시스템 설정",
     copyright: "© 2026 StoatMD",
   },
-  a11y: { lang: "언어", nav: "주요 탐색", preview: "인터랙티브 노트북 미리보기", skip: "본문으로 건너뛰기" },
+  a11y: { lang: "언어", nav: "주요 탐색", preview: "목차가 열린 StoatMD macOS 읽기 화면", skip: "본문으로 건너뛰기" },
 };
 
 const de: SiteCopy = {
@@ -982,7 +982,7 @@ const de: SiteCopy = {
     system: "System",
     copyright: "© 2026 StoatMD",
   },
-  a11y: { lang: "Sprache", nav: "Hauptnavigation", preview: "Interaktive Notizbuch-Vorschau", skip: "Zum Inhalt springen" },
+  a11y: { lang: "Sprache", nav: "Hauptnavigation", preview: "StoatMD-Leseansicht für macOS mit geöffneter Gliederung", skip: "Zum Inhalt springen" },
 };
 
 const fr: SiteCopy = {
@@ -1132,7 +1132,7 @@ const fr: SiteCopy = {
     system: "Système",
     copyright: "© 2026 StoatMD",
   },
-  a11y: { lang: "Langue", nav: "Navigation principale", preview: "Aperçu interactif du carnet", skip: "Aller au contenu" },
+  a11y: { lang: "Langue", nav: "Navigation principale", preview: "Vue de lecture StoatMD pour macOS avec le plan ouvert", skip: "Aller au contenu" },
 };
 
 const es: SiteCopy = {
@@ -1282,7 +1282,7 @@ const es: SiteCopy = {
     system: "Sistema",
     copyright: "© 2026 StoatMD",
   },
-  a11y: { lang: "Idioma", nav: "Navegación principal", preview: "Vista previa interactiva del cuaderno", skip: "Saltar al contenido" },
+  a11y: { lang: "Idioma", nav: "Navegación principal", preview: "Vista de lectura de StoatMD para macOS con el esquema abierto", skip: "Saltar al contenido" },
 };
 
 export const SITE_COPY: Record<Locale, SiteCopy> = {

@@ -15,6 +15,8 @@ python3 scripts/macos_release.py \
 - `StoatMD-<版本>-<构建号>.zip`（公证用的原始压缩包）
 - `SHA256SUMS.txt`
 
+macOS 应用菜单的 **Check for Updates… / 检查更新…** 会查询公开仓库的最新正式版；发现新版本时，在浏览器打开固定名称的 `StoatMD-macos.dmg` 下载。退出 StoatMD 后，将 DMG 中的新 App 拖到 Applications 替换现有版本。发布 workflow 会持续上传这个固定名称，应用版本号取本次发布 tag。
+
 发到公开仓库：
 
 ```sh

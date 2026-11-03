@@ -1,6 +1,6 @@
 # StoatMD 官网（stoatmd.com）
 
-**Quiet** 方案：白纸、墨字、细线，深浅两套主题。首屏给出一句主张、一段说明和一个可读的笔记预览；没有纹理、胶带、印章或装饰性插画。默认跟随浏览器语言与系统主题，用户可手动切换。8 种语言拥有独立可索引 URL；页面文案、笔记预览和分享图片按语言配套。设计规范见 [DESIGN.md](./DESIGN.md)，历史方案保存在 `docs/website-v1/`。
+**Quiet** 方案：白纸、墨字、细线，深浅两套主题。首屏给出一句主张、一段说明和完整窗口的真实 macOS 阅读截图；不添加纹理、胶带、印章或装饰性插画。默认跟随浏览器语言与系统主题，用户可手动切换。8 种语言拥有独立可索引 URL；页面文案和分享图片按语言配套，产品截图保留英文界面原图。设计规范见 [DESIGN.md](./DESIGN.md)，历史方案保存在 `docs/website-v1/`。
 
 产品事实：Agent 和用户在同一个普通文件夹里一起做 Markdown 笔记。桌面版免费（含云盘同步），iPhone 一次买断，无订阅。同步仅支持 Google Drive / Dropbox。
 
@@ -17,18 +17,16 @@ npm run preview  # 预览构建产物
 ## 技术选型
 
 - **Astro 5** 静态输出（零客户端框架，文案 SSR 进 HTML）
-- 自托管 **Archivo**（界面 / 标题）、**Newsreader + Paper SC/TC/JP/KR**（阅读预览衬线）
-- 原生 HTML / TypeScript：主题菜单、语言菜单、笔记选择、源码 / 分栏 / 阅读切换
+- 自托管 **Archivo**（界面 / 标题）
+- 原生 HTML / TypeScript：主题菜单、语言菜单
 - CSS `light-dark()` + `data-theme` 手工覆盖；首屏内联脚本在绘制前应用已保存主题与浏览器语言
-- 全部 8 语言文案、笔记预览和界面标签集中在 `src/i18n/copy.ts`
-- 预览为界面示意，使用与页面相同的数据；产品状态以 `PRODUCT.md` 与 `docs/product/` 为准
+- 全部 8 语言文案和界面标签集中在 `src/i18n/copy.ts`
+- 首屏展示 `public/assets/mac-reader-outline-full-window.png` 原图；产品状态以 `PRODUCT.md` 与 `docs/product/` 为准
 - 无 WebGL、无第三方脚本、无外部字体请求
 
 ## 页面结构
 
-单页顺序：首屏主张 + 笔记索引 + 可交互阅读预览 → 竞品对照 → 四步机制（Agent 起草 → 文件夹 → 云盘 → 你接着做）→ 四条能力 → 定价（桌面免费 / iPhone 买断）→ 下载 → 页脚。
-
-交互预览保留三篇示例笔记与源码 / 分栏 / 阅读三种视图；阅读正文使用衬线字体，路径与日期使用系统等宽字体。没有 JavaScript 时默认显示第一篇笔记的阅读视图，切换按钮保持禁用。
+单页顺序：首屏居中主张 + 下载按钮 + 完整 macOS 阅读界面原图 → 竞品对照 → 四步机制（Agent 起草 → 文件夹 → 云盘 → 你接着做）→ 四条能力 → 定价（桌面免费 / iPhone 买断）→ 下载 → 页脚。
 
 ## 主题
 
@@ -155,4 +153,4 @@ npx wrangler@4 pages deploy dist --project-name=stoatmd-website --branch=main
 
 ## 第三方许可
 
-字体授权见 `public/fonts/*OFL.txt`（Archivo、Newsreader、Noto Serif）。所有图标为项目内联 SVG；没有第三方脚本或 WebGL 素材。
+字体授权见 `public/fonts/*OFL.txt`（Archivo）。所有图标为项目内联 SVG；没有第三方脚本或 WebGL 素材。
