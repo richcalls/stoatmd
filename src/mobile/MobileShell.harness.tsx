@@ -1,4 +1,5 @@
 import { mount } from "nsh";
+import { restoreAppLogo } from "../ui/appLogo";
 import { MobileShell } from "./MobileShell";
 import { mobileLibrary } from "./library";
 import { memoryVault } from "./testVault";
@@ -9,6 +10,6 @@ import { restoreTypography } from "../ui/typography";
 
 const memory = memoryVault();
 memory.files.clear();
-void Promise.all([restoreLocale(), restoreTheme(), restoreTypography(), restoreRenderMode()]).then(() => {
+void Promise.all([restoreLocale(), restoreTheme(), restoreTypography(), restoreRenderMode(), restoreAppLogo()]).then(() => {
   mount(() => <MobileShell library={mobileLibrary(memory.vault)} nativeChrome={false} />);
 });

@@ -44,7 +44,8 @@ test("iOS 当前界面截图", async () => {
   await app.press("id:mobile-panel-done");
   await app.waitFor("id:mobile-preview");
 
-  await app.back();
+  // iPad 双栏时笔记库始终可见，iPhone 则通过导航返回。
+  if (!app.shows("id:mobile-search")) await app.back();
   await app.waitFor("id:mobile-search");
   await new Promise(resolve => setTimeout(resolve, 300));
   await app.screenshot("screenshots/ios-raw/01c-after-back.png");
@@ -55,9 +56,18 @@ test("iOS 当前界面截图", async () => {
   await app.press("id:mobile-search-clear");
   await app.waitFor("id:mobile-note-开始使用.md");
 
-  await app.press("id:mobile-settings");
-  await app.waitFor("id:mobile-theme-merino-light");
+  await app.press("id:mobile-settings >> nth=0");
+  await app.waitFor("id:mobile-theme-toggle");
   await app.screenshot("screenshots/ios-raw/06-settings-light.png");
+  await app.press("id:mobile-theme-toggle");
+  await app.screenshot("screenshots/ios-raw/06a-themes.png");
+  await app.scroll("id:mobile-theme-silver-point-dark", 460);
+  await app.screenshot("screenshots/ios-raw/06a-themes-dark.png");
+  await app.scroll("id:mobile-theme-silver-point-dark", -460);
+  await app.press("id:mobile-theme-toggle");
+  await app.press("id:mobile-icon-toggle");
+  await app.screenshot("screenshots/ios-raw/06a-icons.png");
+  await app.press("id:mobile-icon-toggle");
 
   await app.press("id:mobile-text-row");
   await app.waitFor("id:settings.font.reading-decrease");
@@ -69,17 +79,21 @@ test("iOS 当前界面截图", async () => {
   await app.screenshot("screenshots/ios-raw/06c-storage.png");
   await app.press("id:mobile-panel-done");
   await app.waitFor("id:mobile-search");
-  await app.press("id:mobile-settings");
+  await app.press("id:mobile-settings >> nth=0");
   await app.waitFor("id:mobile-trash");
   await app.press("id:mobile-trash");
   await new Promise(resolve => setTimeout(resolve, 500));
   await app.screenshot("screenshots/ios-raw/06d-trash.png");
   await app.press("id:mobile-panel-done");
   await app.waitFor("id:mobile-search");
-  await app.press("id:mobile-settings");
-  await app.waitFor("id:mobile-theme-merino-light");
+  await app.press("id:mobile-settings >> nth=0");
+  await app.waitFor("id:mobile-theme-toggle");
 
+  await app.press("id:mobile-theme-toggle");
+  await app.scroll("id:mobile-theme-silver-point-dark", 460);
   await app.press("id:mobile-theme-silver-point-dark");
+  await app.scroll("id:mobile-theme-silver-point-dark", -460);
+  await app.press("id:mobile-theme-toggle");
   await new Promise(resolve => setTimeout(resolve, 350));
   await app.screenshot("screenshots/ios-raw/07-settings-dark.png");
   await app.press("id:mobile-panel-done");
@@ -91,7 +105,7 @@ test("iOS 当前界面截图", async () => {
   await app.screenshot("screenshots/ios-raw/09-reader-dark.png");
 
   expect(app.shows("id:mobile-preview")).toBe(true);
-}, 120_000);
+}, 180_000);
 
 test("iOS 编辑页截图", async () => {
   const app = await open("./ScreenshotEditor.harness.tsx", phone);
