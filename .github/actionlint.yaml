@@ -1,0 +1,5 @@
+# actionlint 的自托管 runner 标签白名单。
+self-hosted-runner:
+  labels:
+    - apple-ci
+    - xcode-27

@@ -49,6 +49,39 @@ gh release create v<版本> -R richcalls/stoatmd-community \
 - 授权链路保持系统浏览器 + 随机 loopback 端口 + S256 PKCE + `state`；token 只进系统钥匙串。
 - 确认待发布的 DMG 由当前提交构建：发布前重新跑脚本，不要复用旧产物。
 
+### CI 自动发布（Apple CI Runner）
+
+macOS 发布跑在组织级 Apple CI runner（`apple-ci`，iOS / macOS 共用）上。
+Runner 的注册、runner group、钥匙串与安全边界见
+[Apple CI Runner](../ops/apple-ci-runner.md)。
+
+`.github/workflows/macos-release.yml`：
+
+- push `v*` tag：自动构建、签名、公证、staple，并发布到
+  `richcalls/stoatmd-community`。
+- `workflow_dispatch`：指定已存在的 tag；`publish=false` 只构建不发布。
+- build number 默认取 `git rev-list --count HEAD`，可用手动输入覆盖。
+- 上传资产：版本化 DMG、版本化 ZIP、`SHA256SUMS.txt`，以及官网固定直链用的
+  副本 `StoatMD-macos.dmg`。
+
+发布前先手动跑一次 `.github/workflows/macos-runner-smoke.yml` 确认 runner
+环境。
+
+需要仓库 Secret `STOATMD_COMMUNITY_TOKEN`：fine-grained PAT，对
+`richcalls/stoatmd-community` 有 `Contents: Read and write`。设置方式：
+
+```sh
+read -rsp 'PAT: ' TOKEN
+printf '%s' "$TOKEN" | gh secret set STOATMD_COMMUNITY_TOKEN -R richcalls/stoatmd
+unset TOKEN
+```
+
+轮换影响：更新 Secret 后下一次发版生效；旧 token 立即在 GitHub 设置里吊销。
+只重新上传资产不需要重新构建。
+
+安全：发布 workflow 只监听 tag push 和手动触发，**不要加 `pull_request`**；
+限制谁能创建 `v*` tag。
+
 ## Windows / Linux（公开下载）
 
 **必须在对应系统上打包。** nsh 0.3.0 不做桌面端的交叉编译：在 macOS 上

@@ -7,6 +7,7 @@ notarization goes through `asc notarization`, which reuses the App Store
 Connect API key configured for the asc CLI.
 """
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import plistlib
@@ -20,6 +21,23 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def run(*args, **kwargs):
     return subprocess.run([str(arg) for arg in args], check=True, **kwargs)
+
+
+def sha256(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def write_sums(out, paths):
+    sums = out / "SHA256SUMS.txt"
+    sums.write_text(
+        "".join(f"{sha256(path)}  {Path(path).name}\n" for path in paths),
+        encoding="utf-8",
+    )
+    return sums
 
 
 def sign(identity, target, runtime):
@@ -111,8 +129,10 @@ def main():
     run(*ditto)
 
     if args.skip_notarize:
+        sums = write_sums(out, [zip_path])
         print(f"Signed app: {app}")
         print(f"Notarization zip: {zip_path}")
+        print(f"Checksums: {sums}")
         return
 
     notarize(zip_path)
@@ -131,9 +151,13 @@ def main():
     run("spctl", "--assess", "--type", "open", "--context",
         "context:primary-signature", "--verbose", dmg)
 
+    # 先钉票再算校验和：staple 会改写 DMG，之前的哈希就失效了。
+    sums = write_sums(out, [dmg, zip_path])
+
     print(f"App: {app}")
     print(f"Zip: {zip_path}")
     print(f"DMG: {dmg}")
+    print(f"Checksums: {sums}")
 
 
 def plist_value(path, key):

@@ -1,0 +1,220 @@
+# 在原生 macOS 自托管 runner 上构建、签名、公证并发布 macOS 安装包。
+#
+# 为什么不是 Docker runner：Docker Desktop for macOS 运行的是 Linux 虚拟机，
+# 容器内没有 Xcode / codesign / notarytool / hdiutil，无法产出 macOS 包。
+# runner 是组织级 Apple CI（iOS / macOS 共用），标签 apple-ci。
+#
+# 一次性准备（注册 runner、钥匙串、asc、社区仓 token）见
+# docs/ops/apple-ci-runner.md 与 docs/product/RELEASE.md。
+#
+# Secrets:
+#   STOATMD_GOOGLE_CLIENT_ID / STOATMD_GOOGLE_CLIENT_SECRET / STOATMD_DROPBOX_APP_KEY
+#   STOATMD_COMMUNITY_TOKEN  fine-grained PAT，对 richcalls/stoatmd-community
+#                            有 Contents: Read and write 权限。
+
+name: macOS · Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "要发布的 tag（例如 v0.2.0，必须已存在）"
+        required: true
+      build:
+        description: "Build number（留空则用 git rev-list --count HEAD）"
+        required: false
+      publish:
+        description: "构建成功后发布到 richcalls/stoatmd-community"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, sign, notarize, publish
+    runs-on: [self-hosted, macOS, ARM64, apple-ci]
+    timeout-minutes: 90
+    env:
+      # asc 直接读 ~/.asc/config.json，不碰钥匙串里的 API key 副本
+      ASC_BYPASS_KEYCHAIN: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          fetch-depth: 0
+          clean: false
+
+      - name: Clean untracked files, keep ignored caches
+        shell: bash
+        run: |
+          set -euo pipefail
+          # 保留 .nsh/ 与 target/ 等 ignored 缓存，避免每次从零编译。
+          git reset --hard HEAD
+          git clean -ffd
+
+      - name: Add user tools to PATH
+        shell: bash
+        run: |
+          set -euo pipefail
+          # runner 的 PATH 不保证包含用户安装目录；按 $HOME 注入，避免写死用户名。
+          {
+            echo "$HOME/.local/bin"
+            echo "/opt/homebrew/bin"
+            echo "/usr/local/bin"
+          } >> "$GITHUB_PATH"
+
+      - name: Resolve version and build
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag }}"
+            BUILD="${{ inputs.build }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+            BUILD=""
+          fi
+          [[ "$TAG" == v* ]] || { echo "::error::tag 必须以 v 开头"; exit 1; }
+          VERSION="${TAG#v}"
+          if [[ -z "$BUILD" ]]; then
+            BUILD="$(git rev-list --count HEAD)"
+          fi
+          [[ "$BUILD" =~ ^[0-9]+$ ]] || { echo "::error::build 必须是整数"; exit 1; }
+          {
+            echo "tag=$TAG"
+            echo "version=$VERSION"
+            echo "build=$BUILD"
+          } >> "$GITHUB_OUTPUT"
+          echo "Release $TAG (version $VERSION, build $BUILD)"
+
+      - name: Preflight
+        shell: bash
+        env:
+          PREFERRED_IDENTITY: ${{ vars.MACOS_SIGNING_IDENTITY }}
+        run: |
+          set -euo pipefail
+          for tool in nsh xcodebuild codesign xcrun security asc gh; do
+            command -v "$tool" >/dev/null || { echo "::error::找不到 $tool"; exit 1; }
+          done
+          /usr/bin/python3 --version
+          nsh --version
+          xcodebuild -version | head -2
+          asc auth status >/dev/null
+          IDENTITY="${PREFERRED_IDENTITY:-}"
+          if [[ -z "$IDENTITY" ]]; then
+            # 默认取钥匙串里第一张 Developer ID Application 证书；
+            # 多张证书时用仓库变量 MACOS_SIGNING_IDENTITY 指定。
+            IDENTITY="$(security find-identity -v -p codesigning \
+              | sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' | head -1)"
+          fi
+          [[ -n "$IDENTITY" ]] || {
+            echo "::error::登录钥匙串里没有 Developer ID Application 证书"; exit 1;
+          }
+          security find-identity -v -p codesigning | grep -Fq "$IDENTITY" || {
+            echo "::error::钥匙串里找不到指定的签名身份: $IDENTITY"; exit 1;
+          }
+          echo "MACOS_SIGNING_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          echo "签名身份: $IDENTITY"
+          df -h "$RUNNER_WORKSPACE"
+
+      - name: Build, sign, notarize, staple
+        shell: bash
+        env:
+          STOATMD_GOOGLE_CLIENT_ID: ${{ secrets.STOATMD_GOOGLE_CLIENT_ID }}
+          STOATMD_GOOGLE_CLIENT_SECRET: ${{ secrets.STOATMD_GOOGLE_CLIENT_SECRET }}
+          STOATMD_DROPBOX_APP_KEY: ${{ secrets.STOATMD_DROPBOX_APP_KEY }}
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 scripts/macos_release.py \
+            --identity "$MACOS_SIGNING_IDENTITY" \
+            --version "${{ steps.meta.outputs.version }}" \
+            --build "${{ steps.meta.outputs.build }}"
+
+      - name: Stage release assets
+        id: assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=".nsh/release-macos"
+          VERSION="${{ steps.meta.outputs.version }}"
+          BUILD="${{ steps.meta.outputs.build }}"
+          DMG="$OUT/StoatMD-${VERSION}-${BUILD}.dmg"
+          ZIP="$OUT/StoatMD-${VERSION}-${BUILD}.zip"
+          test -f "$DMG"
+          test -f "$ZIP"
+          test -f "$OUT/SHA256SUMS.txt"
+          STAGE="$RUNNER_TEMP/release-assets"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          cp "$DMG" "$ZIP" "$OUT/SHA256SUMS.txt" "$STAGE/"
+          # 官网固定直链依赖这个文件名：
+          # https://github.com/richcalls/stoatmd-community/releases/latest/download/StoatMD-macos.dmg
+          cp "$DMG" "$STAGE/StoatMD-macos.dmg"
+          ls -lh "$STAGE"
+          echo "stage=$STAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Job summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "## StoatMD ${{ steps.meta.outputs.version }} (build ${{ steps.meta.outputs.build }})"
+            echo
+            echo "- Tag: \`${{ steps.meta.outputs.tag }}\`"
+            echo "- Stage: \`${{ steps.assets.outputs.stage }}\`"
+            echo
+            echo '```'
+            cat .nsh/release-macos/SHA256SUMS.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish GitHub Release
+        if: ${{ github.event_name == 'push' || inputs.publish }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.STOATMD_COMMUNITY_TOKEN }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          STAGE: ${{ steps.assets.outputs.stage }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "::error::缺少 secret STOATMD_COMMUNITY_TOKEN（fine-grained PAT，Contents: Read/Write）"
+            exit 1
+          fi
+          REPO=richcalls/stoatmd-community
+          NOTES="$RUNNER_TEMP/release-notes.md"
+          PREV="$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)"
+          {
+            echo "## StoatMD ${VERSION}（macOS）"
+            echo
+            echo "Apple Silicon，macOS 14+。"
+            echo
+            if [[ -n "$PREV" ]]; then
+              git log --pretty='- %s (%h)' "${PREV}..${TAG}"
+            else
+              git log --pretty='- %s (%h)' "${TAG}" | head -50
+            fi
+          } > "$NOTES"
+          if gh release view "$TAG" -R "$REPO" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$STAGE"/* -R "$REPO" --clobber
+            gh release edit "$TAG" -R "$REPO" \
+              --title "StoatMD ${VERSION}（macOS）" --notes-file "$NOTES"
+          else
+            gh release create "$TAG" -R "$REPO" \
+              --title "StoatMD ${VERSION}（macOS）" \
+              --notes-file "$NOTES" \
+              "$STAGE"/*
+          fi
+          gh release view "$TAG" -R "$REPO" --json url,assets \
+            --jq '"Release: " + .url + "\n" + (.assets[] | "  " + .name + "  " + (.size | tostring))'
