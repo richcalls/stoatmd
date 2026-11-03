@@ -40,7 +40,10 @@ export function usableName(name: string): boolean {
 
 /** Files belonging to the library; hidden app metadata stays in its original location. */
 export function libraryPath(path: string): boolean {
-  return !!path && path.split("/").every((part) => usableName(part) &&
+  const normalized = normalizeSyncPath(path);
+  // The root config is the sole hidden file synchronized across devices.
+  if (normalized === ".stoatmd.json") return true;
+  return !!normalized && normalized.split("/").every((part) => usableName(part) &&
     !part.startsWith(".") && part.toLowerCase() !== "node_modules");
 }
 

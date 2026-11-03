@@ -7,9 +7,10 @@ import { restoreLocale } from "../ui/i18n";
 import { restoreRenderMode } from "../ui/documentAppearance";
 import { restoreTheme } from "../ui/theme";
 import { restoreTypography } from "../ui/typography";
+import { restoreReaderWidth } from "../ui/readerWidth";
 
 const memory = memoryVault();
 memory.files.clear();
-void Promise.all([restoreLocale(), restoreTheme(), restoreTypography(), restoreRenderMode(), restoreAppLogo()]).then(() => {
+void Promise.all([restoreLocale(), restoreTheme(), restoreTypography(), restoreRenderMode(), restoreReaderWidth(), restoreAppLogo()]).then(() => {
   mount(() => <MobileShell library={mobileLibrary(memory.vault)} nativeChrome={false} />);
 });

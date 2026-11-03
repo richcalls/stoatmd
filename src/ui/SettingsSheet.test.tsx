@@ -49,6 +49,21 @@ test("设置：三组字号独立生效、即时保存并在重启后恢复", as
   expect(again.spanStyle("id:ui-font-size >> text:15").fontSize).toBe(16);
 });
 
+test("设置：阅读宽度提供适中留白与全宽两档并持久化", async () => {
+  const app = await open("./SettingsSheet.harness.tsx", desktop);
+  await app.press("id:settings-tab-font");
+  expect(app.spanStyle("id:reader-width-comfortable >> text:适中留白").fontWeight).toBe(600);
+  await app.press("id:reader-width-full");
+  await app.waitUntil(() => app.storage()["prefs.readerWidth"] === "full");
+  expect(app.spanStyle("id:reader-width-full >> text:全宽").fontWeight).toBe(600);
+
+  const again = await open("./SettingsSheet.harness.tsx", {
+    ...desktop, storage: app.storage(),
+  });
+  await again.press("id:settings-tab-font");
+  expect(again.spanStyle("id:reader-width-full >> text:全宽").fontWeight).toBe(600);
+});
+
 test("设置：字号边界禁用按钮，损坏的偏好恢复默认", async () => {
   const app = await open("./SettingsSheet.harness.tsx", {
     ...desktop,

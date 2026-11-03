@@ -13,6 +13,7 @@ import {
   saveUiFontSize,
   saveEditorFontSize,
 } from "./prefs";
+import { applyReaderWidth, readerWidth } from "./readerWidth";
 
 /** 编辑与预览共用正文字体；界面、编辑与阅读字号独立。 */
 export const DEFAULT_FONT_FAMILY = "";
@@ -133,6 +134,7 @@ export function applyFontLineHeight(next: number) {
 export function isDefaultTypography(): boolean {
   return (
     fontFamily() === DEFAULT_FONT_FAMILY &&
+    readerWidth() === "comfortable" &&
     uiFontSize() === DEFAULT_UI_FONT_SIZE &&
     editorFontSize() === DEFAULT_EDITOR_FONT_SIZE &&
     Math.round(fontSize()) === DEFAULT_FONT_SIZE &&
@@ -147,6 +149,7 @@ export function resetTypography() {
   applyFontFamily(DEFAULT_FONT_FAMILY);
   applyFontSize(DEFAULT_FONT_SIZE);
   applyFontLineHeight(DEFAULT_FONT_LINE_HEIGHT);
+  void applyReaderWidth("comfortable");
 }
 
 /** 启动时恢复字体偏好；无效值回落到默认。 */

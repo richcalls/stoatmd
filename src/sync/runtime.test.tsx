@@ -1,6 +1,6 @@
 import { expect, test } from "nsh/test";
 import type { Vault } from "stoatmd/native";
-import { sha256Hex } from "./hash";
+import { sha256Bytes, sha256Hex } from "./hash";
 import { assertLocalUnchanged, buildLocalFiles, utf8Size } from "./runtime";
 import { emptyBase } from "./types";
 
@@ -76,6 +76,31 @@ test("buildLocalFiles：内容变了但 mtime 也变时重新哈希", () => {
   const files = buildLocalFiles(vault, base);
   expect(state.reads).toEqual(["a.md"]);
   expect(files[0]?.hash).toBe(sha256Hex("new"));
+});
+
+test("buildLocalFiles：同步根配置和附件，跳过应用草稿目录", () => {
+  const entries: Entry[] = [
+    { path: "note.md", name: "note.md", isDir: false, mtimeMs: 10, size: 4 },
+    { path: "image.png", name: "image.png", isDir: false, mtimeMs: 11, size: 5 },
+    { path: ".stoatmd.json", name: ".stoatmd.json", isDir: false, mtimeMs: 12, size: 2 },
+    { path: ".stoatmd", name: ".stoatmd", isDir: true, mtimeMs: 1, size: 0 },
+    { path: ".stoatmd/draft.json", name: "draft.json", isDir: false, mtimeMs: 13, size: 5 },
+  ];
+  const bytes: Record<string, string> = {
+    "note.md": "note",
+    "image.png": "image",
+    ".stoatmd.json": "{}",
+    ".stoatmd/draft.json": "draft",
+  };
+  const vault = {
+    inventory: () => entries,
+    mtime: (path: string) => entries.find(entry => entry.path === path)?.mtimeMs ?? 0,
+    readBytes: (path: string) => new TextEncoder().encode(bytes[path]),
+  } as unknown as Vault;
+
+  const files = buildLocalFiles(vault, emptyBase(), true);
+  expect(files.map(file => file.path).sort()).toEqual([".stoatmd.json", "image.png", "note.md"]);
+  expect(files.find(file => file.path === ".stoatmd.json")?.hash).toBe(sha256Bytes(new TextEncoder().encode("{}")));
 });
 
 test("utf8Size：按 UTF-8 字节计数", () => {

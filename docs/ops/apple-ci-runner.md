@@ -104,6 +104,22 @@ unset REMOVE_TOKEN
 
 ## 钥匙串授权（codesign 不弹窗）
 
+检查 `~/Library/LaunchAgents/actions.runner.richcalls.apple-ci.plist`：
+`SessionCreate=true` 会为 runner 创建独立安全会话。若本机终端签名成功、
+CI 中报 `errSecInternalComponent`，删除该配置项，让 LaunchAgent 复用登录会话：
+
+```sh
+cp ~/Library/LaunchAgents/actions.runner.richcalls.apple-ci.plist \
+  ~/Library/LaunchAgents/actions.runner.richcalls.apple-ci.plist.backup
+/usr/libexec/PlistBuddy -c 'Delete :SessionCreate' \
+  ~/Library/LaunchAgents/actions.runner.richcalls.apple-ci.plist
+cd ~/actions-runner
+./svc.sh stop
+./svc.sh start
+```
+
+重新安装 runner 服务后，检查安装脚本是否重新添加了该配置项。
+
 第一次手动签名时点过“始终允许”通常已经可用。若 CI 里 `codesign` 卡住或报
 钥匙串错误，在 Mac 上手动执行一次。密码只输入到本地终端，不要写进仓库或
 Secret：

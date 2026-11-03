@@ -11,6 +11,7 @@ import { localePref, setLocalePref, t, type LocalePref } from "./i18n";
 import { saveLocale } from "./prefs";
 import { storageBusy } from "../storage/state";
 import { SyncSettings } from "./SyncSettings";
+import { applyReaderWidth, readerWidth, type ReaderWidth } from "./readerWidth";
 import { THEMES, applyTheme, colors, themeId, type ThemePreset } from "./theme";
 import {
   FONT_SIZE_MAX,
@@ -128,6 +129,53 @@ function RenderModePicker() {
                   <Icon name="check" color={colors().accent} size={13} />
                 </If>
               </View>
+            </Radio>
+          );
+        }}
+      </Each>
+    </RadioGroup>
+  );
+}
+
+function ReaderWidthPicker() {
+  const modes: ReaderWidth[] = ["comfortable", "full"];
+  return (
+    <RadioGroup style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+      <Each of={modes}>
+        {(row) => {
+          const mode = row();
+          const selected = () => readerWidth() === mode;
+          return (
+            <Radio
+              testID={`reader-width-${mode}`}
+              accessibilityLabel={t(`settings.readerWidth.${mode}`)}
+              checked={selected()}
+              onChange={() => { void applyReaderWidth(mode); }}
+              style={{
+                width: LOGO_CARD_WIDTH,
+                minHeight: uiControlHeight(58),
+                flexDirection: "row",
+                gap: 9,
+                paddingHorizontal: 10,
+                borderRadius: 9,
+                borderWidth: 1,
+                borderColor: selected() ? colors().accent : colors().thread,
+                backgroundColor: selected() ? colors().accentSoft : colors().list,
+                alignItems: "center",
+              }}
+              hoverStyle={controlHoverStyle()}
+              focusStyle={controlFocusStyle()}
+              activeStyle={controlPressStyle()}
+            >
+              <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+                <Text style={{ fontSize: uiTextSize(12.5), fontWeight: selected() ? "600" : "500", color: colors().ink }}>
+                  {t(`settings.readerWidth.${mode}`)}
+                </Text>
+                <Text style={{ fontSize: uiTextSize(10.5), color: colors().ink3 }}>
+                  {t(`settings.readerWidth.${mode}.desc`)}
+                </Text>
+              </View>
+              {selected() ? <Icon name="check" color={colors().accent} size={13} /> : null}
             </Radio>
           );
         }}
@@ -837,6 +885,12 @@ export function SettingsSheet(props: Props) {
                   <Text style={{ fontSize: uiTextSize(13), fontWeight: "600", color: colors().ink, marginTop: 12 }}>
                     {t("settings.font.reading")}
                   </Text>
+                  <View style={{ gap: 8 }}>
+                    <Text style={{ fontSize: uiTextSize(12), color: colors().ink2 }}>
+                      {t("settings.readerWidth.title")}
+                    </Text>
+                    <ReaderWidthPicker />
+                  </View>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                     <Text
                       style={{

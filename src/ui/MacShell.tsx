@@ -6,6 +6,7 @@ import { Vault, VaultDialog, type VaultEntryDto } from "stoatmd/native";
 import { activeStorage, readActiveStorage, storageBusy } from "../storage/state";
 import { syncRuntime } from "../sync/runtime";
 import { remoteNotePath } from "../sync/paths";
+import { READER_CONFIG_PATH, restoreReaderWidth } from "./readerWidth";
 import { ArticleInspector, type InspectorTab } from "./ArticleInspector";
 import { articleModel, type OutlineEntry } from "./articleModel";
 import { ConflictDialog } from "./ConflictDialog";
@@ -250,6 +251,7 @@ export function MacShell() {
     await flushSave();
     const result = await syncRuntime.syncNow();
     if (!result || storageBusy() || vault() !== v) return;
+    if (result.changedLocal.includes(READER_CONFIG_PATH)) await restoreReaderWidth(v.root);
     if (result.conflicts.length > 0) syncConflictOpen.set(true);
     if (result.changedLocal.length > 0) {
       const cur = opened();
@@ -299,6 +301,7 @@ export function MacShell() {
       const v = Vault.open(root);
       vault.set(v);
       vaultRoot.set(v.root);
+      await restoreReaderWidth(v.root);
       await saveRoot(v.root);
       Window.setTitle(`StoatMD — ${syncRuntime.connection()?.remoteName || vaultNameFromRoot(v.root)}`);
       folderId.set("");

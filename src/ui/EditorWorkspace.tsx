@@ -14,6 +14,7 @@ import {
 } from "./previewModel";
 import { colors, themePreset, type ThemePalette, type ThemePreset } from "./theme";
 import { editorFontSize, editorLineHeight, fontSize, lineHeightPx, documentFontFamily, systemFonts } from "./typography";
+import { readerWidth } from "./readerWidth";
 import type { ViewMode } from "./Toolbar";
 import {
   attachEditor,
@@ -271,18 +272,18 @@ export function EditorWorkspace(props: Props) {
   const previewAnchors = signal(initial.anchors);
   const previewWidth = signal(0);
 
-  /** 正文左右留白：宽窗口 48，空间收紧时 28。 */
+  /** 正文外侧保留呼吸空间；舒适版心由文档最大宽度控制。 */
   const gutter = () => {
     const width = previewWidth();
-    if (width <= 0) return 44;
-    if (width >= 760) return 48;
-    if (width >= 520) return 28;
-    return 24;
+    if (width <= 0) return 24;
+    if (width >= 760) return 32;
+    if (width >= 520) return 24;
+    return 16;
   };
 
-  /** 正文最大宽度随字号设置伸缩，仍落在 Kami 的可读区间。 */
+  /** 适中版心按正文行长控制在约 40–70 个汉字。 */
   const documentWidth = () =>
-    Math.min(720, Math.max(560, Math.round(650 + (fontSize() - 15) * 20)));
+    Math.min(960, Math.max(640, Math.round(840 + (fontSize() - 16) * 20)));
 
   const handleVisible = (info: {
     viewableItems: { index: number; isViewable: boolean }[];
@@ -453,7 +454,7 @@ export function EditorWorkspace(props: Props) {
             return (
               <View
                 style={{
-                  maxWidth: documentWidth(),
+                  maxWidth: readerWidth() === "full" ? "100%" : documentWidth(),
                   width: "100%",
                   alignSelf: "center",
                   paddingTop: gap(),
