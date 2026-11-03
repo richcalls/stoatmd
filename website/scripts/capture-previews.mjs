@@ -76,7 +76,7 @@ export async function capturePreviews(
       deviceScaleFactor: 1,
       mobile: false,
     });
-    const built = await page.evaluate(() => {
+    const built = await page.evaluate(async () => {
       const brand = document.querySelector(".brand")?.cloneNode(true);
       const title = document.querySelector(".hero-title")?.cloneNode(true);
       const lead = document.querySelector(".hero-lead")?.cloneNode(true);
@@ -85,10 +85,8 @@ export async function capturePreviews(
         ?.cloneNode(true);
       const noteText =
         document.querySelector(".hero-note")?.textContent?.trim() || "";
-      const reading = document.querySelector(".reading-view")?.cloneNode(true);
-      const filename =
-        document.querySelector(".filename")?.textContent?.trim() || "";
-      if (!brand || !title || !lead || !action || !reading) return false;
+      const productImage = document.querySelector(".preview img")?.cloneNode(true);
+      if (!brand || !title || !lead || !action || !productImage) return false;
 
       const style = document.createElement("style");
       style.textContent = `
@@ -103,16 +101,8 @@ export async function capturePreviews(
         #og .og-bottom { margin-top:auto; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
         #og .og-bottom .btn { min-height:42px; padding:10px 16px; font-size:13px; }
         #og .og-note { color:var(--muted); font-size:12px; line-height:1.5; max-width:230px; }
-        #og .og-preview { align-self:start; height:518px; overflow:hidden; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
-        #og .og-bar { display:flex; justify-content:space-between; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line); color:var(--muted); font-family:var(--font-mono); font-size:10.5px; }
-        #og .og-preview .reading-view { padding:28px 30px 32px; }
-        #og .og-preview .doc-meta { margin-bottom:14px; font-size:9.5px; }
-        #og .og-preview .reading-view h2 { margin-bottom:14px; font-size:28px; line-height:1.18; }
-        #og .og-preview .reading-view p { margin-bottom:11px; font-size:12.5px; line-height:1.68; }
-        #og .og-preview .reading-view blockquote { margin:16px 0; padding-left:14px; font-size:14px; line-height:1.5; }
-        #og .og-preview .reading-view ul { gap:4px; margin:14px 0; padding-left:17px; }
-        #og .og-preview .reading-view li { font-size:11px; }
-        #og .og-preview .doc-ending { margin-top:16px !important; padding-top:12px; font-size:9.5px !important; }
+        #og .og-preview { align-self:center; width:428px; }
+        #og .og-preview img { display:block; width:100%; height:auto; }
       `;
       document.head.appendChild(style);
 
@@ -135,19 +125,14 @@ export async function capturePreviews(
 
       const preview = document.createElement("div");
       preview.className = "og-preview";
-      const bar = document.createElement("div");
-      bar.className = "og-bar";
-      const file = document.createElement("span");
-      file.textContent = filename;
-      bar.appendChild(file);
-      preview.appendChild(bar);
-      preview.appendChild(reading);
+      preview.appendChild(productImage);
       og.append(left, preview);
 
       document.body.innerHTML = "";
       document.body.appendChild(og);
+      await og.querySelector("img")?.decode();
       window.scrollTo(0, 0);
-      return { filename };
+      return true;
     });
     if (!built) throw new Error(`Could not compose share card for ${locale}`);
     await page.waitForTimeout(150);

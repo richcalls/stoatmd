@@ -21,50 +21,6 @@
     U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
     U+A720-A7FF;
 }
-@font-face {
-  font-family: Newsreader;
-  src: url("/fonts/newsreader-latin-400-normal.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
-    U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
-    U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: Newsreader;
-  src: url("/fonts/newsreader-latin-ext-400-normal.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  unicode-range: U+0100-02FF, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
-    U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-@font-face {
-  font-family: "Paper SC";
-  src: url("/fonts/paper-sc.woff2") format("woff2");
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Paper TC";
-  src: url("/fonts/paper-tc.woff2") format("woff2");
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Paper JP";
-  src: url("/fonts/paper-jp.woff2") format("woff2");
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Paper KR";
-  src: url("/fonts/paper-kr.woff2") format("woff2");
-  font-weight: 400;
-  font-display: swap;
-}
-
 :root {
   color-scheme: light dark;
   --bg: light-dark(#fbfbf8, #121311);
@@ -86,8 +42,6 @@
     Archivo, system-ui, -apple-system, "PingFang SC", "PingFang TC",
     "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Apple SD Gothic Neo",
     "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
-  --font-serif: Newsreader, "Paper SC", "Paper TC", "Paper JP", "Paper KR",
-    "Songti SC", "Noto Serif CJK SC", Georgia, serif;
   --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
   --wrap: 1120px;
@@ -514,168 +468,17 @@ a[data-download-platform="ios"]:hover {
   transition: color 0.15s ease;
 }
 
-/* Preview */
+/* Full-window product screenshot */
 
 .preview {
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
-}
-
-.preview-bar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--line);
-}
-
-.filename {
-  flex: 1;
   min-width: 0;
-  overflow: hidden;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mode-switch {
-  display: flex;
-  flex-shrink: 0;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-soft);
-}
-
-.mode-btn {
-  min-height: 28px;
-  padding: 4px 10px;
-  border: 0;
-  border-radius: 6px;
-  background: none;
-  color: var(--muted);
-  font-family: inherit;
-  font-size: 11px;
-  cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-.mode-btn:disabled {
-  cursor: default;
-}
-.mode-btn[aria-pressed="true"] {
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: 0 1px 2px var(--shadow);
-}
-
-.preview-body {
-  height: 480px;
-  overflow: auto;
-  overscroll-behavior: contain;
-}
-
-.note-panel[hidden] {
-  display: none !important;
-}
-
-.source-view {
-  min-height: 100%;
   margin: 0;
-  padding: 24px 28px;
-  background: var(--surface-soft);
-  color: var(--ink-soft);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1.7;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 
-.reading-view {
-  padding: 32px 36px 40px;
-  font-family: var(--font-serif);
-}
-
-.doc-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  margin-bottom: 18px;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-}
-
-.reading-view h2 {
-  margin: 0 0 18px;
-  font-size: 1.85rem;
-  font-weight: 400;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-}
-
-.reading-view p {
-  margin: 0 0 16px;
-  color: var(--ink);
-  font-size: 1rem;
-  line-height: 1.75;
-}
-
-.reading-view blockquote {
-  margin: 24px 0;
-  padding: 2px 0 2px 18px;
-  border-left: 2px solid var(--line-strong);
-  color: var(--ink-soft);
-  font-size: 1.08rem;
-  line-height: 1.55;
-}
-
-.reading-view ul {
-  display: grid;
-  gap: 6px;
-  margin: 20px 0;
-  padding-left: 20px;
-}
-.reading-view li {
-  padding-left: 2px;
-  font-size: 0.95rem;
-  line-height: 1.6;
-}
-
-.doc-ending {
-  margin: 26px 0 0 !important;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-  color: var(--muted) !important;
-  font-family: var(--font-ui);
-  font-size: 12px !important;
-}
-
-[data-view="source"] .reading-view,
-[data-view="source"] .note-panel .doc-meta {
-  display: none;
-}
-[data-view="read"] .source-view {
-  display: none;
-}
-[data-view="split"] .note-panel:not([hidden]) {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: stretch;
-}
-[data-view="split"] .source-view {
-  border-right: 1px solid var(--line);
-}
-[data-view="split"] .reading-view {
-  padding: 26px 24px 32px;
-}
-[data-view="split"] .reading-view h2 {
-  font-size: 1.45rem;
+.preview img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 /* Sections */
@@ -1031,20 +834,6 @@ a[data-download-platform="ios"]:hover {
   border-color: var(--ink);
 }
 
-/* Locale-specific reading faces */
-
-:lang(zh-hans) .reading-view {
-  font-family: "Paper SC", Newsreader, "Songti SC", serif;
-}
-:lang(zh-hant) .reading-view {
-  font-family: "Paper TC", Newsreader, "Songti TC", serif;
-}
-:lang(ja) .reading-view {
-  font-family: "Paper JP", Newsreader, "Hiragino Mincho ProN", serif;
-}
-:lang(ko) .reading-view {
-  font-family: "Paper KR", Newsreader, "Apple SD Gothic Neo", serif;
-}
 :lang(zh-hans) .hero-title,
 :lang(zh-hant) .hero-title,
 :lang(ja) .hero-title,
@@ -1084,9 +873,6 @@ a[data-download-platform="ios"]:hover {
   .hero-title {
     max-width: 20ch;
     font-size: clamp(2.3rem, 7vw, 3.4rem);
-  }
-  .preview-body {
-    height: 440px;
   }
   .section {
     padding: 72px 0;
@@ -1206,13 +992,6 @@ a[data-download-platform="ios"]:hover {
     grid-template-columns: 40px minmax(0, 1fr);
     gap: 16px;
   }
-  [data-view="split"] .note-panel:not([hidden]) {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  [data-view="split"] .source-view {
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
   .footer-grid {
     gap: 32px;
   }
@@ -1242,27 +1021,6 @@ a[data-download-platform="ios"]:hover {
   .note-button {
     grid-template-columns: 84px minmax(0, 1fr);
     gap: 10px;
-  }
-  .preview-bar {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .filename {
-    flex-basis: 100%;
-  }
-  .mode-btn {
-    min-height: 32px;
-    padding: 7px 10px;
-  }
-  .reading-view {
-    padding: 24px 20px 32px;
-  }
-  .reading-view h2 {
-    font-size: 1.55rem;
-  }
-  .source-view {
-    padding: 20px;
-    font-size: 11px;
   }
   .steps {
     grid-template-columns: minmax(0, 1fr);

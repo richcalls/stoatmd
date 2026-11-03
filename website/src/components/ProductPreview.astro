@@ -1,82 +1,17 @@
 ---
 import { type Locale } from "../i18n";
-import { SITE_COPY, type NoteCopy } from "../i18n/copy";
+import { SITE_COPY } from "../i18n/copy";
 
 const { locale } = Astro.props as { locale: Locale };
 const p = SITE_COPY[locale];
-const notes = p.log.notes;
-const first = notes[0]!;
-
-function source(note: NoteCopy): string {
-  return [
-    `# ${note.title}`,
-    "",
-    note.summary,
-    "",
-    ...note.body.flatMap((paragraph) => [paragraph, ""]),
-    `> ${note.quote}`,
-    "",
-    ...note.list.map((item) => `- ${item}`),
-    "",
-    note.ending,
-  ].join("\n");
-}
 ---
 
-<div class="preview" data-preview data-view="read">
-  <div class="preview-bar">
-    <span class="filename" data-filename title={first.path}>
-      {first.path}
-    </span>
-    <div class="mode-switch" role="group" aria-label={p.a11y.preview}>
-      {(["source", "split", "read"] as const).map((mode, index) => (
-        <button
-          class="mode-btn"
-          type="button"
-          data-mode={mode}
-          aria-label={p.log.modes[index]}
-          title={p.log.modes[index]}
-          aria-pressed={mode === "read"}
-          disabled
-        >
-          {p.log.modes[index]}
-        </button>
-      ))}
-    </div>
-  </div>
-
-  <div class="preview-body" aria-live="polite" aria-atomic="false">
-    {notes.map((note, index) => (
-      <div
-        class="note-panel"
-        data-panel={index}
-        data-path={note.path}
-        hidden={index !== 0}
-      >
-        <pre class="source-view" tabindex="0" aria-label={p.log.modes[0]}>{source(note)}</pre>
-
-        <article class="reading-view" aria-label={p.log.modes[2]}>
-          <div class="doc-meta">
-            <span>{note.path}</span>
-            <time datetime={note.date}>{note.date}</time>
-            <span>{note.words}</span>
-          </div>
-          <h2>{note.title}</h2>
-          <p>{note.body[0]}</p>
-          <p>{note.body[1]}</p>
-          <blockquote>{note.quote}</blockquote>
-          <ul>
-            {note.list.map((item) => (
-              <li>{item}</li>
-            ))}
-          </ul>
-          <p class="doc-ending">{note.ending}</p>
-        </article>
-      </div>
-    ))}
-  </div>
-</div>
-
-<script>
-  import "../scripts/product-preview";
-</script>
+<figure class="preview">
+  <img
+    src="/assets/mac-reader-outline-full-window.png"
+    alt={p.a11y.preview}
+    width="3124"
+    height="1764"
+    fetchpriority="high"
+  />
+</figure>
