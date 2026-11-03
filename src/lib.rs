@@ -116,6 +116,48 @@ pub struct AppIcon;
 
 #[module]
 impl AppIcon {
+    /// iOS 的备用图标由系统持久保存，回调成功后界面再更新选择。
+    pub async fn select_ios(id: String) -> Result<(), String> {
+        if !matches!(id.as_str(), "thread" | "agile" | "head-a" | "head-b" | "head-d") {
+            return Err(format!("unknown app icon: {id}"));
+        }
+        #[cfg(target_os = "ios")]
+        {
+            use objc2_foundation::{NSError, NSString};
+            use objc2_ui_kit::UIApplication;
+            use std::sync::Mutex;
+
+            let (sender, receiver) = futures_channel::oneshot::channel();
+            dispatch2::DispatchQueue::main().exec_async(move || {
+                let mtm = objc2::MainThreadMarker::new().expect("main queue");
+                let app = UIApplication::sharedApplication(mtm);
+                let name = (id != "thread").then(|| NSString::from_str(&id));
+                if app.alternateIconName().as_deref() == name.as_deref() {
+                    let _ = sender.send(Ok(()));
+                    return;
+                }
+                if !app.supportsAlternateIcons() {
+                    let _ = sender.send(Err("Alternate icons are unavailable in this build".to_owned()));
+                    return;
+                }
+                let sender = Mutex::new(Some(sender));
+                let completion = block2::RcBlock::new(move |error: *mut NSError| {
+                    // UIKit keeps NSError alive for the duration of this callback.
+                    let result = unsafe { error.as_ref() }
+                        .map(|error| Err(error.localizedDescription().to_string()))
+                        .unwrap_or(Ok(()));
+                    if let Some(sender) = sender.lock().unwrap().take() {
+                        let _ = sender.send(result);
+                    }
+                });
+                app.setAlternateIconName_completionHandler(name.as_deref(), Some(&completion));
+            });
+            receiver.await.map_err(|_| "Icon selection was interrupted".to_owned())?
+        }
+        #[cfg(not(target_os = "ios"))]
+        Ok(())
+    }
+
     /// 切换应用图标：`thread`（织线白鼬，默认）、`agile`（敏捷剪影），
     /// 或头像草案 `head-a` / `head-b` / `head-d`；`dark` 用炭底版本。
     pub fn set(id: String, dark: bool) -> Result<(), String> {

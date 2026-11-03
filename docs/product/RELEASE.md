@@ -112,3 +112,10 @@ asc builds upload --app 6829230372 --ipa .nsh/testflight/StoatMD.ipa --pretty
 ```
 
 iOS 只内置公开的 Google iOS client id 与 Dropbox app key，token 存 iCloud 钥匙串。
+
+iOS 图标使用 `assets/ios/` 下的满幅、不透明 PNG，圆角由系统裁切。
+修改 01/03 品牌 SVG 后运行 `python3 scripts/ios_icons.py` 重新生成（需要
+`rsvg-convert` 与 Pillow），再运行
+`python3 -m unittest discover -s scripts -p 'test_ios_icons.py'` 验证底色与资源目录。
+发布脚本会为 iPhone 和 iPad 编译主图标与四套备用图标，设置页通过 UIKit
+切换主屏幕图标；01/03 的深色图标随 iOS 主屏幕的外观切换。

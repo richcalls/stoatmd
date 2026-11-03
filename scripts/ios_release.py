@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 
 from ios import build_environment
+from ios_icons import compile_icons
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -85,20 +86,7 @@ def prepare(app, env, work):
         "UIInterfaceOrientationLandscapeRight",
     ]
     info.setdefault("UILaunchScreen", {})
-    catalog = work / "Assets.xcassets"
-    iconset = catalog / "AppIcon.appiconset"
-    iconset.mkdir(parents=True)
-    shutil.copy2(ROOT / "assets/ios/AppIcon.png", iconset / "AppIcon.png")
-    (iconset / "Contents.json").write_text(json.dumps({
-        "images": [{"filename": "AppIcon.png", "idiom": "universal", "platform": "ios", "size": "1024x1024"}],
-        "info": {"author": "xcode", "version": 1},
-    }))
-    partial = work / "asset-info.plist"
-    run("xcrun", "actool", catalog, "--compile", app, "--platform", "iphoneos",
-        "--minimum-deployment-target", info.get("MinimumOSVersion", "16.0"),
-        "--target-device", "iphone", "--target-device", "ipad", "--app-icon", "AppIcon",
-        "--output-partial-info-plist", partial)
-    info.update(plistlib.loads(partial.read_bytes()))
+    info.update(compile_icons(app, work, minimum=info["MinimumOSVersion"]))
     plist_path.write_bytes(plistlib.dumps(info))
     shutil.copy2(ROOT / "assets/ios/PrivacyInfo.xcprivacy", app / "PrivacyInfo.xcprivacy")
 

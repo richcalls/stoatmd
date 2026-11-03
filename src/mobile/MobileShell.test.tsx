@@ -1,5 +1,5 @@
 import { expect, open, test } from "nsh/test";
-import { themePreset } from "../ui/theme";
+import { THEMES, themePreset } from "../ui/theme";
 
 const lightTheme = themePreset("merino-light").palette;
 const phone = { platform: "ios" as const, width: 390, height: 844, locale: "zh-CN", safeArea: { top: 47, right: 0, bottom: 34, left: 0 } };
@@ -59,10 +59,18 @@ test("iPhone: create a folder and note, save Chinese text, read, rename and dupl
   expect(app.shows("text:记录第一天。")).toBe(true);
 }, 120_000);
 
-test("iPhone: theme, language and font settings persist after restarting", async () => {
+test("iPhone: theme, icon, language and font settings persist after restarting", async () => {
   const app = await open("./MobileShell.harness.tsx", phone);
   await app.press("id:mobile-settings");
+  await app.press("id:mobile-theme-toggle");
+  expect(app.shows("text:浅色")).toBe(true);
+  expect(app.shows("text:深色")).toBe(true);
+  for (const theme of THEMES) expect(app.shows(`id:mobile-theme-${theme.id}`)).toBe(true);
   await app.press("id:mobile-theme-silver-point-dark");
+  await app.press("id:mobile-theme-toggle");
+  await app.press("id:mobile-icon-toggle");
+  await app.press("id:mobile-icon-agile");
+  await app.waitUntil(() => app.storage()["prefs.appLogo"] === "agile");
   await app.press("id:mobile-render-monochrome");
   await app.press("id:mobile-text-row");
   await app.press("id:settings.font.reading-increase");
@@ -75,6 +83,8 @@ test("iPhone: theme, language and font settings persist after restarting", async
   expect(again.shows("text:Settings")).toBe(true);
   expect(again.shows("text:Kami · 17 / 1.60")).toBe(true);
   expect(again.storage()["prefs.theme"]).toBe("silver-point-dark");
+  expect(again.shows("text:Agile Silhouette")).toBe(true);
+  expect(again.storage()["prefs.appLogo"]).toBe("agile");
   // 重启后文稿配色仍是单色：选中的分段和未选中的颜色不同。
   expect(again.shows("id:mobile-render-mode")).toBe(true);
   expect(again.spanStyle("id:mobile-render-monochrome >> text:Monochrome").color)

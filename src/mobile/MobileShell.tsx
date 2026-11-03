@@ -11,6 +11,7 @@ import { SyncSettings, formatSyncMoment } from "../ui/SyncSettings";
 import { providerLabelKey } from "../sync/runtime";
 import { Icon, type IconName } from "../ui/Icon";
 import { articleModel, noteFormat } from "../ui/articleModel";
+import { APP_LOGOS, appLogo, appLogoBusy, appLogoError, logoAsset, selectMobileAppLogo } from "../ui/appLogo";
 import { previewTextStyles } from "../ui/EditorWorkspace";
 import { applyRenderMode, displayBlock, renderMode } from "../ui/documentAppearance";
 import { findShortcuts } from "../ui/findShortcuts";
@@ -1428,18 +1429,24 @@ function TypeSettings() {
   </View>;
 }
 
-/** 主题卡片：三列一组，缩略图直接画三行「标题 + 正文」示意。 */
+/** nsh 无主题预览组件，沿用自绘色板缩略图；两列布局用 iOS 截图测试验证。 */
 function ThemeCard(props: { theme: MobileTheme }) {
   const theme = props.theme;
   // 同 tab：写成函数，切主题时选中边框和勾才会跟着走。
   const active = () => mobileThemeId() === theme.id;
   return <Button testID={`mobile-theme-${theme.id}`} accessibilityLabel={theme.name} onPress={() => applyTheme(theme.id)}
     style={{ flex: 1, minWidth: 0, borderRadius: 12, borderCurve: "continuous", overflow: "hidden",
-      borderWidth: active() ? 2 : 0.5, borderColor: active() ? theme.palette.accent : theme.palette.thread }}>
-    <View style={{ height: 52, padding: 8, gap: 4, backgroundColor: theme.palette.editor }}>
-      <View style={{ alignSelf: "flex-start", width: "56%", height: 7, borderRadius: 3, backgroundColor: theme.art.ink, opacity: 0.85 }} />
-      <View style={{ width: "84%", height: 5, borderRadius: 2.5, backgroundColor: theme.art.muted, opacity: 0.65 }} />
-      <View style={{ width: "66%", height: 5, borderRadius: 2.5, backgroundColor: theme.art.muted, opacity: 0.45 }} />
+      borderWidth: 2, borderColor: active() ? theme.palette.accent : theme.palette.thread }}>
+    <View style={{ height: 64, flexDirection: "row", backgroundColor: theme.palette.editor }}>
+      <View style={{ width: 28, backgroundColor: theme.palette.sidebar, padding: 5, gap: 5 }}>
+        <View style={{ height: 5, borderRadius: 2, backgroundColor: theme.palette.accent }} />
+        <View style={{ height: 3, borderRadius: 2, backgroundColor: theme.palette.ink3, opacity: 0.5 }} />
+      </View>
+      <View style={{ flex: 1, padding: 10, gap: 6 }}>
+        <View style={{ alignSelf: "flex-start", width: "56%", height: 7, borderRadius: 3, backgroundColor: theme.art.ink, opacity: 0.85 }} />
+        <View style={{ width: "84%", height: 5, borderRadius: 2.5, backgroundColor: theme.art.muted, opacity: 0.65 }} />
+        <View style={{ width: "66%", height: 5, borderRadius: 2.5, backgroundColor: theme.art.muted, opacity: 0.45 }} />
+      </View>
     </View>
     <View style={{ paddingHorizontal: 8, paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: theme.palette.list }}>
       <Text numberOfLines={1} style={{ flex: 1, fontSize: 12.5, fontWeight: 500, letterSpacing: -0.1, color: theme.palette.ink }}>{theme.name}</Text>
@@ -1448,15 +1455,20 @@ function ThemeCard(props: { theme: MobileTheme }) {
   </Button>;
 }
 
-/** 主题按三列排，最后一排不足三个时用空位补齐，卡片宽度保持一致。 */
-function themeRows(): MobileTheme[][] {
+/** 每组两列，明暗分组各自排版。 */
+function themeRows(mode: "light" | "dark"): MobileTheme[][] {
+  const themes = MOBILE_THEMES.filter(theme => theme.mode === mode);
   const rows: MobileTheme[][] = [];
-  for (let index = 0; index < MOBILE_THEMES.length; index += 3) rows.push(MOBILE_THEMES.slice(index, index + 3));
+  for (let index = 0; index < themes.length; index += 2) rows.push(themes.slice(index, index + 2));
   return rows;
 }
 
 function MobileSettings(props: { connected: boolean; onImport: () => void; onTrash: () => void; onStorage: () => void; onSync: () => void; onConflicts: () => void }) {
   const c = mobileColors();
+  const themesOpen = signal(false);
+  const iconsOpen = signal(false);
+  const currentTheme = () => MOBILE_THEMES.find(theme => theme.id === mobileThemeId())!.name;
+  const currentLogo = () => APP_LOGOS.find(logo => logo.id === appLogo())!;
   const connection = () => syncRuntime.connection();
   // 设置页也要给「立即同步」反馈：同步中显示进度，失败显示可读原因，
   // 否则按钮点了看不出反应，像是坏的。
@@ -1470,12 +1482,30 @@ function MobileSettings(props: { connected: boolean; onImport: () => void; onTra
   };
   return <View>
     <SectionTitle top={2}>{t("settings.appearance")}</SectionTitle>
-    <View testID="mobile-themes" style={{ paddingHorizontal: 16, gap: 8 }}>
-      {themeRows().map(row => <View style={{ flexDirection: "row", gap: 8 }}>
-        {row.map(theme => <ThemeCard theme={theme} />)}
-        {Array.from({ length: 3 - row.length }, () => <View style={{ flex: 1 }} />)}
-      </View>)}
-    </View>
+    <SettingsGroup>
+      <SettingsRow id="mobile-theme-toggle" title={t("settings.theme")} value={currentTheme()} onPress={() => themesOpen.set(!themesOpen())} />
+      {themesOpen() ? <View testID="mobile-themes" style={{ paddingHorizontal: 12, paddingBottom: 16, gap: 10 }}>
+        {(["light", "dark"] as const).map(mode => <View style={{ gap: 8 }}>
+          <Text style={{ paddingTop: 8, fontSize: 13, fontWeight: 600, color: c.ink2 }}>{t(`settings.theme.${mode}`)}</Text>
+          {themeRows(mode).map(row => <View style={{ flexDirection: "row", gap: 8 }}>
+            {row.map(theme => <ThemeCard theme={theme} />)}
+            {row.length < 2 ? <View style={{ flex: 1 }} /> : null}
+          </View>)}
+        </View>)}
+      </View> : null}
+      <SettingsRow id="mobile-icon-toggle" title={t("settings.logo")} value={t(currentLogo().nameKey)} last={!iconsOpen()} onPress={() => iconsOpen.set(!iconsOpen())} />
+      {iconsOpen() ? <View testID="mobile-icons" style={{ paddingHorizontal: 16, paddingBottom: 16, gap: 8 }}>
+        {APP_LOGOS.map(logo => <Button testID={`mobile-icon-${logo.id}`} accessibilityLabel={t(logo.nameKey)} disabled={appLogoBusy()}
+          onPress={() => { void selectMobileAppLogo(logo.id); }}
+          style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, opacity: appLogoBusy() ? 0.5 : 1 }}>
+          <Image src={logoAsset(logo)} style={{ width: 52, height: 52, borderRadius: 12, borderCurve: "continuous" }} />
+          <Text style={{ flex: 1, fontSize: 16, color: c.ink }}>{t(logo.nameKey)}</Text>
+          {appLogo() === logo.id ? <Icon name="check" color={c.accent} size={18} /> : null}
+        </Button>)}
+        <Text style={{ fontSize: 12, lineHeight: 17, color: c.ink3 }}>{t("mobile.iconHint")}</Text>
+        {appLogoError() ? <Text testID="mobile-icon-error" style={{ fontSize: 13, lineHeight: 18, color: c.ink2 }}>{t("mobile.iconError")} {appLogoError()}</Text> : null}
+      </View> : null}
+    </SettingsGroup>
     {/* 和 Mac 的设置同一项：主题只管界面，文稿配色单独决定正文里的标题、引用、链接和代码。 */}
     <View testID="mobile-render-mode" style={{ marginTop: 12, marginHorizontal: 16 }}>
       <View style={{ height: 34, padding: 3, flexDirection: "row", borderRadius: 9, borderCurve: "continuous",
