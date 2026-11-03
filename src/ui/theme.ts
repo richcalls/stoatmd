@@ -151,6 +151,16 @@ export const THEMES: readonly ThemePreset[] = [
     codeBg: "#F1F3F5",
     searchBg: "#E7E9ED",
   }),
+  // Additional Rex themes selected from the local Rex Beta theme catalog.
+  definition("alpine-milk", "Alpine Milk", "light", "#FAFAFA", "#333940", "#4A90D9", "#4A9256", "#C94F46"),
+  definition("buttercream-diner", "Buttercream Diner", "light", "#FBF3DD", "#4D3F33", "#D1603D", "#5C8A3C", "#C8432F"),
+  definition("coastal-linen", "Coastal Linen", "light", "#FAF6EE", "#3D4652", "#2F8FA6", "#57904D", "#C25547"),
+  definition("glacier-mint", "Glacier Mint", "light", "#F0F9F6", "#2F4640", "#2AA88A", "#3D9060", "#C05045"),
+  definition("ivory-gallery", "Ivory Gallery", "light", "#FFFFFF", "#1F2328", "#1A6FD4", "#2F7D3C", "#C13A24"),
+  definition("lavender-postcard", "Lavender Postcard", "light", "#F7F4FB", "#40374F", "#7A5BBF", "#4A8F56", "#C04E56"),
+  definition("newsprint-fog", "Newsprint Fog", "light", "#F2F2F0", "#333331", "#B3402E", "#5D7F52", "#B3402E"),
+  definition("orchard-breeze", "Orchard Breeze", "light", "#F4F9EF", "#3A4A35", "#5DA24F", "#4F9440", "#C65043"),
+  definition("porcelain-morning", "Porcelain Morning", "light", "#F7F9FA", "#2E3A42", "#2277CC", "#3D8A4E", "#C74E42"),
   // Rex's monochrome Silver Point Dark source and semantic colors.
   definition("silver-point-dark", "Silver Point Dark", "dark", "#131313", "#B4B4B4", "#767676", "#707070", "#B4B4B4", {
     paper: "#131313",
@@ -164,16 +174,6 @@ export const THEMES: readonly ThemePreset[] = [
     codeBg: "#202020",
     searchBg: "#262626",
   }),
-  // Additional Rex themes selected from the local Rex Beta theme catalog.
-  definition("alpine-milk", "Alpine Milk", "light", "#FAFAFA", "#333940", "#4A90D9", "#4A9256", "#C94F46"),
-  definition("buttercream-diner", "Buttercream Diner", "light", "#FBF3DD", "#4D3F33", "#D1603D", "#5C8A3C", "#C8432F"),
-  definition("coastal-linen", "Coastal Linen", "light", "#FAF6EE", "#3D4652", "#2F8FA6", "#57904D", "#C25547"),
-  definition("glacier-mint", "Glacier Mint", "light", "#F0F9F6", "#2F4640", "#2AA88A", "#3D9060", "#C05045"),
-  definition("ivory-gallery", "Ivory Gallery", "light", "#FFFFFF", "#1F2328", "#1A6FD4", "#2F7D3C", "#C13A24"),
-  definition("lavender-postcard", "Lavender Postcard", "light", "#F7F4FB", "#40374F", "#7A5BBF", "#4A8F56", "#C04E56"),
-  definition("newsprint-fog", "Newsprint Fog", "light", "#F2F2F0", "#333331", "#B3402E", "#5D7F52", "#B3402E"),
-  definition("orchard-breeze", "Orchard Breeze", "light", "#F4F9EF", "#3A4A35", "#5DA24F", "#4F9440", "#C65043"),
-  definition("porcelain-morning", "Porcelain Morning", "light", "#F7F9FA", "#2E3A42", "#2277CC", "#3D8A4E", "#C74E42"),
   definition("ink-meridian", "Ink Meridian", "dark", "#101623", "#CCD6EA", "#83A8F2", "#7CBF8E", "#DE6E7C"),
   definition("merino-dark", "Merino Dark", "dark", "#0D1117", "#E6EDF3", "#2F81F7", "#3FB950", "#FF7B72"),
   definition("static-noir", "Static Noir", "dark", "#0A0A0A", "#EDEDED", "#FF3B30", "#9FD08A", "#FF4D42"),
