@@ -45,7 +45,7 @@
 
 ## 主题（摘要）
 
-设置 → 外观：**20 套 Rex 主题**（10 浅色 / 10 深色），只换颜色 token，默认 **Merino Light**。正文和代码使用中性色，标题和链接保留轻量强调色。完整 token 见 [`src/ui/theme.ts`](../../src/ui/theme.ts)。
+设置 → 外观：**20 套主题**（10 浅色 / 10 深色），只换颜色 token，默认 **Merino Light**。正文和代码使用中性色，标题和链接保留轻量强调色。完整 token 见 [`src/ui/theme.ts`](../../src/ui/theme.ts)。
 
 ## 提供商矩阵摘要
 

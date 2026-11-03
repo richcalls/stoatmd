@@ -110,7 +110,7 @@ test("设置：字体下拉打开时 Esc 只收起下拉，浮窗保留", async 
   expect(app.texts()).toContain("open");
 });
 
-test("设置：20 套 Rex 主题可选并持久化", async () => {
+test("设置：20 套主题可选并持久化", async () => {
   const app = await open("./SettingsSheet.harness.tsx", desktop);
   expect(app.shows("id:theme-merino-light")).toBe(true);
   expect(app.shows("id:theme-silver-point-dark")).toBe(true);

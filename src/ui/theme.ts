@@ -1,7 +1,7 @@
 import { setColorScheme, signal } from "nsh";
 import { loadSavedTheme, saveTheme } from "./prefs";
 
-/** Rex Beta's currently selected built-in themes. */
+/** Curated light and dark terminal themes. */
 export type ThemeId =
   | "merino-light"
   | "silver-point-dark"
@@ -14,15 +14,15 @@ export type ThemeId =
   | "newsprint-fog"
   | "orchard-breeze"
   | "porcelain-morning"
-  | "abyssal-trench"
-  | "cobalt-foundry"
-  | "heliotrope-haze"
   | "ink-meridian"
   | "merino-dark"
-  | "midnight-tundra"
-  | "petrol-lagoon"
   | "static-noir"
-  | "velvet-dusk";
+  | "dracula"
+  | "vesper"
+  | "rose-pine"
+  | "kanagawa-wave"
+  | "gruvbox-dark"
+  | "catppuccin-mocha";
 
 export type ThemeMode = "light" | "dark";
 
@@ -93,7 +93,7 @@ function palette(
   const light = mode === "light";
   const paper = overrides.paper ?? background;
   const sidebar = overrides.sidebar ?? mix(background, "#000000", light ? 0.035 : 0.08);
-  // Rex keeps navigation surfaces neutral; the accent belongs to selection and controls.
+  // Keep navigation surfaces neutral; the accent belongs to selection and controls.
   const list = overrides.list ?? mix(background, foreground, light ? 0.035 : 0.12);
   const ink2 = overrides.ink2 ?? mix(foreground, background, light ? 0.28 : 0.32);
   const ink3 = overrides.ink3 ?? mix(foreground, background, light ? 0.52 : 0.54);
@@ -174,15 +174,16 @@ export const THEMES: readonly ThemePreset[] = [
   definition("newsprint-fog", "Newsprint Fog", "light", "#F2F2F0", "#333331", "#B3402E", "#5D7F52", "#B3402E"),
   definition("orchard-breeze", "Orchard Breeze", "light", "#F4F9EF", "#3A4A35", "#5DA24F", "#4F9440", "#C65043"),
   definition("porcelain-morning", "Porcelain Morning", "light", "#F7F9FA", "#2E3A42", "#2277CC", "#3D8A4E", "#C74E42"),
-  definition("abyssal-trench", "Abyssal Trench", "dark", "#06101A", "#B8CDD9", "#4FE3C1", "#52C79A", "#E26A6A"),
-  definition("cobalt-foundry", "Cobalt Foundry", "dark", "#10151C", "#C2CEDB", "#4FA8FF", "#81B366", "#E57373"),
-  definition("heliotrope-haze", "Heliotrope Haze", "dark", "#14101F", "#DCD2EE", "#FF7EDB", "#72E0AA", "#F66E93"),
   definition("ink-meridian", "Ink Meridian", "dark", "#101623", "#CCD6EA", "#83A8F2", "#7CBF8E", "#DE6E7C"),
   definition("merino-dark", "Merino Dark", "dark", "#0D1117", "#E6EDF3", "#2F81F7", "#3FB950", "#FF7B72"),
-  definition("midnight-tundra", "Midnight Tundra", "dark", "#0E141B", "#C9D4DE", "#8FB8D8", "#7FB88A", "#D9707C"),
-  definition("petrol-lagoon", "Petrol Lagoon", "dark", "#0C1618", "#C2D8D8", "#35D0C0", "#6CC48E", "#E0736E"),
   definition("static-noir", "Static Noir", "dark", "#0A0A0A", "#EDEDED", "#FF3B30", "#9FD08A", "#FF4D42"),
-  definition("velvet-dusk", "Velvet Dusk", "dark", "#171122", "#D6CBE6", "#C9A1F0", "#83BB8D", "#E07396"),
+  // Popular Ghostty themes sourced from the iTerm2 Color Schemes collection.
+  definition("dracula", "Dracula", "dark", "#282A36", "#F8F8F2", "#BD93F9", "#50FA7B", "#FF5555"),
+  definition("vesper", "Vesper", "dark", "#101010", "#FFFFFF", "#ACA1CF", "#90B99F", "#F5A191"),
+  definition("rose-pine", "Rose Pine", "dark", "#191724", "#E0DEF4", "#9CCFD8", "#31748F", "#EB6F92"),
+  definition("kanagawa-wave", "Kanagawa Wave", "dark", "#1F1F28", "#DCD7BA", "#7E9CD8", "#76946A", "#C34043"),
+  definition("gruvbox-dark", "Gruvbox Dark", "dark", "#282828", "#EBDBB2", "#458588", "#98971A", "#CC241D"),
+  definition("catppuccin-mocha", "Catppuccin Mocha", "dark", "#1E1E2E", "#CDD6F4", "#89B4FA", "#A6E3A1", "#F38BA8"),
 ];
 
 const BY_ID = new Map(THEMES.map((theme) => [theme.id, theme]));
