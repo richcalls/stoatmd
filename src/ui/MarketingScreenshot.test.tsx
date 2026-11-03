@@ -1,17 +1,17 @@
 import { open, test } from "nsh/test";
 
-test("macOS 宣传截图：虚构海岸观测笔记与阅读宽度设置", async () => {
+test("macOS 原图：英文虚构笔记，分别显示和隐藏目录", async () => {
   try {
     const reader = await open("./MarketingScreenshot.harness.tsx", {
-      platform: "macos", width: 1440, height: 960, locale: "zh-CN",
-    });
-    await reader.screenshot("screenshots/macos-marketing/01-reader-comfortable.png");
-
-    const full = await open("./MarketingScreenshot.harness.tsx", {
       platform: "macos", width: 1440, height: 960,
-      storage: { "prefs.readerWidth": "full" }, locale: "zh-CN",
     });
-    await full.screenshot("screenshots/macos-marketing/02-reader-full-width.png");
+    await reader.screenshot("screenshots/macos-marketing/01-reader-no-outline.png");
+
+    const outline = await open("./MarketingScreenshot.harness.tsx", {
+      platform: "macos", width: 1440, height: 960,
+      host: { params: { outline: true } },
+    });
+    await outline.screenshot("screenshots/macos-marketing/02-reader-with-outline.png");
   } catch {
     // Screenshot output requires nsh test --target macos; headless test runs skip capture.
   }
