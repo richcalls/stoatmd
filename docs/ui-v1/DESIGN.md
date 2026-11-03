@@ -107,14 +107,14 @@
 
 `05-mac-settings` 主题网格：**示意**；完整色号与模式以本节「主题预设」为准。**不必**为每套主题重出 PNG。
 
-## 当前主题预设（Rex 20 套 · 10 light / 10 dark）
+## 当前主题预设（20 套 · 10 light / 10 dark）
 
-> **2026-11-03 起**：主题采用本机 Rex Beta 主题目录中的 20 套内置色值，默认 `Merino Light`。完整 token（含 `accentInk`、语法色与搜索底）以 [`src/ui/theme.ts`](../../src/ui/theme.ts) 为准；下方旧色号仅作历史记录。
+> **2026-11-03 起**：主题采用 Rex Beta 与热门 Ghostty 主题的 20 套色值，默认 `Merino Light`。完整 token（含 `accentInk`、语法色与搜索底）以 [`src/ui/theme.ts`](../../src/ui/theme.ts) 为准；下方旧色号仅作历史记录。
 
 入口：**设置 → 外观**。交互不变：网格卡片 · 顶部圆形色预览 · 主题原名 · 选中描边；每套标明 mode，整表替换 token。
 
 - **Light（10）**：Merino Light（默认）、Alpine Milk、Buttercream Diner、Coastal Linen、Glacier Mint、Ivory Gallery、Lavender Postcard、Newsprint Fog、Orchard Breeze、Porcelain Morning
-- **Dark（10）**：Silver Point Dark、Abyssal Trench、Cobalt Foundry、Heliotrope Haze、Ink Meridian、Merino Dark、Midnight Tundra、Petrol Lagoon、Static Noir、Velvet Dusk
+- **Dark（10）**：Silver Point Dark、Ink Meridian、Merino Dark、Static Noir、Dracula、Vesper、Rose Pine、Kanagawa Wave、Gruvbox Dark、Catppuccin Mocha
 
 映射与对比度：
 

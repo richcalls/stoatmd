@@ -57,7 +57,17 @@ SOFTWARE.
 
 ## Rex theme tokens
 
-The 20 color themes in `src/ui/theme.ts` are selected from the locally installed
+The Rex color themes in `src/ui/theme.ts` are selected from the locally installed
 Rex Beta app's built-in theme catalog (`SuperUI_SuperDesignTokens.bundle`).
 StoatMD uses the color values only; it does not bundle Rex code, resources, or
 application assets.
+
+## iTerm2 Color Schemes themes
+
+The Dracula, Vesper, Rose Pine, Kanagawa Wave, Gruvbox Dark, and Catppuccin
+Mocha themes use the corresponding color values from the
+[iTerm2 Color Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes)
+collection, which is distributed under the MIT License. Individual themes
+retain their original authorship and licensing; StoatMD uses their color values
+only. Ghostty's built-in themes are sourced from this collection as documented
+in the [Ghostty theme guide](https://ghostty.org/docs/features/theme).
