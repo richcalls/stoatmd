@@ -7,6 +7,7 @@ import { syncRuntime } from "../sync/runtime";
 import { SettingsSheet, type SettingsTab } from "./SettingsSheet";
 import { applySettingsState, type SettingsState } from "./settingsState";
 import { unwrapSettingsSync, type SettingsSyncResult } from "./settingsSync";
+import { restoreReaderWidth } from "./readerWidth";
 
 /** Secondary window root. The host channel forwards work to the main engine. */
 export function SettingsApp() {
@@ -20,7 +21,9 @@ export function SettingsApp() {
   const receive = (next: SettingsState) => {
     state.set(next);
     applySettingsState(next);
+    void restoreReaderWidth(next.vaultRoot);
   };
+  void restoreReaderWidth(initial.vaultRoot);
   host.on<SettingsState>("state", receive);
   host.on<SettingsState>("open", (next) => {
     if (!next.storage.busy) tab.set(next.tab);

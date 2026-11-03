@@ -7,7 +7,7 @@ import { GoogleDriveProvider } from "./google";
 import { activeStorage, readActiveStorage, writeActiveStorage, storageBusy, type Cleanup } from "../storage/state";
 import { sha256Hex, sha256Bytes } from "./hash";
 import { uniqueConflictCopyPath } from "./naming";
-import { dirName, isMarkdownName, normalizeSyncPath } from "./paths";
+import { dirName, isMarkdownName, libraryPath, normalizeSyncPath } from "./paths";
 import {
   RemoteConflictError,
   SyncError,
@@ -596,9 +596,11 @@ export class SyncRuntime {
       const local = buildLocalFiles(vault, this.base, true);
       const inventory = await remote.inventory(root);
       const remoteFiles = inventory.files;
-      for (const dir of inventory.directories) vault.ensureDir(dir);
+      for (const dir of inventory.directories) {
+        if (libraryPath(dir)) vault.ensureDir(dir);
+      }
       for (const entry of vault.inventory()) {
-        if (entry.isDir) await remote.ensureDirectory(root, entry.path);
+        if (entry.isDir && libraryPath(entry.path)) await remote.ensureDirectory(root, entry.path);
       }
 
       const remoteHashes: Record<string, string> = {};
@@ -837,7 +839,7 @@ export function buildLocalFiles(vault: Vault, base: BaseState, attachments = fal
   const entries = attachments ? vault.inventory() : vault.listRecursive("");
   const out: LocalFile[] = [];
   for (const entry of entries) {
-    if (entry.isDir === true || (!attachments && !isMarkdownName(entry.name))) continue;
+    if (entry.isDir === true || !libraryPath(entry.path) || (!attachments && !isMarkdownName(entry.name))) continue;
     const path = normalizeSyncPath(entry.path);
     const anchor = base.entries[path] ?? null;
     const unchanged =

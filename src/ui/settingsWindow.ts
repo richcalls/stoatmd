@@ -11,6 +11,7 @@ import { settingsState } from "./settingsState";
 import { settingsSyncResult } from "./settingsSync";
 import { restoreTheme } from "./theme";
 import { restoreTypography } from "./typography";
+import { persistReaderWidth } from "./readerWidth";
 import type { SettingsTab } from "./SettingsSheet";
 
 const SYNC_METHODS = ["beginConnect", "cancelConnect", "listFolders", "createFolder", "reconnect"] as const;
@@ -38,6 +39,7 @@ export function createSettingsRequestHandler(options: Options, tab: Accessor<Set
       else if (request.key === "prefs.locale") await restoreLocale();
       else if (request.key === "prefs.appLogo") await restoreAppLogo();
       else if (request.key === "prefs.renderMode") await restoreRenderMode();
+      else if (request.key === "prefs.readerWidth") await persistReaderWidth(options.vaultRoot(), request.value);
       else await restoreTypography();
       return null;
     }

@@ -13,6 +13,7 @@ import { Icon, type IconName } from "../ui/Icon";
 import { articleModel, noteFormat } from "../ui/articleModel";
 import { APP_LOGOS, appLogo, appLogoBusy, appLogoError, logoAsset, selectMobileAppLogo } from "../ui/appLogo";
 import { previewTextStyles } from "../ui/EditorWorkspace";
+import { applyReaderWidth, readerWidth, READER_CONFIG_PATH, restoreReaderWidth, type ReaderWidth } from "../ui/readerWidth";
 import { applyRenderMode, displayBlock, renderMode } from "../ui/documentAppearance";
 import { findShortcuts } from "../ui/findShortcuts";
 import { locale, localePref, setLocalePref, t, type LocalePref } from "../ui/i18n";
@@ -249,6 +250,7 @@ export function MobileShell(props: { library?: MobileLibrary; nativeChrome?: boo
   let alive = true;
   const activate = async (root: string) => {
     const vault = Vault.open(root);
+    await restoreReaderWidth(vault.root);
     const model = mobileLibrary(vault, {
       saved: path => scheduleCloudPush("saved", path),
       removed: path => scheduleCloudPush("removed", path),
@@ -534,7 +536,8 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   const syncFails = signal(0);
   const sync = async (manual = false) => {
     if (!props.connected || !await lib.flush()) return;
-    await syncRuntime.syncNow();
+    const result = await syncRuntime.syncNow();
+    if (result?.changedLocal.includes(READER_CONFIG_PATH)) await restoreReaderWidth(lib.vault.root ?? null);
     const failure = syncRuntime.error();
     syncFails.set(!failure || failure.kind !== "network" ? 0 : manual ? SYNC_ERROR_AFTER : syncFails() + 1);
     // 附件随同同步下载；bump 让阅读页重新检查图片文件是否已就位。
@@ -647,7 +650,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   /** 阅读面板；`dock` 为 false 时（分屏预览）不挂底部工具条。 */
   const previewPane = (compact: boolean, dock: boolean) => <View style={{ flex: 1 }}>
     <List ref={node => { reader = node; }} testID="mobile-preview" each={model().blocks} estimatedItemSize={model().estimatedItemSize}
-      contentStyle={{ paddingHorizontal: compact ? 16 : 24, paddingTop: ios ? 10 : 70 + bottom().top, paddingBottom: dock ? 104 + bottom().bottom : 24 + bottom().bottom }} style={{ flex: 1, backgroundColor: mobileColors().preview }}>
+      contentStyle={{ paddingHorizontal: readerWidth() === "full" ? (compact ? 12 : 16) : (compact ? 16 : 24), paddingTop: ios ? 10 : 70 + bottom().top, paddingBottom: dock ? 104 + bottom().bottom : 24 + bottom().bottom }} style={{ flex: 1, backgroundColor: mobileColors().preview }}>
       {(block, index) => {
         const stripped = stripImages(block());
         const root = lib.vault.root;
@@ -1405,8 +1408,23 @@ function TypeSettings() {
     { id: "line", title: "settings.font.lineHeight", value: fontLineHeight, set: applyFontLineHeight, min: LINE_HEIGHT_MIN, max: LINE_HEIGHT_MAX, step: LINE_HEIGHT_STEP, show: (n: number) => n.toFixed(2) },
   ];
   return <View>
+    <SectionTitle top={2}>{t("settings.readerWidth.title")}</SectionTitle>
+    <SettingsGroup>
+      {(["comfortable", "full"] as ReaderWidth[]).map((mode, index) => <View>
+        <Button testID={`mobile-reader-width-${mode}`} accessibilityLabel={t(`settings.readerWidth.${mode}`)}
+          onPress={() => { void applyReaderWidth(mode); }}
+          style={{ minHeight: 52, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: c.list }}>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ fontSize: 15, fontWeight: 500, color: c.ink }}>{t(`settings.readerWidth.${mode}`)}</Text>
+            <Text style={{ fontSize: 12, color: c.ink3 }}>{t(`settings.readerWidth.${mode}.desc`)}</Text>
+          </View>
+          {readerWidth() === mode ? <Icon name="check" color={c.accent} size={18} /> : null}
+        </Button>
+        {index === 1 ? null : <RowDivider />}
+      </View>)}
+    </SettingsGroup>
     {rows.map((item, index) => <View>
-      <SectionTitle top={index === 0 ? 2 : 24}>{t(item.title)}</SectionTitle>
+      <SectionTitle top={24}>{t(item.title)}</SectionTitle>
       <SettingsGroup>
         <View style={{ height: 48, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", backgroundColor: c.list }}>
           <Button testID={`${item.title}-decrease`} accessibilityLabel={t("settings.font.decrease")} disabled={item.value() <= item.min + 0.001} onPress={() => item.set(item.value() - item.step)}

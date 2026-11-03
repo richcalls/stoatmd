@@ -5,6 +5,7 @@ import { appLogo, restoreAppLogo } from "./appLogo";
 import { SettingsSheet, type SettingsTab } from "./SettingsSheet";
 import { loadSystemFonts, restoreTypography } from "./typography";
 import { restoreRenderMode } from "./documentAppearance";
+import { restoreReaderWidth } from "./readerWidth";
 
 /** 设置关闭路径的最小挂载入口。 */
 function Harness() {
@@ -44,6 +45,7 @@ loadSystemFonts();
 void Promise.all([
   restoreTypography(),
   restoreRenderMode(),
+  restoreReaderWidth(),
   restoreAppLogo(),
 ]).then(async () => {
   testConfig.purchaseRequired = await Storage.getItem("test.locked") === "true";

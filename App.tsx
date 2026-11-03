@@ -7,6 +7,7 @@ import { SettingsApp } from "./src/ui/SettingsApp";
 import { restoreTheme } from "./src/ui/theme";
 import { restoreRenderMode } from "./src/ui/documentAppearance";
 import { restoreTypography, loadSystemFonts } from "./src/ui/typography";
+import { restoreReaderWidth } from "./src/ui/readerWidth";
 
 loadSystemFonts();
 
@@ -21,6 +22,7 @@ if (host.params.settingsWindow === true) {
         restoreTheme(),
         restoreRenderMode(),
         restoreTypography(),
+        restoreReaderWidth(),
       ]);
       await restoreAppLogo();
     } catch {
