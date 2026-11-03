@@ -53,6 +53,13 @@ impl StoatMeta {
     pub fn phase() -> String {
         "mac-phase-3-polish".to_owned()
     }
+
+    /// 当前安装包的版本；发布构建通过 `STOATMD_APP_VERSION` 注入 tag 版本。
+    pub fn version() -> String {
+        option_env!("STOATMD_APP_VERSION")
+            .unwrap_or(env!("CARGO_PKG_VERSION"))
+            .to_owned()
+    }
 }
 
 /// 系统可用字体族（macOS 由 Core Text 枚举；其他平台为空）。

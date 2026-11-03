@@ -101,6 +101,8 @@ def main():
                          + " (set them in the environment or the StoatMD sync.json)")
     # 桌面版云盘同步免费，不再生成付费墙所需的运行时开关。
     env.setdefault("STOATMD_PURCHASE_REQUIRED", "false")
+    # 供应用内更新检查使用；CI 的 tag 版本可能不同于 Cargo.toml。
+    env["STOATMD_APP_VERSION"] = args.version or config["version"]
 
     # 不带 --icon 时 nsh 不会生成 .icns，Finder / DMG 里就是空白默认图标；
     # 运行时 appLogo 只改 Dock 图标，改不了文件图标。

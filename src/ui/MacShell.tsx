@@ -1,8 +1,8 @@
 import { uiTextSize, uiLineHeight } from "./typography";
-import { Clipboard, Text, View, cleanup, effect, keymap, platform, signal } from "nsh";
+import { Clipboard, Text, View, cleanup, effect, keymap, openUrl, platform, signal } from "nsh";
 import { AlertDialog, Button, Dialog, Input, ResizablePanel, ResizablePanelGroup } from "nsh/base";
 import { Menu, Window } from "nsh/desktop";
-import { Vault, VaultDialog, type VaultEntryDto } from "stoatmd/native";
+import { StoatMeta, Vault, VaultDialog, type VaultEntryDto } from "stoatmd/native";
 import { activeStorage, readActiveStorage, storageBusy } from "../storage/state";
 import { syncRuntime } from "../sync/runtime";
 import { remoteNotePath } from "../sync/paths";
@@ -19,6 +19,7 @@ import { loadSavedRoot, saveRoot } from "./prefs";
 import { scrollEditorToLine, scrollPreviewToIndex } from "./scrollSync";
 import type { SettingsTab } from "./SettingsSheet";
 import { createSettingsWindow } from "./settingsWindow";
+import { checkLatestVersion } from "./macosUpdates";
 import { Sidebar } from "./Sidebar";
 import { colors, statusColor } from "./theme";
 import { chromeColors, controlFocusStyle, controlHoverStyle, controlPressStyle } from "./chrome";
@@ -722,6 +723,29 @@ export function MacShell() {
         label: "StoatMD",
         submenu: [
           { role: "about" },
+          { type: "separator" },
+          {
+            label: t("menu.checkUpdates"),
+            onSelect: () => {
+              void (async () => {
+                status.set(t("update.checking"));
+                try {
+                  const result = await checkLatestVersion(await StoatMeta.version());
+                  if (result === "current") {
+                    status.set(t("update.current"));
+                    return;
+                  }
+                  status.set(t("update.available", { version: result }));
+                  const opened = await openUrl(
+                    "https://github.com/richcalls/stoatmd-community/releases/latest/download/StoatMD-macos.dmg",
+                  );
+                  if (!opened) status.set(t("update.openFailed"));
+                } catch {
+                  status.set(t("update.failed"));
+                }
+              })();
+            },
+          },
           { type: "separator" },
           settingsItem,
           { type: "separator" },
