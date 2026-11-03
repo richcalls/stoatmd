@@ -10,6 +10,8 @@ test("主题色：每套调色板提供完整且有效的 UI token", () => {
   expect(THEMES.length).toBe(20);
   expect(THEMES.filter((theme) => theme.mode === "light").length).toBe(10);
   expect(THEMES.filter((theme) => theme.mode === "dark").length).toBe(10);
+  expect(THEMES.slice(0, 10).every((theme) => theme.mode === "light")).toBe(true);
+  expect(THEMES.slice(10).every((theme) => theme.mode === "dark")).toBe(true);
   for (const preset of THEMES) {
     for (const key of keys) expect(isHex(preset.palette[key])).toBe(true);
     for (const swatch of preset.swatches) expect(isHex(swatch)).toBe(true);
