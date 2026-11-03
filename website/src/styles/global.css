@@ -361,17 +361,21 @@ a[data-download-platform="ios"]:hover {
 .hero-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 48px;
+  gap: 56px;
   align-items: start;
 }
 
 .hero-copy {
-  max-width: 800px;
+  max-width: 880px;
+  margin-inline: auto;
+  text-align: center;
 }
 
 .hero-title {
   margin: 0;
-  font-size: clamp(2.5rem, 4.4vw, 3.6rem);
+  max-width: 22ch;
+  margin-inline: auto;
+  font-size: clamp(2.6rem, 5vw, 4rem);
   font-weight: 600;
   line-height: 1.05;
   letter-spacing: -0.035em;
@@ -384,8 +388,8 @@ a[data-download-platform="ios"]:hover {
 }
 
 .hero-lead {
-  margin: 26px 0 0;
-  max-width: 44ch;
+  margin: 22px auto 0;
+  max-width: 58ch;
   color: var(--muted);
   font-size: 1.0625rem;
   line-height: 1.65;
@@ -394,6 +398,7 @@ a[data-download-platform="ios"]:hover {
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
   gap: 16px;
   margin-top: 32px;
@@ -405,71 +410,11 @@ a[data-download-platform="ios"]:hover {
 }
 
 .hero-note {
-  margin: 20px 0 0;
-  max-width: 46ch;
+  margin: 16px auto 0;
+  max-width: 60ch;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.55;
-}
-
-.notes {
-  margin-top: 48px;
-  padding-top: 24px;
-  border-top: 1px solid var(--line);
-}
-
-.notes-label {
-  margin: 0 0 8px;
-  color: var(--muted);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.note-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.note-button {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: 12px;
-  align-items: baseline;
-  width: 100%;
-  padding: 12px 0;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  background: none;
-  color: var(--ink);
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: color 0.15s ease;
-}
-.note-button:last-child {
-  border-bottom: 0;
-}
-.note-button:disabled {
-  cursor: default;
-}
-.note-button:hover .note-title,
-.note-button[aria-pressed="true"] .note-title {
-  color: var(--accent);
-}
-
-.note-date {
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-
-.note-title {
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.45;
-  transition: color 0.15s ease;
 }
 
 /* Full-window product screenshot */
@@ -927,9 +872,6 @@ a[data-download-platform="ios"]:hover {
   .hero-actions {
     margin-top: 28px;
   }
-  .notes {
-    margin-top: 40px;
-  }
   .section {
     padding: 64px 0;
   }
@@ -1020,10 +962,6 @@ a[data-download-platform="ios"]:hover {
   }
   .hero-actions .btn {
     width: 100%;
-  }
-  .note-button {
-    grid-template-columns: 84px minmax(0, 1fr);
-    gap: 10px;
   }
   .steps {
     grid-template-columns: minmax(0, 1fr);
