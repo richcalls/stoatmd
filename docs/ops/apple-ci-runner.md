@@ -19,7 +19,7 @@ LaunchAgent 常驻。
 | 名称 | `apple-ci` |
 | Runner group | `Apple CI` |
 | 标签 | `self-hosted`, `macOS`, `ARM64`, `apple-ci`, `xcode-27` |
-| 工作目录 | `~/actions-runner-stoatmd/_work` |
+| 工作目录 | `~/actions-runner/_work` |
 | 可用范围 | 只允许 private 仓库；不加入公开仓库 |
 
 workflow 里这样选：
@@ -44,16 +44,20 @@ gh auth refresh -h github.com -s admin:org
 ```sh
 gh api -X POST orgs/richcalls/actions/runner-groups \
   -f name='Apple CI' \
-  -f visibility='private' \
+  -f visibility='all' \
   -F allows_public_repositories=false
 ```
+
+`visibility=all` + `allows_public_repositories=false` 的实际效果是：组织内
+private 仓库可用，公开仓库被排除。如果只想给固定几个仓库用，改成
+`-f visibility='selected'` 并传 `selected_repository_ids`。
 
 然后在本机安装并注册：
 
 ```sh
 RUNNER_VERSION=2.338.2
-mkdir -p ~/actions-runner-stoatmd
-cd ~/actions-runner-stoatmd
+mkdir -p ~/actions-runner
+cd ~/actions-runner
 curl -fLO "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-osx-arm64-${RUNNER_VERSION}.tar.gz"
 tar xzf "actions-runner-osx-arm64-${RUNNER_VERSION}.tar.gz"
 TOKEN=$(gh api -X POST orgs/richcalls/actions/runners/registration-token --jq .token)
@@ -77,7 +81,7 @@ unset TOKEN
 先停服务并移除旧注册，再用组织 URL 重新注册：
 
 ```sh
-cd ~/actions-runner-stoatmd
+cd ~/actions-runner
 ./svc.sh stop
 ./svc.sh uninstall
 REMOVE_TOKEN=$(gh api -X POST repos/richcalls/stoatmd/actions/runners/remove-token --jq .token)
@@ -136,8 +140,8 @@ iOS 还需要对应项目的 provisioning profile；可以手动装到
 
 ## 常见问题
 
-- runner offline：`cd ~/actions-runner-stoatmd && ./svc.sh status`，
-  看 `~/actions-runner-stoatmd/_diag/Runner_*.log`；确认用户已登录、Mac 未睡眠。
+- runner offline：`cd ~/actions-runner && ./svc.sh status`，
+  看 `~/actions-runner/_diag/Runner_*.log`；确认用户已登录、Mac 未睡眠。
 - `codesign` 挂住/失败：先做钥匙串授权；确认
   `security find-identity -v -p codesigning` 能看到对应证书。
 - `asc` 认证失败：`asc auth status`；确认 runner 用户 HOME 下有
