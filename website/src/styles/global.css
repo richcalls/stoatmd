@@ -360,9 +360,13 @@ a[data-download-platform="ios"]:hover {
 
 .hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-  gap: 64px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 48px;
   align-items: start;
+}
+
+.hero-copy {
+  max-width: 800px;
 }
 
 .hero-title {
@@ -852,7 +856,7 @@ a[data-download-platform="ios"]:hover {
 
 @media (max-width: 1000px) {
   .hero-grid {
-    gap: 44px;
+    gap: 40px;
   }
   .hero-title {
     font-size: clamp(2.3rem, 5vw, 3.3rem);
@@ -867,7 +871,6 @@ a[data-download-platform="ios"]:hover {
     padding: 64px 0 72px;
   }
   .hero-grid {
-    grid-template-columns: minmax(0, 1fr);
     gap: 48px;
   }
   .hero-title {
