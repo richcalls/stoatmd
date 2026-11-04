@@ -10,7 +10,7 @@
 - Agents: local agents write directly into the folder; remote agents write through the same Drive/Dropbox folder. No MCP bridge or export step is required.
 - Editing model: plain Markdown source with source / split / read views. Not WYSIWYG.
 - Conflict handling: keep local, keep cloud, or keep both (`original (cloud conflict yyyy-mm-dd).md`).
-- Release status: macOS 14+ on Apple Silicon is downloadable via GitHub Releases (`releases/latest/download/StoatMD-macos.dmg`). Windows and Linux builds are planned but not published yet. iOS not listed yet.
+- Release status: macOS 14+ on Apple Silicon is downloadable via this repository's GitHub Releases (`releases/latest/download/StoatMD-macos.dmg`). Windows and Linux builds are planned but not published yet. iOS not listed yet.
 - Not built: MCP / AgentBridge, WYSIWYG, real-time collaboration, accounts, own sync server.
 - Platforms listed: macOS, iPhone. Windows/Linux builds are planned but not published yet.
 

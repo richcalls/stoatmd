@@ -29,8 +29,8 @@ env:
 jobs:
   website:
     name: 官网构建与发布
-    # 组织账单异常期间改用 WSL2 自托管 runner（forecho）；仓库为私有，自托管安全
-    runs-on: [self-hosted, linux, wsl2]
+    # Public pull requests must run on GitHub-hosted machines.
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       deployments: write
@@ -41,13 +41,12 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 确认 Node（runner 预装 v22，跳过 setup-node）
-        run: |
-          set -euo pipefail
-          command -v node
-          node -v
-          command -v npm
-          npm -v
+      - name: 设置 Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: website/package-lock.json
 
       - name: 安装依赖
         run: npm ci

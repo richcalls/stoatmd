@@ -14,6 +14,7 @@ permissions:
 jobs:
   smoke:
     name: Check runner
+    if: ${{ github.repository == 'richcalls/stoatmd' && github.event.repository.private }}
     runs-on: [self-hosted, macOS, ARM64, apple-ci]
     timeout-minutes: 10
     env:

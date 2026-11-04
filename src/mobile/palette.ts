@@ -56,7 +56,7 @@ function mobileThemeOf(id: ThemeId): MobileTheme {
   };
 }
 
-/** 与 Mac 共用同一份 Rex 主题与色板，iOS 不另做映射。 */
+/** 与 Mac 共用同一份主题与色板，iOS 不另做映射。 */
 export const MOBILE_THEMES: readonly MobileTheme[] = THEMES.map(theme => mobileThemeOf(theme.id));
 
 const BY_ID = new Map(MOBILE_THEMES.map(theme => [theme.id, theme]));
