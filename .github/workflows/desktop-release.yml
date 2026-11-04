@@ -4,6 +4,17 @@
 name: Desktop · macOS, Windows & Linux
 
 on:
+  pull_request:
+    paths:
+      - "App.tsx"
+      - "assets/**"
+      - "crates/**"
+      - "scripts/desktop_release.py"
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "nsh.json"
+      - ".github/workflows/desktop-release.yml"
   push:
     tags: ["v*"]
   workflow_dispatch:
@@ -49,7 +60,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            TAG="v0.0.0"
+            BUILD_OVERRIDE="0"
+          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             TAG="$DISPATCH_TAG"
             BUILD_OVERRIDE="$DISPATCH_BUILD"
           else
@@ -99,9 +113,9 @@ jobs:
       - name: Package desktop app
         shell: bash
         env:
-          STOATMD_GOOGLE_CLIENT_ID: ${{ secrets.STOATMD_GOOGLE_CLIENT_ID }}
-          STOATMD_GOOGLE_CLIENT_SECRET: ${{ secrets.STOATMD_GOOGLE_CLIENT_SECRET }}
-          STOATMD_DROPBOX_APP_KEY: ${{ secrets.STOATMD_DROPBOX_APP_KEY }}
+          STOATMD_GOOGLE_CLIENT_ID: ${{ secrets.STOATMD_GOOGLE_CLIENT_ID || 'stoatmd-ci-placeholder.apps.googleusercontent.com' }}
+          STOATMD_GOOGLE_CLIENT_SECRET: ${{ secrets.STOATMD_GOOGLE_CLIENT_SECRET || 'stoatmd-ci-placeholder' }}
+          STOATMD_DROPBOX_APP_KEY: ${{ secrets.STOATMD_DROPBOX_APP_KEY || 'stoatmd-ci-placeholder' }}
           VERSION: ${{ steps.meta.outputs.version }}
           BUILD: ${{ steps.meta.outputs.build }}
         run: |
@@ -116,6 +130,7 @@ jobs:
           fi
 
       - name: Upload build artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: stoatmd-${{ matrix.target }}
