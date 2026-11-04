@@ -82,11 +82,10 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -uo pipefail
-          # runner 已预装全局 wrangler 4.x；无 sudo、不拉 npx 包
-          command -v wrangler
-          wrangler -v
+          # GitHub-hosted runners are ephemeral; invoke a pinned major directly.
+          npx --yes wrangler@4 --version
           echo "检查 / 创建 Pages 项目: ${PAGES_PROJECT}"
-          if wrangler pages project create "${PAGES_PROJECT}" --production-branch=main; then
+          if npx --yes wrangler@4 pages project create "${PAGES_PROJECT}" --production-branch=main; then
             echo "已创建项目 ${PAGES_PROJECT}"
           else
             echo "项目可能已存在（或 create 返回非零），继续尝试部署"
@@ -98,7 +97,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # 固定 v4，与 runner 预装一致；不依赖 sudo
+          # 固定 Wrangler v4，和 Pages 项目初始化命令保持一致。
           wranglerVersion: "4"
           # 同 job 内刚构建的 dist，无需 artifact 中转
           command: pages deploy website/dist --project-name=${{ env.PAGES_PROJECT }} --branch=main --commit-dirty=true
