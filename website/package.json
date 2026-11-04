@@ -2,6 +2,7 @@
   "name": "stoatmd-website",
   "version": "1.0.0",
   "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "description": "StoatMD 官网（stoatmd.com）静态站点",
   "scripts": {

@@ -1,4 +1,4 @@
-const RELEASE_API = "https://api.github.com/repos/richcalls/stoatmd-community/releases/latest";
+const RELEASE_API = "https://api.github.com/repos/richcalls/stoatmd/releases/latest";
 
 /** Compares stable or prerelease SemVer versions, ignoring an optional `v` prefix. */
 export function compareAppVersions(left: string, right: string): number {

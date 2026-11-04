@@ -30,6 +30,19 @@ def validate_oauth(env):
         raise ValueError("Invalid Google iOS client ID")
 
 
+def validate_profile(profile, bundle_id, personal=False):
+    """Check that the profile targets this app and matches its signing purpose."""
+    entitlements = profile["Entitlements"]
+    expected = profile["TeamIdentifier"][0] + "." + bundle_id
+    if entitlements.get("application-identifier") != expected:
+        raise ValueError("Provisioning profile does not match the app bundle ID")
+    if personal:
+        if not entitlements.get("get-task-allow") or not profile.get("ProvisionedDevices"):
+            raise ValueError("Personal installation requires an Apple Development profile with registered devices")
+    elif entitlements.get("get-task-allow") or profile.get("ProvisionedDevices") or profile.get("ProvisionsAllDevices"):
+        raise ValueError("An App Store distribution profile is required")
+
+
 def run(*args, **kwargs):
     return subprocess.run([str(arg) for arg in args], check=True, **kwargs)
 
@@ -97,22 +110,24 @@ def main():
     parser.add_argument("--profile", required=True, type=Path)
     parser.add_argument("--out", type=Path, default=ROOT / ".nsh/testflight")
     parser.add_argument("--build", type=int, help="Override nsh.json build number")
+    parser.add_argument("--id", help="App bundle ID (defaults to nsh.json; useful with a personal development profile)")
+    parser.add_argument("--personal", action="store_true",
+                        help="Sign for personal devices using an Apple Development identity and profile")
     args = parser.parse_args()
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     profile_path = args.profile.resolve()
     profile = plistlib.loads(run("security", "cms", "-D", "-i", profile_path, capture_output=True).stdout)
     config = json.loads((ROOT / "nsh.json").read_text())
-    entitlements = profile["Entitlements"]
-    if entitlements.get("application-identifier") != profile["TeamIdentifier"][0] + "." + config["id"]:
-        raise ValueError("Provisioning profile does not match the app bundle ID")
-    if entitlements.get("get-task-allow") or profile.get("ProvisionedDevices") or profile.get("ProvisionsAllDevices"):
-        raise ValueError("An App Store distribution profile is required")
+    bundle_id = args.id or config["id"]
+    validate_profile(profile, bundle_id, personal=args.personal)
     env = build_environment()
     validate_oauth(env)
     # Rust and C build scripts must target the same iOS version.
     env.setdefault("IPHONEOS_DEPLOYMENT_TARGET", "16.0")
     command = ["nsh", "package", "--target", "ios", "--out", str(out), "--icon", str(ROOT / "assets/ios/AppIcon.png")]
+    if args.id:
+        command.extend(["--id", bundle_id])
     if args.build is not None:
         command.extend(["--build", str(args.build)])
     run(*command, env=env, cwd=ROOT)

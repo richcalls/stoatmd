@@ -15,17 +15,7 @@ python3 scripts/macos_release.py \
 - `StoatMD-<版本>-<构建号>.zip`（公证用的原始压缩包）
 - `SHA256SUMS.txt`
 
-macOS 应用菜单的 **Check for Updates… / 检查更新…** 会查询公开仓库的最新正式版；发现新版本时，在浏览器打开固定名称的 `StoatMD-macos.dmg` 下载。退出 StoatMD 后，将 DMG 中的新 App 拖到 Applications 替换现有版本。发布 workflow 会持续上传这个固定名称，应用版本号取本次发布 tag。
-
-发到公开仓库：
-
-```sh
-gh release create v<版本> -R richcalls/stoatmd-community \
-  --title "StoatMD <版本>（macOS）" --notes-file <说明.md> \
-  .nsh/release-macos/StoatMD-<版本>-<构建号>.dmg \
-  .nsh/release-macos/StoatMD-<版本>-<构建号>.zip \
-  .nsh/release-macos/SHA256SUMS.txt
-```
+macOS 应用菜单的 **Check for Updates… / 检查更新…** 会查询公开仓库的最新正式版；发现新版本时，在浏览器打开固定名称的 `StoatMD-macos.dmg` 下载。退出 StoatMD 后，将 DMG 中的新 App 拖到 Applications 替换现有版本。发布时由维护者上传这个固定名称，应用版本号取本次发布 tag。
 
 ### 凭据策略
 
@@ -51,38 +41,27 @@ gh release create v<版本> -R richcalls/stoatmd-community \
 - 授权链路保持系统浏览器 + 随机 loopback 端口 + S256 PKCE + `state`；token 只进系统钥匙串。
 - 确认待发布的 DMG 由当前提交构建：发布前重新跑脚本，不要复用旧产物。
 
-### CI 自动发布（Apple CI Runner）
+### macOS 发布
 
-macOS 发布跑在组织级 Apple CI runner（`apple-ci`，iOS / macOS 共用）上。
-Runner 的注册、runner group、钥匙串与安全边界见
-[Apple CI Runner](../ops/apple-ci-runner.md)。
-
-`.github/workflows/macos-release.yml`：
-
-- push `v*` tag：自动构建、签名、公证、staple，并发布到
-  `richcalls/stoatmd-community`。
-- `workflow_dispatch`：指定已存在的 tag；`publish=false` 只构建不发布。
-- build number 默认取 `git rev-list --count HEAD`，可用手动输入覆盖。
-- 上传资产：版本化 DMG、版本化 ZIP、`SHA256SUMS.txt`，以及官网固定直链用的
-  副本 `StoatMD-macos.dmg`。
-
-发布前先手动跑一次 `.github/workflows/macos-runner-smoke.yml` 确认 runner
-环境。
-
-需要仓库 Secret `STOATMD_COMMUNITY_TOKEN`：fine-grained PAT，对
-`richcalls/stoatmd-community` 有 `Contents: Read and write`。设置方式：
+在可信的 Apple Silicon Mac 上完成 Developer ID 签名与公证，再将产物发布到本仓库：
 
 ```sh
-read -rsp 'PAT: ' TOKEN
-printf '%s' "$TOKEN" | gh secret set STOATMD_COMMUNITY_TOKEN -R richcalls/stoatmd
-unset TOKEN
+TAG=v<版本>
+git tag "$TAG"
+git push origin "$TAG"
+cp .nsh/release-macos/StoatMD-<版本>-<构建号>.dmg \
+  .nsh/release-macos/StoatMD-macos.dmg
+gh release create "$TAG" \
+  --title "StoatMD <版本>（macOS）" --notes-file <说明.md> \
+  .nsh/release-macos/StoatMD-<版本>-<构建号>.dmg \
+  .nsh/release-macos/StoatMD-<版本>-<构建号>.zip \
+  .nsh/release-macos/SHA256SUMS.txt \
+  .nsh/release-macos/StoatMD-macos.dmg
 ```
 
-轮换影响：更新 Secret 后下一次发版生效；旧 token 立即在 GitHub 设置里吊销。
-只重新上传资产不需要重新构建。
-
-安全：发布 workflow 只监听 tag push 和手动触发，**不要加 `pull_request`**；
-限制谁能创建 `v*` tag。
+官网与应用内更新检查从本仓库读取 Releases。官网固定直链使用资产名
+`StoatMD-macos.dmg`；上传时将版本化 DMG 另存为该名称。签名凭据只保留在维护者的
+受控 Mac 上，不配置到公开仓库的 Actions runner。
 
 ## Windows / Linux（公开下载）
 

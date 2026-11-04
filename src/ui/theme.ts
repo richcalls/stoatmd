@@ -138,7 +138,7 @@ const definition = (
 });
 
 export const THEMES: readonly ThemePreset[] = [
-  // Rex's Merino Light source and semantic colors.
+  // Merino Light palette, curated from publicly available online references.
   definition("merino-light", "Merino Light", "light", "#FFFFFF", "#1F2328", "#0969DA", "#116329", "#CF222E", {
     paper: "#F6F7F9",
     sidebar: "#ECEEF2",
@@ -151,7 +151,7 @@ export const THEMES: readonly ThemePreset[] = [
     codeBg: "#F1F3F5",
     searchBg: "#E7E9ED",
   }),
-  // Additional Rex themes selected from the local Rex Beta theme catalog.
+  // Additional light palettes curated from publicly available online references.
   definition("alpine-milk", "Alpine Milk", "light", "#FAFAFA", "#333940", "#4A90D9", "#4A9256", "#C94F46"),
   definition("buttercream-diner", "Buttercream Diner", "light", "#FBF3DD", "#4D3F33", "#D1603D", "#5C8A3C", "#C8432F"),
   definition("coastal-linen", "Coastal Linen", "light", "#FAF6EE", "#3D4652", "#2F8FA6", "#57904D", "#C25547"),
@@ -161,7 +161,7 @@ export const THEMES: readonly ThemePreset[] = [
   definition("newsprint-fog", "Newsprint Fog", "light", "#F2F2F0", "#333331", "#B3402E", "#5D7F52", "#B3402E"),
   definition("orchard-breeze", "Orchard Breeze", "light", "#F4F9EF", "#3A4A35", "#5DA24F", "#4F9440", "#C65043"),
   definition("porcelain-morning", "Porcelain Morning", "light", "#F7F9FA", "#2E3A42", "#2277CC", "#3D8A4E", "#C74E42"),
-  // Rex's monochrome Silver Point Dark source and semantic colors.
+  // Silver Point Dark palette, curated from publicly available online references.
   definition("silver-point-dark", "Silver Point Dark", "dark", "#131313", "#B4B4B4", "#767676", "#707070", "#B4B4B4", {
     paper: "#131313",
     sidebar: "#1A1A1A",

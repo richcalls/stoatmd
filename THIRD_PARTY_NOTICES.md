@@ -55,12 +55,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-## Rex theme tokens
+## Community theme palettes
 
-The Rex color themes in `src/ui/theme.ts` are selected from the locally installed
-Rex Beta app's built-in theme catalog (`SuperUI_SuperDesignTokens.bundle`).
-StoatMD uses the color values only; it does not bundle Rex code, resources, or
-application assets.
+Several color palettes in `src/ui/theme.ts` are curated from theme palettes
+published online. StoatMD includes color values only; it does not bundle the
+source applications' code, resources, or assets. The separately listed
+iTerm2 Color Schemes themes retain their collection attribution and MIT notice.
 
 ## iTerm2 Color Schemes themes
 

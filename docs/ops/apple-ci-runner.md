@@ -144,8 +144,7 @@ iOS 还需要对应项目的 provisioning profile；可以手动装到
 
 ## 安全边界
 
-- Runner group 只对 private 仓库开放；**不要把 `richcalls/stoatmd-community`
-  这类公开仓库加进去**，公开仓库的 workflow 能直接在你的 Mac 上执行代码。
+- Runner group 只对 private 仓库开放；不要将公开源码仓库加入 runner group，公开仓库的 workflow 能直接在你的 Mac 上执行代码。
 - 自托管 runner 上的发布 workflow 不要监听 `pull_request`；只给 tag push
   和手动触发。能推 `v*` tag 的人就能触发签名和发布，用 tag protection /
   ruleset 限制。

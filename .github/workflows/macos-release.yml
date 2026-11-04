@@ -4,14 +4,11 @@
 # 容器内没有 Xcode / codesign / notarytool / hdiutil，无法产出 macOS 包。
 # runner 是组织级 Apple CI（iOS / macOS 共用），标签 apple-ci。
 #
-# 一次性准备（注册 runner、钥匙串、asc、社区仓 token）见
+# 一次性准备（注册 runner、钥匙串、asc）见
 # docs/ops/apple-ci-runner.md 与 docs/product/RELEASE.md。
 #
 # Secrets:
 #   STOATMD_GOOGLE_CLIENT_ID / STOATMD_GOOGLE_CLIENT_SECRET / STOATMD_DROPBOX_APP_KEY
-#   STOATMD_COMMUNITY_TOKEN  fine-grained PAT，对 richcalls/stoatmd-community
-#                            有 Contents: Read and write 权限。
-
 name: macOS · Release
 
 on:
@@ -26,12 +23,12 @@ on:
         description: "Build number（留空则用 git rev-list --count HEAD）"
         required: false
       publish:
-        description: "构建成功后发布到 richcalls/stoatmd-community"
+        description: "构建成功后发布到当前仓库的 GitHub Releases"
         type: boolean
         default: true
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: macos-release-${{ github.ref }}
@@ -40,6 +37,8 @@ concurrency:
 jobs:
   release:
     name: Build, sign, notarize, publish
+    # Never run privileged self-hosted signing jobs from the public source repo.
+    if: ${{ github.repository == 'richcalls/stoatmd' && github.event.repository.private }}
     runs-on: [self-hosted, macOS, ARM64, apple-ci]
     timeout-minutes: 90
     env:
@@ -158,7 +157,7 @@ jobs:
           mkdir -p "$STAGE"
           cp "$DMG" "$ZIP" "$OUT/SHA256SUMS.txt" "$STAGE/"
           # 官网固定直链依赖这个文件名：
-          # https://github.com/richcalls/stoatmd-community/releases/latest/download/StoatMD-macos.dmg
+          # https://github.com/richcalls/stoatmd/releases/latest/download/StoatMD-macos.dmg
           cp "$DMG" "$STAGE/StoatMD-macos.dmg"
           ls -lh "$STAGE"
           echo "stage=$STAGE" >> "$GITHUB_OUTPUT"
@@ -182,17 +181,13 @@ jobs:
         if: ${{ github.event_name == 'push' || inputs.publish }}
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.STOATMD_COMMUNITY_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.meta.outputs.tag }}
           VERSION: ${{ steps.meta.outputs.version }}
           STAGE: ${{ steps.assets.outputs.stage }}
         run: |
           set -euo pipefail
-          if [[ -z "${GH_TOKEN:-}" ]]; then
-            echo "::error::缺少 secret STOATMD_COMMUNITY_TOKEN（fine-grained PAT，Contents: Read/Write）"
-            exit 1
-          fi
-          REPO=richcalls/stoatmd-community
+          REPO="${GITHUB_REPOSITORY}"
           NOTES="$RUNNER_TEMP/release-notes.md"
           PREV="$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)"
           {
