@@ -63,12 +63,15 @@ gh release create "$TAG" \
 `StoatMD-macos.dmg`；上传时将版本化 DMG 另存为该名称。签名凭据只保留在维护者的
 受控 Mac 上，不配置到公开仓库的 Actions runner。
 
-## Windows / Linux（公开下载）
+## 桌面版 CI 构建（macOS / Windows / Linux）
 
-**必须在对应系统上打包。** nsh 0.3.0 不做桌面端的交叉编译：在 macOS 上
-`nsh package --target windows` 产出的 `StoatMD.exe` 实际是 macOS 的 Mach-O
-文件，Windows 上无法启动；Linux 同理。`scripts/desktop_release.py` 会拒绝在
-不匹配的主机上运行。
+`.github/workflows/desktop-release.yml` 在对应的 GitHub 托管系统上分别构建三种
+桌面客户端。推送 `v*` tag 后，CI 会自动把 macOS、Windows、Linux 包及
+`SHA256SUMS-desktop.txt` 附加到同一个 GitHub Release。手动运行 workflow 会构建并保存
+14 天的 Actions artifact，不发布 Release。
+
+每个平台都必须在原生系统上打包。nsh 0.3.0 不支持桌面交叉编译；脚本会拒绝在不匹配
+的主机运行。
 
 在 Windows 上：
 
@@ -88,7 +91,14 @@ python3 scripts/desktop_release.py --build <构建号>
 产物：`.nsh/release-desktop/StoatMD-<版本>-<构建号>-linux.tar.gz`，
 解压后运行 `StoatMD/StoatMD`，或安装其中的 `com.stoatmd.app.desktop`。
 
-两个平台都会生成 `SHA256SUMS.txt`，并把同一套 `sync.json` 凭据编进二进制。
+macOS 也会由 `macos-15` runner 生成
+`.nsh/release-desktop/StoatMD-<版本>-<构建号>-macos.zip`，内含 ad hoc 签名的
+`StoatMD.app`。该公开构建不含 Developer ID 签名或公证，首次打开时按 macOS 安全提示
+在「系统设置 → 隐私与安全性」批准应用。维护者仍可在可信 Mac 上运行上面的签名与公证
+流程，并将正式 DMG 一并上传到 Release。
+
+各平台 workflow artifact 内含对应安装包和 `SHA256SUMS.txt`；tag Release 另附
+`SHA256SUMS-desktop.txt`，并把同一套 `sync.json` OAuth 客户端配置编进桌面包。
 
 已知限制：
 
@@ -97,11 +107,11 @@ python3 scripts/desktop_release.py --build <构建号>
 - Windows 的 `.exe` 图标在该平台上打包时嵌入；Linux 包内带 PNG 图标。
 - 发布前必须在对应系统启动一次，确认能打开、授权云盘、保存一篇笔记。
 
-### 用 GitHub Actions 构建
+### 配置 GitHub Actions
 
-`.github/workflows/desktop-release.yml` 在 `windows-latest` 与 `ubuntu-24.04`
-上分别打包，手动触发（Actions → Desktop · Windows & Linux → Run workflow）。
-产物是 workflow artifact，不会自动上传到公开 Release。
+为让公开 Release 可直接连接 Google Drive / Dropbox，需要在仓库 Settings → Secrets and
+variables → Actions 配置下面三个 OAuth 客户端值。Google Desktop client secret 属于
+公开 native app 客户端的一部分，会编入安装包；不要把个人账号令牌或私钥放进这些值。
 
 需要先配置仓库 Secrets：
 
@@ -111,10 +121,9 @@ python3 scripts/desktop_release.py --build <构建号>
 | `STOATMD_GOOGLE_CLIENT_SECRET` | 同上，token 交换 | 是 | 同上 | 同上 |
 | `STOATMD_DROPBOX_APP_KEY` | 编进安装包，连接 Dropbox（PKCE，不需要 app secret） | 是 | Dropbox App Console → App key | 同上 |
 
-配置位置：GitHub 仓库 Settings → Secrets and variables → Actions。
-轮换影响：更新 Secret 后必须重新打包并替换 Release 资产；旧安装包仍带旧凭据，
-若凭据泄漏，应先在 Google / Dropbox 控制台轮换，再重发所有平台。
-`sync.json` 或同名环境变量仍优先于内置值，开发机行为不变。
+更新 Secret 后，下一次 tag build 会使用新配置；已发布安装包继续包含构建时的客户端值。
+如果某个平台 OAuth 客户端轮换，应先在 Google / Dropbox 控制台更新客户端，再重发所有
+平台。`sync.json` 或同名环境变量仍优先于内置值，开发机行为不变。
 
 ## iOS（App Store / TestFlight）
 

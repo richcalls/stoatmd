@@ -1,58 +1,108 @@
-# 在目标系统上打包 Windows / Linux 桌面版。
-#
-# nsh 0.3.0 的桌面 runner 不能交叉编译：Windows 包必须在 Windows 上打，
-# Linux 包必须在 Linux 上打。本工作流只产出构建产物（artifact），不会自动
-# 发布到公开 Release；下载并核验后再手动上传。
-#
-# 需要的仓库 Secrets（Settings → Secrets and variables → Actions）：
-#   STOATMD_GOOGLE_CLIENT_ID       Google OAuth Desktop client id
-#   STOATMD_GOOGLE_CLIENT_SECRET   Google OAuth Desktop client secret
-#   STOATMD_DROPBOX_APP_KEY        Dropbox app key
-# 它们的用途、生成方式与轮换影响见 docs/product/RELEASE.md。
-
-name: Desktop · Windows & Linux
+# Build desktop packages on their native GitHub-hosted runners.
+# Tagged builds are attached to the matching GitHub Release; manual runs only
+# produce downloadable workflow artifacts for verification.
+name: Desktop · macOS, Windows & Linux
 
 on:
+  pull_request:
+    paths:
+      - "App.tsx"
+      - "assets/**"
+      - "crates/**"
+      - "scripts/desktop_release.py"
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "nsh.json"
+      - ".github/workflows/desktop-release.yml"
+  push:
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
+      tag:
+        description: "Existing release tag to build (for example v1.2.0)"
+        required: true
+        type: string
       build:
-        description: "Build number (nsh.json 的 build)"
+        description: "Optional build number override"
         required: false
-        default: "2"
+        type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: desktop-release-${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+  cancel-in-progress: false
+
 jobs:
-  package:
-    name: Package ${{ matrix.target }}
+  build:
+    name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          - os: macos-15
+            target: macos
           - os: windows-latest
             target: windows
           - os: ubuntu-24.04
             target: linux
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Resolve tag and build metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            TAG="v0.0.0"
+            BUILD_OVERRIDE="0"
+          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            TAG="$DISPATCH_TAG"
+            BUILD_OVERRIDE="$DISPATCH_BUILD"
+          else
+            TAG="${GITHUB_REF_NAME}"
+            BUILD_OVERRIDE=""
+          fi
+          [[ "$TAG" == v* ]] || { echo "::error::Tag must start with v"; exit 1; }
+          VERSION="${TAG#v}"
+          BUILD="$BUILD_OVERRIDE"
+          if [[ -z "$BUILD" ]]; then
+            BUILD="$(git rev-list --count "$TAG")"
+          fi
+          [[ "$BUILD" =~ ^[0-9]+$ ]] || { echo "::error::Build number must be an integer"; exit 1; }
+          {
+            echo "tag=$TAG"
+            echo "version=$VERSION"
+            echo "build=$BUILD"
+          } >> "$GITHUB_OUTPUT"
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_TAG: ${{ inputs.tag }}
+          DISPATCH_BUILD: ${{ inputs.build }}
 
       - uses: dtolnay/rust-toolchain@stable
 
-      - name: Install GTK / WebKitGTK build dependencies
+      - name: Install Linux build dependencies
         if: matrix.target == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev clang
 
-      - name: Install nsh (Linux)
-        if: matrix.target == 'linux'
+      - name: Install nsh on macOS / Linux
+        if: matrix.target != 'windows'
+        shell: bash
         run: |
           curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.3.0 sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Install nsh (Windows)
+      - name: Install nsh on Windows
         if: matrix.target == 'windows'
         shell: pwsh
         run: |
@@ -60,20 +110,27 @@ jobs:
           irm https://nsh.dev/install.ps1 | iex
           "$env:LOCALAPPDATA\nsh\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Package
+      - name: Package desktop app
         shell: bash
         env:
-          STOATMD_GOOGLE_CLIENT_ID: ${{ secrets.STOATMD_GOOGLE_CLIENT_ID }}
-          STOATMD_GOOGLE_CLIENT_SECRET: ${{ secrets.STOATMD_GOOGLE_CLIENT_SECRET }}
-          STOATMD_DROPBOX_APP_KEY: ${{ secrets.STOATMD_DROPBOX_APP_KEY }}
+          STOATMD_GOOGLE_CLIENT_ID: ${{ github.event_name == 'pull_request' && 'stoatmd-ci-placeholder.apps.googleusercontent.com' || secrets.STOATMD_GOOGLE_CLIENT_ID || 'stoatmd-ci-placeholder.apps.googleusercontent.com' }}
+          STOATMD_GOOGLE_CLIENT_SECRET: ${{ github.event_name == 'pull_request' && 'stoatmd-ci-placeholder' || secrets.STOATMD_GOOGLE_CLIENT_SECRET || 'stoatmd-ci-placeholder' }}
+          STOATMD_DROPBOX_APP_KEY: ${{ github.event_name == 'pull_request' && 'stoatmd-ci-placeholder' || secrets.STOATMD_DROPBOX_APP_KEY || 'stoatmd-ci-placeholder' }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          BUILD: ${{ steps.meta.outputs.build }}
         run: |
-          if [ "${{ matrix.target }}" = "windows" ]; then
-            python scripts/desktop_release.py --build "${{ inputs.build }}"
+          if [[ -z "$STOATMD_GOOGLE_CLIENT_ID" || -z "$STOATMD_GOOGLE_CLIENT_SECRET" || -z "$STOATMD_DROPBOX_APP_KEY" ]]; then
+            echo "::error::Configure STOATMD_GOOGLE_CLIENT_ID, STOATMD_GOOGLE_CLIENT_SECRET and STOATMD_DROPBOX_APP_KEY repository secrets"
+            exit 1
+          fi
+          if [[ "${{ matrix.target }}" == "windows" ]]; then
+            python scripts/desktop_release.py --version "$VERSION" --build "$BUILD"
           else
-            python3 scripts/desktop_release.py --build "${{ inputs.build }}"
+            python3 scripts/desktop_release.py --version "$VERSION" --build "$BUILD"
           fi
 
-      - name: Upload artifact
+      - name: Upload build artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: stoatmd-${{ matrix.target }}
@@ -81,3 +138,49 @@ jobs:
             .nsh/release-desktop/StoatMD-*-${{ matrix.target }}.*
             .nsh/release-desktop/SHA256SUMS.txt
           if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Attach desktop builds to GitHub Release
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download platform builds
+        uses: actions/download-artifact@v4
+        with:
+          pattern: stoatmd-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: release-assets
+        run: sha256sum StoatMD-* > SHA256SUMS-desktop.txt
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          NOTES="$RUNNER_TEMP/desktop-release-notes.md"
+          {
+            echo "## StoatMD ${TAG#v} — Desktop builds"
+            echo
+            echo "Free desktop builds for macOS, Windows and Linux."
+            echo
+            echo "The CI macOS ZIP is ad-hoc signed and not notarized. Windows packages are unsigned."
+            echo "On first launch, follow your operating system's security prompt."
+            echo
+            echo "Verify downloaded packages with SHA256SUMS-desktop.txt."
+          } > "$NOTES"
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-assets/* -R "$GITHUB_REPOSITORY" --clobber
+            gh release edit "$TAG" -R "$GITHUB_REPOSITORY" \
+              --title "StoatMD ${TAG#v}" --notes-file "$NOTES"
+          else
+            gh release create "$TAG" -R "$GITHUB_REPOSITORY" \
+              --title "StoatMD ${TAG#v}" --notes-file "$NOTES" release-assets/*
+          fi

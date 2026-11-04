@@ -21,9 +21,9 @@ A Markdown notebook for people and AI agents. StoatMD keeps notes as ordinary Ma
 
 | Platform | Availability |
 | --- | --- |
-| macOS | Free app, including cloud sync; local folders supported |
+| macOS | Free; local folders and cloud sync. Tagged releases include an ad-hoc signed CI ZIP; maintainers may also publish a notarized installer. |
 | iOS / iPadOS | Official app sold as a one-time App Store purchase; personal builds are supported |
-| Windows / Linux | Build support is in progress |
+| Windows / Linux | Free desktop packages are built automatically for tagged releases |
 
 ## Build from source
 
