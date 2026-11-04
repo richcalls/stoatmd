@@ -113,9 +113,9 @@ jobs:
       - name: Package desktop app
         shell: bash
         env:
-          STOATMD_GOOGLE_CLIENT_ID: ${{ secrets.STOATMD_GOOGLE_CLIENT_ID || 'stoatmd-ci-placeholder.apps.googleusercontent.com' }}
-          STOATMD_GOOGLE_CLIENT_SECRET: ${{ secrets.STOATMD_GOOGLE_CLIENT_SECRET || 'stoatmd-ci-placeholder' }}
-          STOATMD_DROPBOX_APP_KEY: ${{ secrets.STOATMD_DROPBOX_APP_KEY || 'stoatmd-ci-placeholder' }}
+          STOATMD_GOOGLE_CLIENT_ID: ${{ github.event_name == 'pull_request' && 'stoatmd-ci-placeholder.apps.googleusercontent.com' || secrets.STOATMD_GOOGLE_CLIENT_ID || 'stoatmd-ci-placeholder.apps.googleusercontent.com' }}
+          STOATMD_GOOGLE_CLIENT_SECRET: ${{ github.event_name == 'pull_request' && 'stoatmd-ci-placeholder' || secrets.STOATMD_GOOGLE_CLIENT_SECRET || 'stoatmd-ci-placeholder' }}
+          STOATMD_DROPBOX_APP_KEY: ${{ github.event_name == 'pull_request' && 'stoatmd-ci-placeholder' || secrets.STOATMD_DROPBOX_APP_KEY || 'stoatmd-ci-placeholder' }}
           VERSION: ${{ steps.meta.outputs.version }}
           BUILD: ${{ steps.meta.outputs.build }}
         run: |
