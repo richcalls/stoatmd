@@ -6,6 +6,8 @@
 - Product: StoatMD
 - Positioning: notes made together with an agent. The agent drafts; the person reads, edits, and continues; either side can pick the work back up in the same folder. The library is a plain folder of `.md` files, not a database.
 - Pricing: desktop app is free, including cloud sync. iPhone app is a one-time purchase; price is TBA — do not invent a price. No subscription anywhere.
+- Source: publicly available under a noncommercial license for personal use. Commercial use requires separate permission. The official iOS App Store version remains a paid one-time purchase; users may compile and install a personal build under the license.
+- Source repository: https://github.com/richcalls/stoatmd
 - Sync providers (v1): Google Drive, Dropbox only (no iCloud, no OneDrive, no WebDAV, no self-hosted server).
 - Agents: local agents write directly into the folder; remote agents write through the same Drive/Dropbox folder. No MCP bridge or export step is required.
 - Editing model: plain Markdown source with source / split / read views. Not WYSIWYG.

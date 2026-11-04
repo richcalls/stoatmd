@@ -74,7 +74,7 @@ npm run preview  # 预览构建产物
 | 输出目录 | `website/dist` |
 | Node | GitHub Actions workflow 固定使用 Node.js 22 |
 | Runner | GitHub 托管 `ubuntu-latest`（公共 PR 无需访问私有机器） |
-| Wrangler | 全局 4.x / `wrangler-action` 固定 `wranglerVersion: "4"` |
+| Wrangler | 项目初始化用 `npx wrangler@4`；部署 action 固定 `wranglerVersion: "4"` |
 
 静态配置文件随构建进入 `dist/`：
 
