@@ -64,6 +64,7 @@ export interface SiteCopy {
     mobile: { label: string; name: string; price: string; unit: string; items: string[] };
     note: string;
     stamp: string;
+    source: { title: string; body: string; linkLabel: string };
   };
   release: {
     kicker: string;
@@ -214,6 +215,11 @@ const en: SiteCopy = {
     },
     note: "iPhone pricing will be announced upon App Store release. There will never be a subscription.",
     stamp: "NO SUBSCRIPTION",
+    source: {
+      title: "Public source, noncommercial license",
+      body: "The source code is available for personal, noncommercial use. The official iOS app remains a paid one-time App Store purchase; you can compile and install your own copy under the license.",
+      linkLabel: "github.com/richcalls/stoatmd",
+    },
   },
   release: {
     kicker: "RELEASE LOG",
@@ -364,6 +370,11 @@ const zhHans: SiteCopy = {
     },
     note: "iPhone 版价格会在正式上架 App Store 时公布。未来也不会增加任何订阅制。",
     stamp: "无订阅",
+    source: {
+      title: "源码公开，个人可自行编译",
+      body: "StoatMD 采用非商业授权。iOS 官方 App Store 版本仍为一次买断；如果不想购买，可以按许可自行编译并安装个人版本。",
+      linkLabel: "GitHub 源码：github.com/richcalls/stoatmd",
+    },
   },
   release: {
     kicker: "下载与版本",
@@ -514,6 +525,11 @@ const zhHant: SiteCopy = {
     },
     note: "iPhone 版價格會在正式上架 App Store 時公布。未來也不會增加任何訂閱制。",
     stamp: "無訂閱",
+    source: {
+      title: "原始碼公開，個人可自行編譯",
+      body: "StoatMD 採用非商業授權。iOS 官方 App Store 版本仍為一次買斷；如果不想購買，可以依照授權自行編譯並安裝個人版本。",
+      linkLabel: "GitHub 原始碼：github.com/richcalls/stoatmd",
+    },
   },
   release: {
     kicker: "下載與版本",
@@ -664,6 +680,11 @@ const ja: SiteCopy = {
     },
     note: "iPhone 版の価格は App Store リリース時に発表します。サブスク化の予定はありません。",
     stamp: "サブスクなし",
+    source: {
+      title: "ソースコードを公開、非商用ライセンス",
+      body: "ソースコードは個人の非商用利用向けに公開しています。iOS 公式アプリは App Store での買い切り販売を続けます。購入せずに利用したい場合は、ライセンスに従って自分でビルドし、インストールできます。",
+      linkLabel: "GitHub ソースコード：github.com/richcalls/stoatmd",
+    },
   },
   release: {
     kicker: "リリース情報",
@@ -814,6 +835,11 @@ const ko: SiteCopy = {
     },
     note: "iPhone 버전 가격은 App Store 출시 시 안내됩니다. 구독 모델은 전혀 계획되어 있지 않습니다.",
     stamp: "구독 없음",
+    source: {
+      title: "소스 공개 · 비상업 라이선스",
+      body: "소스 코드는 개인의 비상업적 사용을 위해 공개되어 있습니다. iOS 공식 앱은 App Store에서 일회 구매로 계속 제공됩니다. 구매하지 않고 사용하려면 라이선스에 따라 직접 빌드하고 설치할 수 있습니다.",
+      linkLabel: "GitHub 소스 코드: github.com/richcalls/stoatmd",
+    },
   },
   release: {
     kicker: "릴리스 안내",
@@ -964,6 +990,11 @@ const de: SiteCopy = {
     },
     note: "Der iPhone-Preis wird beim Release im App Store bekanntgegeben. Ein Abo ist niemals geplant.",
     stamp: "KEIN ABO",
+    source: {
+      title: "Quellcode öffentlich, nichtkommerzielle Lizenz",
+      body: "Der Quellcode ist für private, nichtkommerzielle Nutzung verfügbar. Die offizielle iOS-App bleibt ein einmaliger Kauf im App Store. Wer sie nicht kaufen möchte, kann eine eigene Version gemäß Lizenz kompilieren und installieren.",
+      linkLabel: "GitHub-Quellcode: github.com/richcalls/stoatmd",
+    },
   },
   release: {
     kicker: "RELEASE-LOG",
@@ -1114,6 +1145,11 @@ const fr: SiteCopy = {
     },
     note: "Le prix iPhone sera dévoilé lors de la sortie sur l'App Store. Aucun abonnement ne sera jamais proposé.",
     stamp: "SANS ABONNEMENT",
+    source: {
+      title: "Code source public, licence non commerciale",
+      body: "Le code source est disponible pour un usage personnel et non commercial. L’app iOS officielle reste vendue en achat unique sur l’App Store. Si vous préférez ne pas l’acheter, vous pouvez compiler et installer votre propre version selon la licence.",
+      linkLabel: "Code source GitHub : github.com/richcalls/stoatmd",
+    },
   },
   release: {
     kicker: "JOURNAL DES VERSIONS",
@@ -1264,6 +1300,11 @@ const es: SiteCopy = {
     },
     note: "El precio de la versión iPhone se publicará al debutar en la App Store. Nunca habrá suscripciones.",
     stamp: "SIN SUSCRIPCIÓN",
+    source: {
+      title: "Código fuente público, licencia no comercial",
+      body: "El código fuente está disponible para uso personal y no comercial. La app oficial para iOS seguirá siendo una compra única en la App Store. Si prefieres no comprarla, puedes compilar e instalar tu propia versión según la licencia.",
+      linkLabel: "Código fuente en GitHub: github.com/richcalls/stoatmd",
+    },
   },
   release: {
     kicker: "HISTORIAL DE VERSIONES",

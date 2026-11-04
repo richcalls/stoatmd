@@ -683,6 +683,47 @@ a[data-download-platform="ios"]:hover {
   line-height: 1.55;
 }
 
+.pricing-source {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 24px 32px;
+  border-top: 1px solid var(--line);
+}
+
+.pricing-source-copy h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 550;
+}
+
+.pricing-source-copy p {
+  margin: 0;
+  max-width: 72ch;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.github-source-link {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.github-source-link:hover {
+  background: var(--surface-soft);
+}
+
 /* Download */
 
 .download {
@@ -932,6 +973,12 @@ a[data-download-platform="ios"]:hover {
     padding: 20px 24px;
     flex-direction: column;
     align-items: flex-start;
+  }
+  .pricing-source {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+    padding: 22px 24px;
   }
   .feature {
     grid-template-columns: 40px minmax(0, 1fr);
