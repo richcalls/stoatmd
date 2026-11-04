@@ -15,8 +15,6 @@
 name: macOS · Release
 
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
@@ -49,7 +47,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          ref: ${{ inputs.tag }}
           fetch-depth: 0
           clean: false
 
@@ -77,13 +75,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            TAG="${{ inputs.tag }}"
-            BUILD="${{ inputs.build }}"
-          else
-            TAG="${GITHUB_REF_NAME}"
-            BUILD=""
-          fi
+          TAG="${{ inputs.tag }}"
+          BUILD="${{ inputs.build }}"
           [[ "$TAG" == v* ]] || { echo "::error::tag 必须以 v 开头"; exit 1; }
           VERSION="${TAG#v}"
           if [[ -z "$BUILD" ]]; then
@@ -179,7 +172,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish GitHub Release
-        if: ${{ github.event_name == 'push' || inputs.publish }}
+        if: ${{ inputs.publish }}
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.STOATMD_COMMUNITY_TOKEN }}
