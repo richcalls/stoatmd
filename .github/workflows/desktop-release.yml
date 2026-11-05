@@ -212,17 +212,24 @@ jobs:
             python3 scripts/desktop_release.py --version "$VERSION" --build "$BUILD"
           fi
 
-      - name: Upload build artifact
-        if: github.event_name != 'pull_request'
+      - name: Upload macOS release artifact
+        if: matrix.target == 'macos' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stoatmd-macos
+          path: |
+            .nsh/release-macos/StoatMD-*.dmg
+            .nsh/release-macos/StoatMD-*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload desktop artifact
+        if: matrix.target != 'macos' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: stoatmd-${{ matrix.target }}
           path: |
             .nsh/release-desktop/StoatMD-*-${{ matrix.target }}.*
-            .nsh/release-desktop/SHA256SUMS.txt
-            .nsh/release-macos/StoatMD-*.dmg
-            .nsh/release-macos/StoatMD-*.zip
-            .nsh/release-macos/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14
 
@@ -240,6 +247,16 @@ jobs:
           pattern: stoatmd-*
           path: release-assets
           merge-multiple: true
+
+      - name: Flatten artifact directories
+        working-directory: release-assets
+        run: |
+          set -euo pipefail
+          # upload-artifact 会保留上传路径的公共父目录（.nsh/release-*），
+          # 多个 platform artifact 合并后这里统一摊平。
+          find . -mindepth 2 -type f -exec mv -f {} . \;
+          find . -mindepth 1 -type d -empty -delete
+          ls -lh
 
       - name: Prepare release assets
         working-directory: release-assets
