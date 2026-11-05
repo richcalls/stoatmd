@@ -22,6 +22,8 @@ on:
       - "assets/**"
       - "crates/**"
       - "scripts/desktop_release.py"
+      - "scripts/macos_release.py"
+      - "scripts/ios.py"
       - "src/**"
       - "Cargo.toml"
       - "Cargo.lock"

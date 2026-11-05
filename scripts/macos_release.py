@@ -86,6 +86,29 @@ def notarize(path, attempts=3):
         )
 
 
+def staple(target, attempts=3):
+    # stapler fetches the notarization ticket from Apple's CloudKit CDN. The
+    # connection occasionally drops (error 68) right after a successful
+    # notarization, so retry before failing the release.
+    command = ["xcrun", "stapler", "staple", str(target)]
+    for attempt in range(1, attempts + 1):
+        result = subprocess.run(
+            command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
+        if result.stdout:
+            print(result.stdout, end="", flush=True)
+        if result.returncode == 0:
+            return
+        if attempt == attempts:
+            raise subprocess.CalledProcessError(
+                result.returncode, command, output=result.stdout
+            )
+        delay = attempt * 15
+        print(f"stapler failed with exit {result.returncode}; retrying in {delay}s "
+              f"(attempt {attempt + 1}/{attempts}).", file=sys.stderr, flush=True)
+        time.sleep(delay)
+
+
 def verify(app, identity):
     details = subprocess.run(
         ["codesign", "-dvvv", str(app)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -171,7 +194,7 @@ def main():
         return
 
     notarize(zip_path)
-    run("xcrun", "stapler", "staple", app)
+    staple(app)
     run("xcrun", "stapler", "validate", app)
     # 公证并 staple 之后才代表 Gatekeeper 会放行。
     run("spctl", "--assess", "--type", "execute", "--verbose", app)
@@ -180,7 +203,7 @@ def main():
     make_dmg(app, dmg)
     sign(args.identity, dmg, runtime=False)
     notarize(dmg)
-    run("xcrun", "stapler", "staple", dmg)
+    staple(dmg)
     run("xcrun", "stapler", "validate", dmg)
     # 模拟用户下载后的 Gatekeeper 判定。
     run("spctl", "--assess", "--type", "open", "--context",
