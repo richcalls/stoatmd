@@ -39,11 +39,32 @@ macOS 应用菜单的 **Check for Updates… / 检查更新…** 会查询公开
   `drive` 属于 restricted scope，公开分发需要完成 Google 验证（必要时 CASA）。
 - 配额与错误率告警已开启；准备好客户端停用 / 用户重新授权的流程。
 - 授权链路保持系统浏览器 + 随机 loopback 端口 + S256 PKCE + `state`；token 只进系统钥匙串。
-- 确认待发布的 DMG 由当前提交构建：发布前重新跑脚本，不要复用旧产物。
+- 确认待发布的 DMG 由当前提交构建：CI 从 tag 指向的提交构建；本地发版时重新跑脚本，
+  不要复用旧产物。
 
 ### macOS 发布
 
-在可信的 Apple Silicon Mac 上完成 Developer ID 签名与公证，再将产物发布到本仓库：
+推送 `v*` tag 后，`.github/workflows/desktop-release.yml` 的 macOS 任务在 `macos-15`
+托管 runner 上完成打包、Developer ID 签名、`asc` 公证、`stapler` 钉票与 `spctl` 验收，
+再把 DMG、ZIP 和 `SHA256SUMS.txt` 附加到本仓库的 Release；DMG 另存一份
+`StoatMD-macos.dmg` 供官网与应用内更新的固定直链使用。
+
+公开仓库不能使用自托管 `apple-ci`（runner group 禁止公开仓库），签名与公证凭据改放
+仓库 Actions Secrets，PR 运行拿不到：
+
+| Secret | 内容 | 怎么生成 |
+|--------|------|----------|
+| `MACOS_CERTIFICATE` | Developer ID Application 证书与私钥的 `.p12`，base64 单行 | 钥匙串访问里导出 `.p12`，再 `base64 -i cert.p12 \| pbcopy` |
+| `MACOS_CERTIFICATE_PASSWORD` | 导出 `.p12` 时设置的密码 | 自行设置 |
+| `ASC_KEY_ID` | App Store Connect API Key ID | App Store Connect → Users and Access → Integrations |
+| `ASC_ISSUER_ID` | Issuer ID | 同上 |
+| `ASC_PRIVATE_KEY` | `AuthKey_<KEY_ID>.p8` 全文 | 同上，只能下载一次 |
+
+证书或 API key 轮换后更新对应 Secret，下一次 tag 发版生效。托管 runner 没有钥匙串，
+workflow 每次新建临时 keychain 导入证书，机器销毁即失效。
+
+CI 不可用时可以本地发版：在可信的 Apple Silicon Mac 上跑
+`scripts/macos_release.py` 完成签名与公证，再手动上传：
 
 ```sh
 TAG=v<版本>
@@ -59,16 +80,12 @@ gh release create "$TAG" \
   .nsh/release-macos/StoatMD-macos.dmg
 ```
 
-官网与应用内更新检查从本仓库读取 Releases。官网固定直链使用资产名
-`StoatMD-macos.dmg`；上传时将版本化 DMG 另存为该名称。签名凭据只保留在维护者的
-受控 Mac 上，不配置到公开仓库的 Actions runner。
-
 ## 桌面版 CI 构建（macOS / Windows / Linux）
 
 `.github/workflows/desktop-release.yml` 在对应的 GitHub 托管系统上分别构建三种
-桌面客户端。推送 `v*` tag 后，CI 会自动把 macOS、Windows、Linux 包及
-`SHA256SUMS-desktop.txt` 附加到同一个 GitHub Release。手动运行 workflow 会构建并保存
-14 天的 Actions artifact，不发布 Release。
+桌面客户端。推送 `v*` tag 后，CI 会自动把 macOS（已签名、公证的 DMG 与 ZIP）、
+Windows、Linux 包及 `SHA256SUMS-desktop.txt` 附加到同一个 GitHub Release。手动运行
+workflow 会构建并保存 14 天的 Actions artifact，不发布 Release。
 
 GitHub 托管的 macOS arm64 runner 偶尔分配不到机器：任务排队 15 分钟后被取消，日志里
 是 `The job was not acquired by Runner of type hosted`。这不是构建失败，

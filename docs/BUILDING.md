@@ -119,4 +119,4 @@ python3 -m unittest discover -s scripts -p 'test_ios_packaging.py'
 
 ## 公开仓库与官方发布
 
-官网 PR 构建在 GitHub 托管 runner 上执行。自托管 Apple CI 仅对私有仓库开放；公开源码仓库不运行带签名凭据的自托管 job。维护者在可信的 Mac 上构建、签名官方安装包，并将产物发布到本仓库的 GitHub Releases。
+官网 PR 构建在 GitHub 托管 runner 上执行。自托管 Apple CI 仅对私有仓库开放，公开源码仓库不能用；macOS 签名与公证凭据放在仓库 Actions Secrets，只由 tag 触发的桌面构建 workflow 使用，PR 拿不到。产物发布到本仓库的 GitHub Releases。

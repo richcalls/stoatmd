@@ -2,6 +2,13 @@
 # Tagged builds are attached to the matching GitHub Release; manual runs only
 # produce downloadable workflow artifacts for verification.
 #
+# On tags the macOS job also signs with the Developer ID certificate and
+# notarizes through App Store Connect, so the release ships a notarized DMG.
+# The repository is public, so the self-hosted Apple CI runner is not used (its
+# runner group rejects public repositories); keep signing credentials in
+# repository secrets instead. Pull requests never receive those secrets and
+# only produce an ad-hoc signed ZIP.
+#
 # Hosted macOS arm64 runners sometimes never hand out a machine: run 41861167240
 # was cancelled after 15 minutes with "The job was not acquired by Runner of
 # type hosted", turning a green pull request red. desktop-release-retry.yml
@@ -44,6 +51,7 @@ jobs:
   build:
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -115,21 +123,89 @@ jobs:
           irm https://nsh.dev/install.ps1 | iex
           "$env:LOCALAPPDATA\nsh\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      - name: Install asc for notarization
+        if: matrix.target == 'macos' && github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install asc
+          asc --version
+
+      - name: Import Developer ID certificate
+        if: matrix.target == 'macos' && github.event_name != 'pull_request'
+        shell: bash
+        env:
+          CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$CERTIFICATE" || -z "$CERTIFICATE_PASSWORD" ]]; then
+            echo "::error::Configure the MACOS_CERTIFICATE and MACOS_CERTIFICATE_PASSWORD repository secrets"
+            exit 1
+          fi
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 16)"
+          echo "$CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/certificate.p12" -k "$KEYCHAIN" \
+            -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          # codesign needs explicit private-key access in a non-interactive session.
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          # shellcheck disable=SC2046  # expected word splitting: one path per keychain
+          security list-keychains -d user -s "$KEYCHAIN" \
+            $(security list-keychains -d user | tr -d '"')
+          IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN" \
+            | sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' | head -1)"
+          [[ -n "$IDENTITY" ]] || {
+            echo "::error::The imported certificate is not a Developer ID Application identity"
+            exit 1
+          }
+          echo "MACOS_SIGNING_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          echo "Signing identity: $IDENTITY"
+
       - name: Package desktop app
         shell: bash
         env:
           STOATMD_GOOGLE_CLIENT_ID: ${{ github.event_name == 'pull_request' && 'stoatmd-ci-placeholder.apps.googleusercontent.com' || secrets.STOATMD_GOOGLE_CLIENT_ID || 'stoatmd-ci-placeholder.apps.googleusercontent.com' }}
           STOATMD_GOOGLE_CLIENT_SECRET: ${{ github.event_name == 'pull_request' && 'stoatmd-ci-placeholder' || secrets.STOATMD_GOOGLE_CLIENT_SECRET || 'stoatmd-ci-placeholder' }}
           STOATMD_DROPBOX_APP_KEY: ${{ github.event_name == 'pull_request' && 'stoatmd-ci-placeholder' || secrets.STOATMD_DROPBOX_APP_KEY || 'stoatmd-ci-placeholder' }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
           VERSION: ${{ steps.meta.outputs.version }}
           BUILD: ${{ steps.meta.outputs.build }}
         run: |
+          set -euo pipefail
           if [[ -z "$STOATMD_GOOGLE_CLIENT_ID" || -z "$STOATMD_GOOGLE_CLIENT_SECRET" || -z "$STOATMD_DROPBOX_APP_KEY" ]]; then
             echo "::error::Configure STOATMD_GOOGLE_CLIENT_ID, STOATMD_GOOGLE_CLIENT_SECRET and STOATMD_DROPBOX_APP_KEY repository secrets"
             exit 1
           fi
+          if [[ "${GITHUB_EVENT_NAME}" != "pull_request" ]]; then
+            # A release must not silently embed the placeholder OAuth client.
+            for name in STOATMD_GOOGLE_CLIENT_ID STOATMD_GOOGLE_CLIENT_SECRET STOATMD_DROPBOX_APP_KEY; do
+              if [[ "${!name}" == *placeholder* ]]; then
+                echo "::error::Configure the $name repository secret before releasing"
+                exit 1
+              fi
+            done
+          fi
           if [[ "${{ matrix.target }}" == "windows" ]]; then
             python scripts/desktop_release.py --version "$VERSION" --build "$BUILD"
+          elif [[ "${{ matrix.target }}" == "macos" && "${GITHUB_EVENT_NAME}" != "pull_request" ]]; then
+            if [[ -z "${MACOS_SIGNING_IDENTITY:-}" ]]; then
+              echo "::error::The Developer ID certificate was not imported"
+              exit 1
+            fi
+            if [[ -z "${ASC_KEY_ID:-}" || -z "${ASC_ISSUER_ID:-}" || -z "${ASC_PRIVATE_KEY:-}" ]]; then
+              echo "::error::Configure the ASC_KEY_ID, ASC_ISSUER_ID and ASC_PRIVATE_KEY repository secrets"
+              exit 1
+            fi
+            ASC_BYPASS_KEYCHAIN=1 python3 scripts/macos_release.py \
+              --identity "$MACOS_SIGNING_IDENTITY" \
+              --version "$VERSION" --build "$BUILD"
           else
             python3 scripts/desktop_release.py --version "$VERSION" --build "$BUILD"
           fi
@@ -142,6 +218,9 @@ jobs:
           path: |
             .nsh/release-desktop/StoatMD-*-${{ matrix.target }}.*
             .nsh/release-desktop/SHA256SUMS.txt
+            .nsh/release-macos/StoatMD-*.dmg
+            .nsh/release-macos/StoatMD-*.zip
+            .nsh/release-macos/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14
 
@@ -160,9 +239,16 @@ jobs:
           path: release-assets
           merge-multiple: true
 
-      - name: Generate checksums
+      - name: Prepare release assets
         working-directory: release-assets
-        run: sha256sum StoatMD-* > SHA256SUMS-desktop.txt
+        run: |
+          set -euo pipefail
+          ls -lh
+          sha256sum StoatMD-*.dmg StoatMD-*.zip StoatMD-*.tar.gz > SHA256SUMS-desktop.txt
+          cat SHA256SUMS-desktop.txt
+          dmg="$(ls StoatMD-*.dmg)"
+          # 官网与应用内更新按这个固定名字下载；内容与版本化 DMG 相同。
+          cp "$dmg" StoatMD-macos.dmg
 
       - name: Create or update GitHub Release
         env:
@@ -176,8 +262,8 @@ jobs:
             echo
             echo "Free desktop builds for macOS, Windows and Linux."
             echo
-            echo "The CI macOS ZIP is ad-hoc signed and not notarized. Windows packages are unsigned."
-            echo "On first launch, follow your operating system's security prompt."
+            echo "macOS ships a Developer ID signed and notarized DMG; the ZIP is the notarization upload."
+            echo "Windows packages are unsigned. On first launch, follow your operating system's security prompt."
             echo
             echo "Verify downloaded packages with SHA256SUMS-desktop.txt."
           } > "$NOTES"

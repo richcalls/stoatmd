@@ -1,6 +1,9 @@
 # 手动自检组织级 Apple CI runner：系统、Xcode、签名证书、asc、nsh 与磁盘。
 # 不构建、不公证、不发版；用来确认 iOS / macOS 共用 runner 环境是否可用。
 #
+# 只在私有仓库生效：公开仓库会被 `github.event.repository.private` 守卫跳过，
+# `richcalls/stoatmd` 公开后该 runner 不再参与任何发布流程。
+#
 # 触发：Actions → macOS · Runner Smoke Test → Run workflow
 
 name: macOS · Runner Smoke Test

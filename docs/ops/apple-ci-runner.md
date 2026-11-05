@@ -4,6 +4,11 @@
 Windows + WSL2 自托管 runner，不要把本机加进那组，也不要在本机跑 Docker
 Linux 容器。
 
+> **当前状态**：`richcalls/stoatmd` 已公开，公开仓库不能使用这组 runner（runner group
+> 禁止公开仓库，workflow 里也有 `github.event.repository.private` 守卫），macOS 发版
+> 已改到 GitHub 托管的 `macos-15` runner，见 [发版](../product/RELEASE.md)。本文档
+> 保留给私有仓库或本地复现 runner 环境时使用。
+
 ## 为什么必须是原生 macOS runner
 
 `bestony/self-hosted-action-runner` 这类 Docker runner 在 macOS 上运行的是
