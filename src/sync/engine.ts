@@ -24,14 +24,18 @@ export type PlanInput = {
 
 export type ProbeCandidate = {
   path: string;
-  localHash: string;
+  /** 本地已删除时为 null：只需要云端正文判断它是否真被别处改过。 */
+  localHash: string | null;
 };
 
-/** 判断本地是否偏离锚点：mtime+size 不变即认为没改，省掉整库重读。 */
+/**
+ * 判断本地是否偏离锚点：mtime+size 不变即认为没改，省掉整库重读。
+ * mtime 变了但正文哈希仍是锚点（保存同样内容、外部 touch）也算没改。
+ */
 export function localChanged(local: LocalFile, base: BaseEntry | null): boolean {
   if (!base) return true;
-  if (local.mtimeMs !== base.localMtimeMs || local.size !== base.localSize) return true;
-  return local.hash !== null && local.hash !== base.hash;
+  if (local.hash !== null) return local.hash !== base.hash;
+  return local.mtimeMs !== base.localMtimeMs || local.size !== base.localSize;
 }
 
 export function remoteChanged(remote: RemoteFile, base: BaseEntry | null): boolean {
@@ -52,8 +56,19 @@ export function effectiveLocalHash(local: LocalFile, base: BaseEntry | null): st
 }
 
 /**
- * 需要下载云端正文才能判定「是否只是同一内容的两个版本」的路径。
- * 只覆盖双方都存在、且没有共同锚点或两边都改过的文件。
+ * 本机认得的云端正文：上次对齐的内容，加上发出后没收到回执的上传。
+ * 云端 rev 变了但正文落在这里面，说明没有别的设备改过它——
+ * Drive 的 version 会因元数据变化自增；上传超时时云端可能已经写入。
+ */
+function ownRemoteHashes(input: PlanInput, path: string, anchor: BaseEntry | null): Set<string> {
+  const known = new Set(input.base.pending?.[path] ?? []);
+  if (anchor) known.add(anchor.hash);
+  return known;
+}
+
+/**
+ * 需要下载云端正文才能判定「云端是否真被别处改过」的路径：
+ * 双方都存在且没有共同锚点或两边都改过，或本地已删而云端 rev 变了。
  */
 export function probeCandidates(input: PlanInput): ProbeCandidate[] {
   const base = input.base.entries;
@@ -61,8 +76,11 @@ export function probeCandidates(input: PlanInput): ProbeCandidate[] {
   const out: ProbeCandidate[] = [];
   for (const remote of input.remote) {
     const local = locals.get(remote.path);
-    if (!local) continue;
     const anchor = base[remote.path] ?? null;
+    if (!local) {
+      if (anchor && remoteChanged(remote, anchor)) out.push({ path: remote.path, localHash: null });
+      continue;
+    }
     if (anchor && !(localChanged(local, anchor) && remoteChanged(remote, anchor))) continue;
     const hash = effectiveLocalHash(local, anchor);
     if (hash) out.push({ path: remote.path, localHash: hash });
@@ -93,11 +111,15 @@ export function planSync(input: PlanInput): SyncPlan {
     const anchor = base[path] ?? null;
     const localHash = local ? effectiveLocalHash(local, anchor) : null;
     const remoteHash = input.remoteHashes?.[path] ?? null;
+    // 云端正文是本机自己写过的版本：rev 变化不代表别处改过。
+    const remoteIsOurs = remoteHash !== null && ownRemoteHashes(input, path, anchor).has(remoteHash);
 
     if (local && remote) {
       if (!anchor) {
         if (localHash && remoteHash && localHash === remoteHash) {
           plan.adopts.push(adopt(path, local, remote, localHash, null));
+        } else if (remoteIsOurs) {
+          plan.uploads.push(upload(path, local, null));
         } else {
           plan.conflicts.push(conflict(path, "bothModified", null, local, remote, localHash, remoteHash));
         }
@@ -105,10 +127,18 @@ export function planSync(input: PlanInput): SyncPlan {
       }
       const localMoved = localChanged(local, anchor);
       const remoteMoved = remoteChanged(remote, anchor);
-      if (!localMoved && !remoteMoved) continue;
+      if (!localMoved && !remoteMoved) {
+        // 只是 mtime 变了（同内容重存 / touch）：刷新锚点，免得之后每轮都重读重算哈希。
+        if (localHash && (local.mtimeMs !== anchor.localMtimeMs || local.size !== anchor.localSize)) {
+          plan.adopts.push(adopt(path, local, remote, localHash, anchor));
+        }
+        continue;
+      }
       if (localMoved && remoteMoved) {
         if (localHash && remoteHash && localHash === remoteHash) {
           plan.adopts.push(adopt(path, local, remote, localHash, anchor));
+        } else if (remoteIsOurs) {
+          plan.uploads.push(upload(path, local, anchor));
         } else {
           plan.conflicts.push(
             conflict(path, "bothModified", anchor, local, remote, localHash, remoteHash),
@@ -138,12 +168,12 @@ export function planSync(input: PlanInput): SyncPlan {
     if (!local && remote) {
       if (!anchor) {
         plan.downloads.push(download(path, remote, null, null));
-      } else if (remoteChanged(remote, anchor)) {
+      } else if (remoteChanged(remote, anchor) && !remoteIsOurs) {
         plan.conflicts.push(
           conflict(path, "localDeletedRemoteModified", anchor, null, remote, null, null),
         );
       } else {
-        plan.remoteDeletes.push(remoteDelete(path, anchor));
+        plan.remoteDeletes.push(remoteDelete(path, anchor, remote));
       }
       continue;
     }
@@ -205,8 +235,8 @@ function localDelete(path: string, base: BaseEntry): LocalDeleteAction {
   return { path, base };
 }
 
-function remoteDelete(path: string, base: BaseEntry): RemoteDeleteAction {
-  return { path, base };
+function remoteDelete(path: string, base: BaseEntry, remote: RemoteFile | null = null): RemoteDeleteAction {
+  return { path, base, remote };
 }
 
 function adopt(

@@ -2,7 +2,7 @@ import { Storage, signal } from "nsh";
 import { OAuth, Vault } from "stoatmd/native";
 import { loadSyncConfig } from "./config";
 import { DropboxProvider } from "./dropbox";
-import { planSync, probeCandidates, resolveConflict as resolveActions } from "./engine";
+import { localChanged, planSync, probeCandidates, resolveConflict as resolveActions } from "./engine";
 import { GoogleDriveProvider } from "./google";
 import { activeStorage, readActiveStorage, writeActiveStorage, storageBusy, type Cleanup } from "../storage/state";
 import { sha256Hex, sha256Bytes } from "./hash";
@@ -36,6 +36,8 @@ const BASE_KEY = "sync.base";
 const LAST_KEY = "sync.lastAt";
 /** 长同步中途落锚点的间隔，单位：完成动作数。 */
 const BASE_SAVE_EVERY = 10;
+/** 每个路径最多记几份未确认的上传正文。 */
+const PENDING_PER_PATH = 4;
 
 export type SyncPhase =
   | "off"
@@ -290,6 +292,8 @@ export class SyncRuntime {
     if (this.resolving) await this.resolving.catch(() => {});
     if (storageBusy() || !this.isAttached()) return null;
     if (loadSyncConfig(true).purchaseRequired) return this.finishError(new SyncError("config", "purchase required"));
+    // 推送请求还在路上时列云端，会看到「云端已是新版、锚点还是旧版」，误判成两边都改过。
+    while (this.pushing && !this.running) await this.pushing.catch(() => {});
     if (this.running) return this.running;
     this.running = this.run().finally(() => {
       this.running = null;
@@ -306,8 +310,7 @@ export class SyncRuntime {
       return this.finishError(new SyncError("config", "purchase required"));
     }
     if (this.phase() === "conflict") return null;
-    if (this.running) await this.running.catch(() => {});
-    if (this.pushing) await this.pushing.catch(() => {});
+    await this.idle();
     if (storageBusy() || !this.isAttached() || this.phase() === "conflict") return null;
     const operation = this.push(paths, quiet);
     this.pushing = operation;
@@ -327,8 +330,7 @@ export class SyncRuntime {
       return this.finishError(new SyncError("config", "purchase required"));
     }
     if (this.phase() === "conflict") return null;
-    if (this.running) await this.running.catch(() => {});
-    if (this.pushing) await this.pushing.catch(() => {});
+    await this.idle();
     if (storageBusy() || !this.isAttached() || this.phase() === "conflict") return null;
     const operation = this.removeRemote(paths, quiet);
     this.pushing = operation;
@@ -336,6 +338,13 @@ export class SyncRuntime {
       return await operation;
     } finally {
       if (this.pushing === operation) this.pushing = null;
+    }
+  }
+
+  /** 等全量同步与其它推送都结束；返回后同步执行到下一次 await 前不会有新的一轮插进来。 */
+  private async idle(): Promise<void> {
+    while (this.running || this.pushing) {
+      await Promise.all([this.running?.catch(() => {}), this.pushing?.catch(() => {})]);
     }
   }
 
@@ -359,6 +368,8 @@ export class SyncRuntime {
           continue;
         }
         const anchor = this.base.entries[path] ?? null;
+        // mtime 必须在读正文之前取：上传途中又保存一次时，锚点记旧 mtime，下一轮才看得出还有改动。
+        const mtimeMs = vault.mtime(path);
         const content = new Uint8Array(vault.readBytes(path));
         const existing: RemoteFile | null = anchor ? {
           path,
@@ -367,12 +378,13 @@ export class SyncRuntime {
           mtimeMs: 0,
           size: anchor.localSize,
         } : null;
+        await this.notePending(path, content, true);
         try {
           const uploaded = await remote.uploadBytes(root, path, content, { existing });
           this.setBase(path, {
             remoteId: uploaded.id,
             remoteRev: uploaded.rev,
-            localMtimeMs: vault.mtime(path),
+            localMtimeMs: mtimeMs,
             localSize: content.length,
             hash: sha256Bytes(content),
           });
@@ -443,7 +455,7 @@ export class SyncRuntime {
         };
         try {
           await remote.remove(file);
-          delete this.base.entries[path];
+          this.dropBase(path);
           result.deletedRemote += 1;
         } catch (err) {
           // 云端也被改过：不在删除路径上裁决，交回全量同步让用户选。
@@ -507,13 +519,15 @@ export class SyncRuntime {
 
     for (const action of actions) {
       if (action.type === "upload") {
+        const mtimeMs = vault.mtime(item.path);
         const content = new Uint8Array(vault.readBytes(item.path));
         const remoteFile = item.remote ?? null;
+        await this.notePending(item.path, content, true);
         const result = await remote.uploadBytes(root, item.path, content, { existing: remoteFile });
         this.setBase(item.path, {
           remoteId: result.id,
           remoteRev: result.rev,
-          localMtimeMs: vault.mtime(item.path),
+          localMtimeMs: mtimeMs,
           localSize: content.length,
           hash: sha256Bytes(content),
         });
@@ -539,7 +553,7 @@ export class SyncRuntime {
         }
       } else if (action.type === "localDelete") {
         vault.delete(item.path);
-        delete this.base.entries[item.path];
+        this.dropBase(item.path);
       } else if (action.type === "remoteDelete") {
         const anchor = item.base;
         if (!anchor) continue;
@@ -550,7 +564,7 @@ export class SyncRuntime {
           mtimeMs: 0,
           size: 0,
         });
-        delete this.base.entries[item.path];
+        this.dropBase(item.path);
       }
     }
 
@@ -633,6 +647,7 @@ export class SyncRuntime {
         const content = new Uint8Array(vault.readBytes(action.path));
         const mtimeMs = vault.mtime(action.path);
         const remoteFile = remoteFiles.find((r) => r.path === action.path) ?? null;
+        await this.notePending(action.path, content, false);
         const uploaded = await remote.uploadBytes(root, action.path, content, {
           existing: remoteFile,
         });
@@ -652,16 +667,23 @@ export class SyncRuntime {
         assertLocalUnchanged(vault, action.path, action.local);
         const content = await remote.downloadBytes(action.remote);
         assertLocalUnchanged(vault, action.path, action.local);
-        writeLocal(vault, action.path, content);
+        const hash = sha256Bytes(content);
+        // 云端只是 rev 变了、正文和本地一样（Drive version 自增）：不重写文件，
+        // 否则正在编辑的笔记 mtime 被改，下一次保存会误报「文件已在外部被修改」。
+        const same = action.local !== null &&
+          (action.local.hash ?? (action.base && !localChanged(action.local, action.base) ? action.base.hash : null)) === hash;
+        if (!same) writeLocal(vault, action.path, content);
         this.setBase(action.path, {
           remoteId: action.remote.id,
           remoteRev: action.remote.rev,
           localMtimeMs: vault.mtime(action.path),
           localSize: content.length,
-          hash: sha256Bytes(content),
+          hash,
         });
-        result.downloaded += 1;
-        result.changedLocal.push(action.path);
+        if (!same) {
+          result.downloaded += 1;
+          result.changedLocal.push(action.path);
+        }
         await tick();
       }
 
@@ -674,7 +696,7 @@ export class SyncRuntime {
           hash: null,
         });
         vault.delete(action.path);
-        delete this.base.entries[action.path];
+        this.dropBase(action.path);
         result.deletedLocal += 1;
         result.changedLocal.push(action.path);
         await tick();
@@ -688,17 +710,19 @@ export class SyncRuntime {
         for (const action of plan.remoteDeletes) {
           await this.checkpoint();
           const current = fresh.get(action.path);
-          if (current && current.rev !== action.base.remoteRev) {
+          const expected = action.remote ?? null;
+          const rev = expected?.rev ?? action.base.remoteRev;
+          if (current && current.rev !== rev) {
             throw new RemoteConflictError("remote file changed before delete", action.path);
           }
           await remote.remove({
             path: action.path,
-            id: action.base.remoteId,
-            rev: action.base.remoteRev,
+            id: expected?.id ?? action.base.remoteId,
+            rev,
             mtimeMs: 0,
             size: 0,
           });
-          delete this.base.entries[action.path];
+          this.dropBase(action.path);
           result.deletedRemote += 1;
           await tick();
         }
@@ -718,7 +742,7 @@ export class SyncRuntime {
 
       for (const path of plan.forgets) {
         await this.checkpoint();
-        delete this.base.entries[path];
+        this.dropBase(path);
         await tick();
       }
 
@@ -781,6 +805,26 @@ export class SyncRuntime {
     fields: Omit<BaseEntry, "path">,
   ): void {
     this.base.entries[path] = { path, ...fields };
+    // 已确认落地：锚点本身就代表云端当前正文，之前未确认的上传不再需要记。
+    if (this.base.pending) delete this.base.pending[path];
+  }
+
+  private dropBase(path: string): void {
+    delete this.base.entries[path];
+    if (this.base.pending) delete this.base.pending[path];
+  }
+
+  /**
+   * 上传发出前记下正文哈希。请求超时或进程被杀时云端可能已经写入；
+   * 下次同步看到云端正是这份内容，就按本机自己的版本处理，不误报冲突。
+   */
+  private async notePending(path: string, content: Uint8Array, persist: boolean): Promise<void> {
+    const pending = (this.base.pending ??= {});
+    const hash = sha256Bytes(content);
+    const list = (pending[path] ?? []).filter((h) => h !== hash);
+    list.push(hash);
+    pending[path] = list.slice(-PENDING_PER_PATH);
+    if (persist) await this.persistBase();
   }
 
   private async persistBase(): Promise<void> {
