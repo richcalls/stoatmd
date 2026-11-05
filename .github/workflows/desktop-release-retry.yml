@@ -1,0 +1,57 @@
+# GitHub-hosted macOS arm64 runners occasionally never hand out a machine, and
+# the job is cancelled with "The job was not acquired by Runner of type hosted"
+# (for example run 41861167240). That is infrastructure noise, not a build
+# failure, so re-run those jobs automatically instead of asking for a manual
+# retry. Runs are attempted at most three times; any job that actually started
+# is left alone so real failures stay visible.
+#
+# workflow_run only fires for this workflow once the file is on the default
+# branch.
+
+name: Desktop · Retry jobs that never started
+
+on:
+  workflow_run:
+    workflows: ["Desktop · macOS, Windows & Linux"]
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  retry:
+    name: Re-run jobs that never started
+    if: >-
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.run_attempt < 3
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Re-run the failed jobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+          JOBS="$(gh api "repos/$REPO/actions/runs/$RUN_ID/jobs?per_page=100")"
+          failed="$(jq '.jobs as $jobs
+            | [$jobs[] | select(.conclusion == "failure" or .conclusion == "cancelled")]
+            | length' <<<"$JOBS")"
+          # An empty runner_name means no machine ever picked the job up; the
+          # only log is the cancellation notice from the queue.
+          never_started="$(jq '.jobs as $jobs
+            | [$jobs[] | select((.conclusion == "failure" or .conclusion == "cancelled")
+                                and ((.runner_name // "") == ""))] | length' <<<"$JOBS")"
+          echo "attempt=$ATTEMPT failed=$failed never_started=$never_started"
+          if [[ "$never_started" -eq 0 ]]; then
+            echo "::notice::Every failed job actually ran; leaving the failure to a human."
+            exit 0
+          fi
+          if [[ "$never_started" -ne "$failed" ]]; then
+            echo "::warning::$((failed - never_started)) failed job(s) actually ran; not re-running automatically."
+            exit 0
+          fi
+          gh run rerun "$RUN_ID" --repo "$REPO" --failed
