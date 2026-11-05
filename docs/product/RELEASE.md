@@ -70,6 +70,11 @@ gh release create "$TAG" \
 `SHA256SUMS-desktop.txt` 附加到同一个 GitHub Release。手动运行 workflow 会构建并保存
 14 天的 Actions artifact，不发布 Release。
 
+GitHub 托管的 macOS arm64 runner 偶尔分配不到机器：任务排队 15 分钟后被取消，日志里
+是 `The job was not acquired by Runner of type hosted`。这不是构建失败，
+`.github/workflows/desktop-release-retry.yml` 会找出「失败但从未被机器领取」的任务并
+自动重跑，同一轮最多三次；真正跑过再失败的任务不会被自动重跑，仍然需要人工查看。
+
 每个平台都必须在原生系统上打包。nsh 0.3.0 不支持桌面交叉编译；脚本会拒绝在不匹配
 的主机运行。
 

@@ -1,6 +1,11 @@
 # Build desktop packages on their native GitHub-hosted runners.
 # Tagged builds are attached to the matching GitHub Release; manual runs only
 # produce downloadable workflow artifacts for verification.
+#
+# Hosted macOS arm64 runners sometimes never hand out a machine: run 41861167240
+# was cancelled after 15 minutes with "The job was not acquired by Runner of
+# type hosted", turning a green pull request red. desktop-release-retry.yml
+# re-runs jobs like that; builds that actually started are left to a human.
 name: Desktop · macOS, Windows & Linux
 
 on:
