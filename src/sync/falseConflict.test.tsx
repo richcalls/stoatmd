@@ -35,6 +35,8 @@ function memoryCloud() {
   const hooks = {
     /** 返回 true 表示这次上传写进云端后，回执超时丢失。 */
     loseReceipt: (_path: string) => false,
+    /** 写入云端之前；抛错表示请求没送达。 */
+    beforeWrite: (_path: string): void => {},
     /** 云端已写入、回执还没回来的那段时间。 */
     afterWrite: async (_path: string) => {},
   };
@@ -58,6 +60,7 @@ function memoryCloud() {
       inflight.max = Math.max(inflight.max, ++inflight.now);
       try {
         await Promise.resolve();
+        hooks.beforeWrite(path);
         const cur = files.get(path);
         if (options.existing) {
           if (!cur || String(cur.rev) !== options.existing.rev) throw new RemoteConflictError("rev", path);
@@ -322,6 +325,48 @@ test("pending：上传被云端以 rev 冲突拒绝时清掉，不把没落地�
     const push = await syncRuntime.pushPaths(["a.md"], true);
     expect(push?.needsFullSync).toBe(true);
     expect(await storedPending("a.md")).toEqual([]);
+  } finally {
+    await restore();
+  }
+});
+
+test("pending：超时已落地后再推同一份正文被拒，不能把先前那次的记录一起撤掉", async () => {
+  const { vault, cloud, restore } = await setup();
+  try {
+    vault.createBytes("a.md", enc("v1"));
+    await syncRuntime.syncNow();
+    edit(vault, "a.md", "v2");
+
+    cloud.hooks.loseReceipt = () => true;
+    await syncRuntime.pushPaths(["a.md"], true);
+    cloud.hooks.loseReceipt = () => false;
+    // 同一份正文再推一次：锚点 rev 是旧的，被云端拒绝。
+    const retry = await syncRuntime.pushPaths(["a.md"], true);
+    expect(retry?.needsFullSync).toBe(true);
+
+    edit(vault, "a.md", "v3");
+    const result = await syncRuntime.syncNow();
+    expect(result?.conflicts.length).toBe(0);
+    expect(cloud.text("a.md")).toBe("v3");
+  } finally {
+    await restore();
+  }
+});
+
+test("pending：全量同步中途断网，没轮到的文件不留 pending", async () => {
+  const { vault, cloud, restore } = await setup();
+  try {
+    vault.createBytes("a.md", enc("a1"));
+    vault.createBytes("b.md", enc("b1"));
+    await syncRuntime.syncNow();
+    edit(vault, "a.md", "a2");
+    edit(vault, "b.md", "b2");
+
+    // a.md 先上传（路径排序），请求没写进云端就断网。
+    cloud.hooks.beforeWrite = () => { throw new SyncError("network", "offline"); };
+    const result = await syncRuntime.syncNow();
+    expect(result?.ok).toBe(false);
+    expect(await storedPending("b.md")).toEqual([]);
   } finally {
     await restore();
   }

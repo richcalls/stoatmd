@@ -365,9 +365,6 @@ export class SyncRuntime {
           continue;
         }
         const anchor = this.base.entries[path] ?? null;
-        // mtime 必须在读正文之前取：上传途中又保存一次时，锚点记旧 mtime，下一轮才看得出还有改动。
-        const mtimeMs = vault.mtime(path);
-        const content = new Uint8Array(vault.readBytes(path));
         const existing: RemoteFile | null = anchor ? {
           path,
           id: anchor.remoteId,
@@ -375,22 +372,12 @@ export class SyncRuntime {
           mtimeMs: 0,
           size: anchor.localSize,
         } : null;
-        await this.notePending(path, content);
         try {
-          const uploaded = await remote.uploadBytes(root, path, content, { existing });
-          this.setBase(path, {
-            remoteId: uploaded.id,
-            remoteRev: uploaded.rev,
-            localMtimeMs: mtimeMs,
-            localSize: content.length,
-            hash: sha256Bytes(content),
-          });
+          await this.uploadTracked(vault, remote, root, path, existing);
           result.uploaded += 1;
         } catch (err) {
           // 云端版本已变 / 路径被占用：不在这里做冲突裁决，交回全量同步。
           if (err instanceof RemoteConflictError) {
-            // 云端明确拒绝，这份正文没落地，不能再当成「本机的版本」。
-            this.dropPending(path, content);
             result.needsFullSync = true;
             continue;
           }
@@ -514,24 +501,7 @@ export class SyncRuntime {
 
     for (const action of actions) {
       if (action.type === "upload") {
-        const mtimeMs = vault.mtime(item.path);
-        const content = new Uint8Array(vault.readBytes(item.path));
-        const remoteFile = item.remote ?? null;
-        await this.notePending(item.path, content);
-        let result: RemoteFile;
-        try {
-          result = await remote.uploadBytes(root, item.path, content, { existing: remoteFile });
-        } catch (err) {
-          if (err instanceof RemoteConflictError) this.dropPending(item.path, content);
-          throw err;
-        }
-        this.setBase(item.path, {
-          remoteId: result.id,
-          remoteRev: result.rev,
-          localMtimeMs: mtimeMs,
-          localSize: content.length,
-          hash: sha256Bytes(content),
-        });
+        await this.uploadTracked(vault, remote, root, item.path, item.remote ?? null);
       } else if (action.type === "download") {
         const source = item.remote;
         if (!source) continue;
@@ -643,35 +613,10 @@ export class SyncRuntime {
         if (done % BASE_SAVE_EVERY === 0) await this.persistBase();
       };
 
-      // 先把计划上传的正文一次性登记并落盘，避免每个文件都整份写一次锚点；
-      // 上传时读到的正文若与计划不同（期间又保存过），notePending 会补记。
-      let planned = false;
-      for (const action of plan.uploads) {
-        const hash = action.local.hash ?? effectiveLocalHash(action.local, action.base);
-        if (hash && this.recordPending(action.path, hash)) planned = true;
-      }
-      if (planned) await this.persistBase();
-
       for (const action of plan.uploads) {
         await this.checkpoint();
-        const mtimeMs = vault.mtime(action.path);
-        const content = new Uint8Array(vault.readBytes(action.path));
         const remoteFile = remoteFiles.find((r) => r.path === action.path) ?? null;
-        await this.notePending(action.path, content);
-        let uploaded: RemoteFile;
-        try {
-          uploaded = await remote.uploadBytes(root, action.path, content, { existing: remoteFile });
-        } catch (err) {
-          if (err instanceof RemoteConflictError) this.dropPending(action.path, content);
-          throw err;
-        }
-        this.setBase(action.path, {
-          remoteId: uploaded.id,
-          remoteRev: uploaded.rev,
-          localMtimeMs: mtimeMs,
-          localSize: content.length,
-          hash: sha256Bytes(content),
-        });
+        await this.uploadTracked(vault, remote, root, action.path, remoteFile);
         result.uploaded += 1;
         await tick();
       }
@@ -828,15 +773,43 @@ export class SyncRuntime {
   }
 
   /**
-   * 上传发出前记下正文哈希。请求超时或进程被杀时云端可能已经写入；
-   * 下次同步看到云端正是这份内容，就按本机自己的版本处理，不误报冲突。
+   * 三条上传路径（推送 / 全量同步 / 冲突处理）共用：顺序上的约束都在这里。
+   * 1. 先取 mtime 再读正文：上传途中又保存一次时，锚点记旧 mtime，下一轮才看得出还有改动。
+   * 2. 请求发出前把正文哈希记进 pending 并落盘：超时或进程被杀时云端可能已写入，
+   *    下次同步看到云端正是这份内容，就按本机自己的版本处理，不误报冲突。
+   * 3. 云端明确拒绝（rev 冲突 / 路径被占用）时，只撤掉本次新加的记录；
+   *    同一份正文之前若已超时落地，那条记录要留着。
    */
-  private async notePending(path: string, content: Uint8Array): Promise<void> {
-    // 必须在请求发出前落盘：进程在回执前被杀，重启后才认得这一版。
-    if (this.recordPending(path, sha256Bytes(content))) await this.persistBase();
+  private async uploadTracked(
+    vault: Vault,
+    remote: SyncProvider,
+    root: RemoteDir,
+    path: string,
+    existing: RemoteFile | null,
+  ): Promise<RemoteFile> {
+    const mtimeMs = vault.mtime(path);
+    const content = new Uint8Array(vault.readBytes(path));
+    const hash = sha256Bytes(content);
+    const added = this.recordPending(path, hash);
+    if (added) await this.persistBase();
+    let uploaded: RemoteFile;
+    try {
+      uploaded = await remote.uploadBytes(root, path, content, { existing });
+    } catch (err) {
+      if (added && err instanceof RemoteConflictError) this.unrecordPending(path, hash);
+      throw err;
+    }
+    this.setBase(path, {
+      remoteId: uploaded.id,
+      remoteRev: uploaded.rev,
+      localMtimeMs: mtimeMs,
+      localSize: content.length,
+      hash,
+    });
+    return uploaded;
   }
 
-  /** 记一份未确认的上传正文；已经记过（重试同一版本）返回 false，调用方不必再写盘。 */
+  /** 记一份未确认的上传正文；已经记过（重试同一版本）返回 false。 */
   private recordPending(path: string, hash: string): boolean {
     const pending = (this.base.pending ??= {});
     const list = pending[path] ?? [];
@@ -845,11 +818,9 @@ export class SyncRuntime {
     return true;
   }
 
-  /** 云端明确拒绝了这次上传（rev 冲突 / 路径被占用）：正文没落地，撤掉记录。 */
-  private dropPending(path: string, content: Uint8Array): void {
+  private unrecordPending(path: string, hash: string): void {
     const list = this.base.pending?.[path];
     if (!list) return;
-    const hash = sha256Bytes(content);
     const rest = list.filter((h) => h !== hash);
     if (rest.length) this.base.pending![path] = rest;
     else delete this.base.pending![path];
