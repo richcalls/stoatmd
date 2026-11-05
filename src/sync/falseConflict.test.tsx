@@ -3,6 +3,7 @@ import { expect, test } from "nsh/test";
 import { Vault } from "stoatmd/native";
 import { ACTIVE_KEY } from "../storage/state";
 import { fixSyncConfigForTest } from "./config";
+import { sha256Bytes } from "./hash";
 import { RemoteConflictError, SyncError, type SyncProvider } from "./provider";
 import { syncRuntime, type SyncConnection } from "./runtime";
 import type { RemoteFile } from "./types";
@@ -29,6 +30,8 @@ type Stored = { id: string; rev: number; content: Uint8Array };
 /** 内存云盘：rev 条件更新与真实网盘一致；可注入「写进去了但回执丢了」和延迟。 */
 function memoryCloud() {
   const files = new Map<string, Stored>();
+  /** 同时在路上的上传数；>1 说明推送 / 全量同步没串行。 */
+  const inflight = { now: 0, max: 0 };
   const hooks = {
     /** 返回 true 表示这次上传写进云端后，回执超时丢失。 */
     loseReceipt: (_path: string) => false,
@@ -52,17 +55,23 @@ function memoryCloud() {
     },
     uploadBytes: async (_root: unknown, path: string, content: Uint8Array,
       options: { existing: RemoteFile | null }) => {
-      const cur = files.get(path);
-      if (options.existing) {
-        if (!cur || String(cur.rev) !== options.existing.rev) throw new RemoteConflictError("rev", path);
-      } else if (cur) {
-        throw new RemoteConflictError("exists", path);
+      inflight.max = Math.max(inflight.max, ++inflight.now);
+      try {
+        await Promise.resolve();
+        const cur = files.get(path);
+        if (options.existing) {
+          if (!cur || String(cur.rev) !== options.existing.rev) throw new RemoteConflictError("rev", path);
+        } else if (cur) {
+          throw new RemoteConflictError("exists", path);
+        }
+        const next: Stored = { id: cur?.id ?? `id-${path}`, rev: (cur?.rev ?? 0) + 1, content };
+        files.set(path, next);
+        await hooks.afterWrite(path);
+        if (hooks.loseReceipt(path)) throw new SyncError("network", "request timed out");
+        return meta(path, next);
+      } finally {
+        inflight.now -= 1;
       }
-      const next: Stored = { id: cur?.id ?? `id-${path}`, rev: (cur?.rev ?? 0) + 1, content };
-      files.set(path, next);
-      await hooks.afterWrite(path);
-      if (hooks.loseReceipt(path)) throw new SyncError("network", "request timed out");
-      return meta(path, next);
     },
     remove: async (file: RemoteFile) => {
       const cur = files.get(file.path);
@@ -73,7 +82,12 @@ function memoryCloud() {
   /** Drive 的 version 会因元数据（查看、分享、索引）自增，正文不变。 */
   const bumpRev = (path: string) => { const f = files.get(path)!; f.rev += 1; };
   const text = (path: string) => { const f = files.get(path); return f ? dec(f.content) : null; };
-  return { api, hooks, bumpRev, text, files };
+  return { api, hooks, bumpRev, text, files, inflight };
+}
+
+async function storedPending(path: string): Promise<string[]> {
+  const raw = await Storage.getItem(BASE_KEY);
+  return raw ? JSON.parse(raw).pending?.[path] ?? [] : [];
 }
 
 async function setup() {
@@ -244,6 +258,70 @@ test("真冲突：别的设备改了云端正文，仍然交给用户选", async
     expect(result?.conflicts.length).toBe(1);
     expect(cloud.text("a.md")).toBe("from phone");
     expect(dec(new Uint8Array(vault.readBytes("a.md")))).toBe("from mac");
+  } finally {
+    await restore();
+  }
+});
+
+test("串行：两次推送和一次全量同步同时排队，同一时刻只有一个上传在路上", async () => {
+  const { vault, cloud, restore } = await setup();
+  try {
+    vault.createBytes("a.md", enc("v1"));
+    vault.createBytes("b.md", enc("b1"));
+    await syncRuntime.syncNow();
+    edit(vault, "a.md", "v2");
+    edit(vault, "b.md", "b2");
+
+    let release: () => void = () => {};
+    cloud.hooks.afterWrite = () => new Promise<void>((resolve) => { release = resolve; });
+    const first = syncRuntime.pushPaths(["a.md"], true);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    // 之后的每次上传都在路上停几毫秒，交错的话 inflight 会 >1。
+    cloud.hooks.afterWrite = () => new Promise<void>((resolve) => setTimeout(resolve, 5));
+    const second = syncRuntime.pushPaths(["a.md"], true);
+    const third = syncRuntime.pushPaths(["b.md"], true);
+    const full = syncRuntime.syncNow();
+    release();
+
+    const results = await Promise.all([first, second, third, full]);
+    expect(cloud.inflight.max).toBe(1);
+    expect(results.every((r) => !r || r.conflicts.length === 0)).toBe(true);
+    expect(results.every((r) => !r?.needsFullSync)).toBe(true);
+    expect(cloud.text("a.md")).toBe("v2");
+    expect(cloud.text("b.md")).toBe("b2");
+  } finally {
+    await restore();
+  }
+});
+
+test("pending：全量同步上传前就落盘，被杀后重启仍认得自己的版本", async () => {
+  const { vault, cloud, restore } = await setup();
+  try {
+    vault.createBytes("a.md", enc("v1"));
+    await syncRuntime.syncNow();
+    edit(vault, "a.md", "v2");
+
+    let seen: string[] = [];
+    cloud.hooks.afterWrite = async () => { seen = await storedPending("a.md"); };
+    await syncRuntime.syncNow();
+    expect(seen).toEqual([sha256Bytes(enc("v2"))]);
+  } finally {
+    await restore();
+  }
+});
+
+test("pending：上传被云端以 rev 冲突拒绝时清掉，不把没落地的正文当成自己的", async () => {
+  const { vault, cloud, restore } = await setup();
+  try {
+    vault.createBytes("a.md", enc("v1"));
+    await syncRuntime.syncNow();
+    const f = cloud.files.get("a.md")!;
+    cloud.files.set("a.md", { ...f, rev: f.rev + 1, content: enc("phone") });
+    edit(vault, "a.md", "mac");
+
+    const push = await syncRuntime.pushPaths(["a.md"], true);
+    expect(push?.needsFullSync).toBe(true);
+    expect(await storedPending("a.md")).toEqual([]);
   } finally {
     await restore();
   }

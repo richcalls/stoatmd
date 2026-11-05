@@ -2,7 +2,7 @@ import { Storage, signal } from "nsh";
 import { OAuth, Vault } from "stoatmd/native";
 import { loadSyncConfig } from "./config";
 import { DropboxProvider } from "./dropbox";
-import { localChanged, planSync, probeCandidates, resolveConflict as resolveActions } from "./engine";
+import { effectiveLocalHash, planSync, probeCandidates, resolveConflict as resolveActions } from "./engine";
 import { GoogleDriveProvider } from "./google";
 import { activeStorage, readActiveStorage, writeActiveStorage, storageBusy, type Cleanup } from "../storage/state";
 import { sha256Hex, sha256Bytes } from "./hash";
@@ -112,10 +112,13 @@ export class SyncRuntime {
   private base: BaseState = emptyBase();
   private loaded = false;
   private loading: Promise<void> | null = null;
-  private running: Promise<SyncRunResult> | null = null;
-  private pushing: Promise<SyncRunResult | null> | null = null;
+  private running: Promise<SyncRunResult | null> | null = null;
+  /**
+   * 所有云端写操作（全量同步、单文件推送、删除推送、冲突处理）排成一条队列。
+   * 两轮交错时，一轮会看到另一轮刚写进云端、还没记进锚点的 rev，误判成别处改过。
+   */
+  private queue: Promise<unknown> = Promise.resolve();
   private readonly fetchImpl: FetchLike;
-  private resolving: Promise<void> | null = null;
   private sessions = new Map<ProviderId, TokenSession>();
   private pending: { provider: ProviderId; session: TokenSession } | null = null;
 
@@ -147,7 +150,7 @@ export class SyncRuntime {
 
   /** Drain a running sync before taking the migration snapshot. */
   async pause(): Promise<void> {
-    await Promise.all([this.running, this.resolving?.catch(() => {})]);
+    await this.queue.catch(() => {});
   }
 
   /** 全量同步中暂停：当前文件处理完后停在动作之间，库仍可浏览与编辑。 */
@@ -289,63 +292,57 @@ export class SyncRuntime {
   /** 手动 / 自动同步；并发调用返回同一轮。 */
   async syncNow(): Promise<SyncRunResult | null> {
     await this.load();
-    if (this.resolving) await this.resolving.catch(() => {});
     if (storageBusy() || !this.isAttached()) return null;
     if (loadSyncConfig(true).purchaseRequired) return this.finishError(new SyncError("config", "purchase required"));
-    // 推送请求还在路上时列云端，会看到「云端已是新版、锚点还是旧版」，误判成两边都改过。
-    while (this.pushing && !this.running) await this.pushing.catch(() => {});
+    // 已有一轮全量同步在排队或在跑：并发调用共用那一轮。
     if (this.running) return this.running;
-    this.running = this.run().finally(() => {
-      this.running = null;
+    const round = this.enqueue(async () => {
+      // 排队期间库可能已切走 / 进入迁移，轮到时再确认一次。
+      if (storageBusy() || !this.isAttached()) return null;
+      if (loadSyncConfig(true).purchaseRequired) return this.finishError(new SyncError("config", "purchase required"));
+      return this.run();
     });
-    return this.running;
+    this.running = round;
+    try {
+      return await round;
+    } finally {
+      if (this.running === round) this.running = null;
+    }
+  }
+
+  /** 把一次云端写操作排到队尾；前一个失败不影响后一个。 */
+  private enqueue<T>(work: () => Promise<T>): Promise<T> {
+    const next = this.queue.catch(() => {}).then(work);
+    this.queue = next;
+    return next;
   }
 
   /** 保存后只推变化的文件，不列远端目录。`quiet` 用于后台自动推送：失败不打断界面。 */
   async pushPaths(paths: string[], quiet = false): Promise<SyncRunResult | null> {
     await this.load();
-    if (this.resolving) await this.resolving.catch(() => {});
     if (storageBusy() || !this.isAttached()) return null;
     if (loadSyncConfig(true).purchaseRequired) {
       return this.finishError(new SyncError("config", "purchase required"));
     }
     if (this.phase() === "conflict") return null;
-    await this.idle();
-    if (storageBusy() || !this.isAttached() || this.phase() === "conflict") return null;
-    const operation = this.push(paths, quiet);
-    this.pushing = operation;
-    try {
-      return await operation;
-    } finally {
-      if (this.pushing === operation) this.pushing = null;
-    }
+    return this.enqueue(async () => {
+      if (storageBusy() || !this.isAttached() || this.phase() === "conflict") return null;
+      return this.push(paths, quiet);
+    });
   }
 
   /** 本地删除 / 移动后只删对应的远端文件；云端版本变了就交回全量同步。 */
   async pushDeletions(paths: string[], quiet = false): Promise<SyncRunResult | null> {
     await this.load();
-    if (this.resolving) await this.resolving.catch(() => {});
     if (storageBusy() || !this.isAttached()) return null;
     if (loadSyncConfig(true).purchaseRequired) {
       return this.finishError(new SyncError("config", "purchase required"));
     }
     if (this.phase() === "conflict") return null;
-    await this.idle();
-    if (storageBusy() || !this.isAttached() || this.phase() === "conflict") return null;
-    const operation = this.removeRemote(paths, quiet);
-    this.pushing = operation;
-    try {
-      return await operation;
-    } finally {
-      if (this.pushing === operation) this.pushing = null;
-    }
-  }
-
-  /** 等全量同步与其它推送都结束；返回后同步执行到下一次 await 前不会有新的一轮插进来。 */
-  private async idle(): Promise<void> {
-    while (this.running || this.pushing) {
-      await Promise.all([this.running?.catch(() => {}), this.pushing?.catch(() => {})]);
-    }
+    return this.enqueue(async () => {
+      if (storageBusy() || !this.isAttached() || this.phase() === "conflict") return null;
+      return this.removeRemote(paths, quiet);
+    });
   }
 
   private async push(paths: string[], quiet = false): Promise<SyncRunResult | null> {
@@ -378,7 +375,7 @@ export class SyncRuntime {
           mtimeMs: 0,
           size: anchor.localSize,
         } : null;
-        await this.notePending(path, content, true);
+        await this.notePending(path, content);
         try {
           const uploaded = await remote.uploadBytes(root, path, content, { existing });
           this.setBase(path, {
@@ -392,6 +389,8 @@ export class SyncRuntime {
         } catch (err) {
           // 云端版本已变 / 路径被占用：不在这里做冲突裁决，交回全量同步。
           if (err instanceof RemoteConflictError) {
+            // 云端明确拒绝，这份正文没落地，不能再当成「本机的版本」。
+            this.dropPending(path, content);
             result.needsFullSync = true;
             continue;
           }
@@ -495,14 +494,10 @@ export class SyncRuntime {
   /** 对单个冲突应用用户选择；调用方在所有冲突处理完后重新同步。 */
   async resolveConflict(item: ConflictItem, choice: ConflictChoice): Promise<void> {
     if (storageBusy() || loadSyncConfig(true).purchaseRequired) throw new SyncError("config", "cloud writes paused");
-    const operation = (this.resolving ?? Promise.resolve()).catch(() => {}).then(async () => {
-      if (this.running) await this.running;
+    await this.enqueue(async () => {
       if (storageBusy()) throw new SyncError("config", "cloud writes paused");
       await this.applyConflict(item, choice);
     });
-    this.resolving = operation;
-    try { await operation; }
-    finally { if (this.resolving === operation) this.resolving = null; }
   }
 
   private async applyConflict(item: ConflictItem, choice: ConflictChoice): Promise<void> {
@@ -522,8 +517,14 @@ export class SyncRuntime {
         const mtimeMs = vault.mtime(item.path);
         const content = new Uint8Array(vault.readBytes(item.path));
         const remoteFile = item.remote ?? null;
-        await this.notePending(item.path, content, true);
-        const result = await remote.uploadBytes(root, item.path, content, { existing: remoteFile });
+        await this.notePending(item.path, content);
+        let result: RemoteFile;
+        try {
+          result = await remote.uploadBytes(root, item.path, content, { existing: remoteFile });
+        } catch (err) {
+          if (err instanceof RemoteConflictError) this.dropPending(item.path, content);
+          throw err;
+        }
         this.setBase(item.path, {
           remoteId: result.id,
           remoteRev: result.rev,
@@ -642,15 +643,28 @@ export class SyncRuntime {
         if (done % BASE_SAVE_EVERY === 0) await this.persistBase();
       };
 
+      // 先把计划上传的正文一次性登记并落盘，避免每个文件都整份写一次锚点；
+      // 上传时读到的正文若与计划不同（期间又保存过），notePending 会补记。
+      let planned = false;
+      for (const action of plan.uploads) {
+        const hash = action.local.hash ?? effectiveLocalHash(action.local, action.base);
+        if (hash && this.recordPending(action.path, hash)) planned = true;
+      }
+      if (planned) await this.persistBase();
+
       for (const action of plan.uploads) {
         await this.checkpoint();
-        const content = new Uint8Array(vault.readBytes(action.path));
         const mtimeMs = vault.mtime(action.path);
+        const content = new Uint8Array(vault.readBytes(action.path));
         const remoteFile = remoteFiles.find((r) => r.path === action.path) ?? null;
-        await this.notePending(action.path, content, false);
-        const uploaded = await remote.uploadBytes(root, action.path, content, {
-          existing: remoteFile,
-        });
+        await this.notePending(action.path, content);
+        let uploaded: RemoteFile;
+        try {
+          uploaded = await remote.uploadBytes(root, action.path, content, { existing: remoteFile });
+        } catch (err) {
+          if (err instanceof RemoteConflictError) this.dropPending(action.path, content);
+          throw err;
+        }
         this.setBase(action.path, {
           remoteId: uploaded.id,
           remoteRev: uploaded.rev,
@@ -670,8 +684,7 @@ export class SyncRuntime {
         const hash = sha256Bytes(content);
         // 云端只是 rev 变了、正文和本地一样（Drive version 自增）：不重写文件，
         // 否则正在编辑的笔记 mtime 被改，下一次保存会误报「文件已在外部被修改」。
-        const same = action.local !== null &&
-          (action.local.hash ?? (action.base && !localChanged(action.local, action.base) ? action.base.hash : null)) === hash;
+        const same = action.local !== null && effectiveLocalHash(action.local, action.base) === hash;
         if (!same) writeLocal(vault, action.path, content);
         this.setBase(action.path, {
           remoteId: action.remote.id,
@@ -818,13 +831,28 @@ export class SyncRuntime {
    * 上传发出前记下正文哈希。请求超时或进程被杀时云端可能已经写入；
    * 下次同步看到云端正是这份内容，就按本机自己的版本处理，不误报冲突。
    */
-  private async notePending(path: string, content: Uint8Array, persist: boolean): Promise<void> {
+  private async notePending(path: string, content: Uint8Array): Promise<void> {
+    // 必须在请求发出前落盘：进程在回执前被杀，重启后才认得这一版。
+    if (this.recordPending(path, sha256Bytes(content))) await this.persistBase();
+  }
+
+  /** 记一份未确认的上传正文；已经记过（重试同一版本）返回 false，调用方不必再写盘。 */
+  private recordPending(path: string, hash: string): boolean {
     const pending = (this.base.pending ??= {});
+    const list = pending[path] ?? [];
+    if (list.includes(hash)) return false;
+    pending[path] = [...list, hash].slice(-PENDING_PER_PATH);
+    return true;
+  }
+
+  /** 云端明确拒绝了这次上传（rev 冲突 / 路径被占用）：正文没落地，撤掉记录。 */
+  private dropPending(path: string, content: Uint8Array): void {
+    const list = this.base.pending?.[path];
+    if (!list) return;
     const hash = sha256Bytes(content);
-    const list = (pending[path] ?? []).filter((h) => h !== hash);
-    list.push(hash);
-    pending[path] = list.slice(-PENDING_PER_PATH);
-    if (persist) await this.persistBase();
+    const rest = list.filter((h) => h !== hash);
+    if (rest.length) this.base.pending![path] = rest;
+    else delete this.base.pending![path];
   }
 
   private async persistBase(): Promise<void> {
