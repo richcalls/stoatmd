@@ -46,7 +46,8 @@ macOS 应用菜单的 **Check for Updates… / 检查更新…** 会查询公开
 
 推送 `v*` tag 后，`.github/workflows/desktop-release.yml` 的 macOS 任务在 `macos-15`
 托管 runner 上完成打包、Developer ID 签名、`asc` 公证、`stapler` 钉票与 `spctl` 验收，
-再把 DMG、ZIP 和 `SHA256SUMS.txt` 附加到本仓库的 Release；DMG 另存一份
+再把 macOS、Windows、Linux 的包附加到本仓库的 Release，校验和统一生成为
+`SHA256SUMS-desktop.txt`；DMG 另存一份
 `StoatMD-macos.dmg` 供官网与应用内更新的固定直链使用。
 
 公开仓库不能使用自托管 `apple-ci`（runner group 禁止公开仓库），签名与公证凭据改放
