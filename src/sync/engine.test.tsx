@@ -221,3 +221,74 @@ test("同步引擎：冲突副本命名带日期且可避让重名", () => {
     "a (云端冲突 2026-10-29 2).md",
   );
 });
+
+// —— 假冲突回归：只在一台设备上写，也被告知冲突 ——
+
+test("同步引擎：云端 rev 变了但正文仍是锚点内容（Drive version 自增）→ 只上传本地，不报冲突", () => {
+  const base = baseOf([anchor("a.md", "h1")]);
+  const plan = planSync({
+    base,
+    local: [local("a.md", "edited", 3000)],
+    remote: [remote("a.md", "r2")],
+    remoteHashes: { "a.md": "h1" },
+  });
+  expect(plan.conflicts.length).toBe(0);
+  expect(plan.uploads.map((row) => row.path)).toEqual(["a.md"]);
+});
+
+test("同步引擎：云端正文是本机上次没收到回执的上传 → 只上传本地，不报冲突", () => {
+  const base = baseOf([anchor("a.md", "h1")]);
+  base.pending = { "a.md": ["sent-but-timed-out"] };
+  const plan = planSync({
+    base,
+    local: [local("a.md", "typed-more", 3000)],
+    remote: [remote("a.md", "r2")],
+    remoteHashes: { "a.md": "sent-but-timed-out" },
+  });
+  expect(plan.conflicts.length).toBe(0);
+  expect(plan.uploads.map((row) => row.path)).toEqual(["a.md"]);
+});
+
+test("同步引擎：新文件首次上传超时、云端已建好 → 上传本地，不报冲突", () => {
+  const base = emptyBase();
+  base.pending = { "new.md": ["first-try"] };
+  const plan = planSync({
+    base,
+    local: [local("new.md", "typed-more", 3000)],
+    remote: [remote("new.md", "r1")],
+    remoteHashes: { "new.md": "first-try" },
+  });
+  expect(plan.conflicts.length).toBe(0);
+  expect(plan.uploads.map((row) => row.path)).toEqual(["new.md"]);
+});
+
+test("同步引擎：本地删除、云端只是 rev 自增 → 删除云端，不报冲突", () => {
+  const base = baseOf([anchor("a.md", "h1")]);
+  const plan = planSync({
+    base,
+    local: [],
+    remote: [remote("a.md", "r2")],
+    remoteHashes: { "a.md": "h1" },
+  });
+  expect(plan.conflicts.length).toBe(0);
+  expect(plan.remoteDeletes.map((row) => row.path)).toEqual(["a.md"]);
+  expect(plan.remoteDeletes[0].remote?.rev).toBe("r2");
+});
+
+test("同步引擎：本地删除、云端 rev 变了也要探测正文", () => {
+  const base = baseOf([anchor("a.md")]);
+  const rows = probeCandidates({ base, local: [], remote: [remote("a.md", "r2")] });
+  expect(rows.map((row) => row.path)).toEqual(["a.md"]);
+});
+
+test("同步引擎：云端真的被别处改过，仍然报冲突", () => {
+  const base = baseOf([anchor("a.md", "h1")]);
+  base.pending = { "a.md": ["mine"] };
+  const plan = planSync({
+    base,
+    local: [local("a.md", "left", 3000)],
+    remote: [remote("a.md", "r2")],
+    remoteHashes: { "a.md": "someone-else" },
+  });
+  expect(plan.conflicts.length).toBe(1);
+});
