@@ -27,12 +27,12 @@ A Markdown notebook for people and AI agents. StoatMD keeps notes as ordinary Ma
 
 ## Build from source
 
-Requirements: Rust stable, Python 3, and [nsh CLI 0.3.0](https://nsh.dev). Full Xcode is required for iOS simulator and device builds.
+Requirements: Rust stable, Python 3, and [nsh CLI 0.4.0](https://nsh.dev). Full Xcode is required for iOS simulator and device builds.
 
 ```sh
 git clone https://github.com/richcalls/stoatmd.git
 cd stoatmd
-curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.3.0 sh
+curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.4.0 sh
 nsh check
 nsh test
 nsh run --target macos

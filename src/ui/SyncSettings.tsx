@@ -280,7 +280,7 @@ export function SyncSettings(props: SyncSettingsProps) {
           <If when={stack().length > 1}>
             {button("sync-folder-up", "‹", () => { stack.update(s => s.slice(0, -1)); void loadFolders(currentDir()); }, false, loading())}
           </If>
-          <Text testID="sync-folder-path" style={{ flex: 1, fontSize: uiTextSize(13), color: colors().ink }} numberOfLines={1}>{stack().map(d => d.name).join(" / ")}</Text>
+          <Text testID="sync-folder-path" style={{ numberOfLines: 1, flex: 1, fontSize: uiTextSize(13), color: colors().ink }}>{stack().map(d => d.name).join(" / ")}</Text>
         </View>
         <Scroll style={ios ? { height: 220, borderRadius: 12, backgroundColor: colors().list } : { height: 180, borderWidth: 1, borderColor: colors().thread, borderRadius: 8 }}>
           <View style={{ padding: ios ? 0 : 6, gap: 2 }}>
@@ -317,7 +317,7 @@ export function SyncSettings(props: SyncSettingsProps) {
           {detail(t("storage.summary", { files: migration.summary()?.files ?? 0, folders: migration.summary()?.directories ?? 0,
             size: ((migration.summary()?.bytes ?? 0) / 1048576).toFixed(1) }))}
           {detail(t("storage.mergeDescription"))}
-          <Checkbox testID="storage-keep-original" checked={migration.keepOriginal()} onChange={checked => migration.keepOriginal.set(checked)}
+          <Checkbox testID="storage-keep-original" checked={migration.keepOriginal()} onChange={({ checked }) => migration.keepOriginal.set(checked)}
             style={{ flexDirection: "row", alignItems: "center", gap: 9, paddingVertical: 6 }}
             indicatorStyle={{ width: 17, height: 17, borderWidth: 1, borderRadius: 4,
               borderColor: migration.keepOriginal() ? colors().accent : colors().thread,

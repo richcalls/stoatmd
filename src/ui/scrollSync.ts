@@ -1,5 +1,5 @@
 import type { EditorRef } from "nsh/base";
-import type { ScrollEvent, YNode } from "nsh";
+import type { ListRef, ScrollEvent } from "nsh";
 
 import { editorLineHeight } from "./typography";
 
@@ -14,7 +14,7 @@ const S = {
   mode: "edit" as Mode,
   editor: null as EditorRef | null,
   hidden: null as EditorRef | null,
-  preview: null as YNode | null,
+  preview: null as ListRef | null,
   editorContentH: 0,
   editorViewH: 0,
   editorY: 0,
@@ -115,7 +115,7 @@ export function attachHiddenEditor(ref: EditorRef | null) {
   if (ref && S.mode === "split") scheduleMeasure(30);
 }
 
-export function attachPreview(node: YNode | null) {
+export function attachPreview(node: ListRef | null) {
   // 预览换文时 List 会对同一个节点再回调一次 ref：不能重置进度
   if (S.preview === node) return;
   S.preview = node;
