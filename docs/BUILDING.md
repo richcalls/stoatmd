@@ -5,14 +5,14 @@
 ## 准备环境
 
 - Rust stable（edition 2024）与 Python 3。
-- nsh CLI **0.3.0**，与 `Cargo.toml` 中的 nsh crates 保持一致。
+- nsh CLI **0.4.0**，与 `Cargo.toml` 中的 nsh crates 保持一致。
 - macOS 开发：Xcode Command Line Tools。iOS 开发：完整 Xcode、对应 iOS SDK 与 Simulator。
 - 官网开发单独使用 Node.js 22 与 npm。
 
 ```sh
 git clone https://github.com/richcalls/stoatmd.git
 cd stoatmd
-curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.3.0 sh
+curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.4.0 sh
 nsh --version
 ```
 

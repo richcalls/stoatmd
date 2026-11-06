@@ -62,7 +62,7 @@ export function ConflictDialog(props: Props) {
         ? conflicts().filter((item) => item.kind === "bothModified")
         : conflicts();
     if (items.length === 0) return;
-    const action = await AlertDialog.show({
+    const { action } = await AlertDialog.show({
       title: t("sync.conflict.confirmTitle"),
       description: `${t("sync.conflict.confirmDesc")} (${items.length})`,
       actions: [
@@ -203,8 +203,7 @@ export function ConflictDialog(props: Props) {
                 >
                   <Text
                     testID={`conflict-path-${item.path}`}
-                    style={{ fontSize: uiTextSize(13), fontWeight: "560", color: colors().ink }}
-                    numberOfLines={1}
+                    style={{ numberOfLines: 1, fontSize: uiTextSize(13), fontWeight: "560", color: colors().ink }}
                   >
                     {item.path}
                   </Text>

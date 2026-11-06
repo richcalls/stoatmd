@@ -55,7 +55,7 @@ const NARROW_OVERLAY = 920;
 /** Mac 两栏壳：左栏文件树 + 内嵌画布（编辑/预览） + 可收起文章栏。 */
 export function MacShell() {
   Window.setTitle("StoatMD");
-  Window.setTitleBar("hidden", WINDOW_BAR_HEIGHT);
+  Window.setTitleBar({ style: "hidden", height: WINDOW_BAR_HEIGHT });
   const sidebarMode = signal<SidebarMode>("expanded");
   const sidebarWidth = signal(SIDEBAR_WIDTH);
   const mode = signal<ViewMode>("split");
@@ -453,7 +453,7 @@ export function MacShell() {
     const title =
       notes().find((n) => n.id === path)?.title ??
       titleFromName(path.split("/").pop() ?? path);
-    const action = await AlertDialog.show({
+    const { action } = await AlertDialog.show({
       title: t("trash.title"),
       description: t("trash.desc", { name: title }),
       actions: [
@@ -613,7 +613,7 @@ export function MacShell() {
     if (conflictOpen()) return;
     conflictOpen.set(true);
     try {
-      const action = await AlertDialog.show({
+      const { action } = await AlertDialog.show({
         title: t("vault.conflict.title"),
         description: t("vault.conflict.description"),
         actions: [
@@ -938,9 +938,9 @@ export function MacShell() {
 
   return (
     <View
-      onLayout={(b) => {
-        windowWidth.set(b.size.width);
-        windowHeight.set(b.size.height);
+      onLayout={({ bounds }) => {
+        windowWidth.set(bounds.size.width);
+        windowHeight.set(bounds.size.height);
       }}
       style={{
         flex: 1,
@@ -1024,7 +1024,7 @@ export function MacShell() {
           handleStyle={{ width: 1, backgroundColor: "transparent" }}
           handleThumbStyle={{ width: 3, borderRadius: 2, backgroundColor: "transparent" }}
           handleAccessibilityLabel="Adjust sidebar width"
-          onResize={(sizes) => {
+          onResize={({ sizes }) => {
             const width = sizes[0];
             if (width !== undefined && Number.isFinite(width)) sidebarWidth.set(width);
           }}
@@ -1229,7 +1229,7 @@ export function MacShell() {
             <Input
               testID="rename-input"
               value={renameDraft()}
-              onChange={(text) => {
+              onChange={({ value: text }) => {
                 renameDraft.set(text);
                 if (renameError()) renameError.set("");
               }}
