@@ -189,3 +189,37 @@ test("EditorWorkspace：预览里的外链点击后交给系统打开", async ()
   await app.press("text:链接 link");
   expect(app.openedUrls()).toContain("https://example.com");
 });
+
+for (const keys of ["cmd+a", "ctrl+a"]) {
+  test(`EditorWorkspace：焦点在编辑器外的输入框时，${keys} 加删除不改动正文`, async () => {
+    const app = await open("./EditorWorkspace.harness.tsx", {
+      width: 1000, height: 700, platform: "macos", host: { params: { locale: "en" } },
+    });
+    // 先在正文里打一个字（编辑器拿到焦点），再去别的输入框打字，像侧栏搜索那样。
+    await app.type("id:document-editor", "!");
+    await app.waitUntil(() => app.texts().some((t) => t.startsWith("!# hi\n")));
+    await app.type("id:outside-input", "读书笔记");
+    await app.keyboard.press("backspace");
+    await app.keyboard.press(keys);
+    await app.keyboard.press("backspace");
+    await app.keyboard.press("cmd+x");
+    // 正文（预览值）仍是完整文章，没有被外部输入框的全选 + 删除清空。
+    expect(app.texts().some((t) => t.startsWith("!# hi\n") && t.includes("正文 plain text"))).toBe(true);
+    expect(app.value("id:outside-input")).not.toBe("读书笔记");
+  });
+}
+
+test("EditorWorkspace：文件内查找开着时，在别的输入框按 Esc 不把焦点拽回正文", async () => {
+  const app = await open("./EditorWorkspace.harness.tsx", {
+    width: 1000, height: 700, platform: "macos", host: { params: { locale: "en" } },
+  });
+  await app.keyboard.press("cmd+f");
+  await app.waitUntil(() => app.shows("id:document-find"));
+  await app.type("id:outside-input", "dushu");
+  // 中文输入法里按 Esc 是取消候选；不能顺带关掉文件内查找、把焦点交给正文。
+  await app.keyboard.press("escape");
+  await app.keyboard.press("backspace");
+  await app.keyboard.press("cmd+a");
+  await app.keyboard.press("backspace");
+  expect(app.texts().some((t) => t.startsWith("# hi\n") && t.includes("正文 plain text"))).toBe(true);
+});
