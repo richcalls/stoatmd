@@ -120,8 +120,7 @@ export function Icon(props: { name: IconName; color: string; size?: number }) {
   return (
     <Image
       src={MAP[props.name]}
-      resizeMode="contain"
-      style={{ width: size, height: size, tintColor: props.color }}
+      style={{ objectFit: "contain", width: size, height: size, tintColor: props.color }}
     />
   );
 }

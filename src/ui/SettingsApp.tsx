@@ -12,7 +12,7 @@ import { restoreReaderWidth } from "./readerWidth";
 /** Secondary window root. The host channel forwards work to the main engine. */
 export function SettingsApp() {
   // 隐藏系统标题栏，保留 AppKit 红绿灯，由设置界面绘制统一的浅色标题区域。
-  Window.setTitleBar("hidden", 34);
+  Window.setTitleBar({ style: "hidden", height: 34 });
   const initial = host.params.state as unknown as SettingsState;
   const state = signal(initial);
   const open = signal(true);

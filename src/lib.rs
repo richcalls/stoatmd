@@ -91,7 +91,7 @@ impl SystemFonts {
     }
 }
 
-/// 系统选文件夹（桌面；nsh 0.3.0 尚无 `file_dialog`，用 rfd 等价能力）。
+/// 系统选文件夹（桌面；nsh 0.4.0 仍无 `file_dialog`，用 rfd 等价能力）。
 #[module]
 pub struct VaultDialog;
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Package a desktop build on its own operating system.
 
-nsh 0.3.0 does not cross-compile desktop runners. Run this script on the target
+nsh 0.4.0 does not cross-compile desktop runners. Run this script on the target
 operating system: Windows produces a zip, Linux a tar.gz, and macOS an unsigned
 zip containing the ad-hoc signed app. Public macOS builds are not notarized;
 users may need to approve the app in macOS Privacy & Security on first launch.
@@ -43,7 +43,7 @@ def main():
 
     if host is None:
         raise SystemExit(
-            "nsh 0.3.0 must package desktop apps on their target operating "
+            "nsh 0.4.0 must package desktop apps on their target operating "
             "system. Run this script on macOS, Windows, or Linux; "
             "cross-built runners are host binaries and will not start."
         )
