@@ -51,11 +51,11 @@ gh release create v<版本> -R richcalls/stoatmd-community \
 - 授权链路保持系统浏览器 + 随机 loopback 端口 + S256 PKCE + `state`；token 只进系统钥匙串。
 - 确认待发布的 DMG 由当前提交构建：发布前重新跑脚本，不要复用旧产物。
 
-### 手动发布（Apple CI Runner）
+### 手动发布（GitHub 托管 macOS CI）
 
-macOS 发布跑在组织级 Apple CI runner（`apple-ci`，iOS / macOS 共用）上。
-Runner 的注册、runner group、钥匙串与安全边界见
-[Apple CI Runner](../ops/apple-ci-runner.md)。
+macOS 发布跑在 GitHub 托管的 `macos-latest`（Apple Silicon）上，签名证书与
+asc 凭据全部来自仓库 Secrets。Secrets 清单、导出/轮换方式与自托管 runner
+退役步骤见 [macOS CI](../ops/macos-ci.md)。
 
 `.github/workflows/macos-release.yml`：
 
@@ -66,8 +66,7 @@ Runner 的注册、runner group、钥匙串与安全边界见
 - 上传资产：版本化 DMG、版本化 ZIP、`SHA256SUMS.txt`，以及官网固定直链用的
   副本 `StoatMD-macos.dmg`。
 
-发布前先手动跑一次 `.github/workflows/macos-runner-smoke.yml` 确认 runner
-环境。
+发布前先手动跑一次 `.github/workflows/macos-ci-smoke.yml` 确认 CI 环境。
 
 需要仓库 Secret `STOATMD_COMMUNITY_TOKEN`：fine-grained PAT，对
 `richcalls/stoatmd-community` 有 `Contents: Read and write`。设置方式：

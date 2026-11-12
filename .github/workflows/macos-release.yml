@@ -1,13 +1,14 @@
-# 在原生 macOS 自托管 runner 上构建、签名、公证并发布 macOS 安装包。
+# 在 GitHub 托管的 macOS runner 上构建、签名、公证并发布 macOS 安装包。
 #
-# 为什么不是 Docker runner：Docker Desktop for macOS 运行的是 Linux 虚拟机，
-# 容器内没有 Xcode / codesign / notarytool / hdiutil，无法产出 macOS 包。
-# runner 是组织级 Apple CI（iOS / macOS 共用），标签 apple-ci。
+# 公开仓库使用 GitHub 的标准 macOS runner（Apple Silicon，免费额度），
+# 不再依赖自托管 Apple CI。签名证书、公证与 asc 凭据全部来自仓库 Secrets，
+# 由 job 临时导入钥匙串 / 写入 ~/.asc/config.json。
 #
-# 一次性准备（注册 runner、钥匙串、asc、社区仓 token）见
-# docs/ops/apple-ci-runner.md 与 docs/product/RELEASE.md。
+# 一次性准备（Secrets 清单与生成方式）见 docs/ops/macos-ci.md。
 #
 # Secrets:
+#   MACOS_CERT_P12 / MACOS_CERT_PASSWORD  Developer ID Application 证书（base64 P12）
+#   ASC_KEY_ID / ASC_ISSUER_ID / ASC_PRIVATE_KEY  App Store Connect API Key（公证用）
 #   STOATMD_GOOGLE_CLIENT_ID / STOATMD_GOOGLE_CLIENT_SECRET / STOATMD_DROPBOX_APP_KEY
 #   STOATMD_COMMUNITY_TOKEN  fine-grained PAT，对 richcalls/stoatmd-community
 #                            有 Contents: Read and write 权限。
@@ -38,7 +39,7 @@ concurrency:
 jobs:
   release:
     name: Build, sign, notarize, publish
-    runs-on: [self-hosted, macOS, ARM64, apple-ci]
+    runs-on: macos-latest
     timeout-minutes: 90
     env:
       # asc 直接读 ~/.asc/config.json，不碰钥匙串里的 API key 副本
@@ -49,26 +50,42 @@ jobs:
         with:
           ref: ${{ inputs.tag }}
           fetch-depth: 0
-          clean: false
 
-      - name: Clean untracked files, keep ignored caches
+      - name: Check signing secrets
+        shell: bash
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in MACOS_CERT_P12 MACOS_CERT_PASSWORD ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::缺少 secret $name（配置方式见 docs/ops/macos-ci.md）"
+              missing=1
+            fi
+          done
+          [[ "$missing" -eq 0 ]] || exit 1
+
+      - name: Install nsh
         shell: bash
         run: |
           set -euo pipefail
-          # 保留 .nsh/ 与 target/ 等 ignored 缓存，避免每次从零编译。
-          git reset --hard HEAD
-          git clean -ffd
+          curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.5.0 sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Add user tools to PATH
+      - name: Install asc
         shell: bash
         run: |
           set -euo pipefail
-          # runner 的 PATH 不保证包含用户安装目录；按 $HOME 注入，避免写死用户名。
-          {
-            echo "$HOME/.local/bin"
-            echo "/opt/homebrew/bin"
-            echo "/usr/local/bin"
-          } >> "$GITHUB_PATH"
+          brew install asc
+          echo "/opt/homebrew/bin" >> "$GITHUB_PATH"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Resolve version and build
         id: meta
@@ -89,6 +106,56 @@ jobs:
             echo "build=$BUILD"
           } >> "$GITHUB_OUTPUT"
           echo "Release $TAG (version $VERSION, build $BUILD)"
+
+      - name: Import signing certificate
+        shell: bash
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          CERT="$RUNNER_TEMP/developer-id.p12"
+          printf '%s' "$MACOS_CERT_P12" | base64 --decode > "$CERT"
+          security import "$CERT" -k "$KEYCHAIN" -P "$MACOS_CERT_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          # 临时钥匙串排到搜索列表最前，codesign 才能找到它
+          # shellcheck disable=SC2046  # 故意按词展开多个原有钥匙串路径
+          security list-keychains -d user -s "$KEYCHAIN" \
+            $(security list-keychains -d user | tr -d '"')
+          rm -f "$CERT"
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+      - name: Configure asc
+        shell: bash
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          KEY="$RUNNER_TEMP/AuthKey.p8"
+          printf '%s\n' "$ASC_PRIVATE_KEY" > "$KEY"
+          chmod 600 "$KEY"
+          mkdir -p "$HOME/.asc"
+          python3 - "$KEY" <<'PY'
+          import json, os, sys
+          config = {
+              "key_id": os.environ["ASC_KEY_ID"],
+              "issuer_id": os.environ["ASC_ISSUER_ID"],
+              "private_key_path": sys.argv[1],
+          }
+          with open(os.path.expanduser("~/.asc/config.json"), "w", encoding="utf-8") as f:
+              json.dump(config, f, indent=2)
+          PY
+          chmod 600 "$HOME/.asc/config.json"
+          asc auth status
 
       - name: Preflight
         shell: bash
@@ -111,7 +178,7 @@ jobs:
               | sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' | head -1)"
           fi
           [[ -n "$IDENTITY" ]] || {
-            echo "::error::登录钥匙串里没有 Developer ID Application 证书"; exit 1;
+            echo "::error::导入的证书里没有 Developer ID Application"; exit 1;
           }
           security find-identity -v -p codesigning | grep -Fq "$IDENTITY" || {
             echo "::error::钥匙串里找不到指定的签名身份: $IDENTITY"; exit 1;

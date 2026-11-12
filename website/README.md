@@ -72,9 +72,9 @@ npm run preview  # 预览构建产物
 | 安装 | `npm ci`（无需 sudo） |
 | 构建 | `npm run build` |
 | 输出目录 | `website/dist` |
-| Node | runner 预装 `/usr/bin/node` v22（workflow 不跑 setup-node） |
-| Runner | `[self-hosted, linux, wsl2]`（组织账单异常期间；私有仓） |
-| Wrangler | 全局 4.x / `wrangler-action` 固定 `wranglerVersion: "4"` |
+| Node | `actions/setup-node@v4` 固定 v22（带 npm 缓存） |
+| Runner | `ubuntu-latest`（GitHub 托管，公开仓库免费） |
+| Wrangler | workflow 里 `npx wrangler@4` / `wrangler-action` 固定 `wranglerVersion: "4"` |
 
 静态配置文件随构建进入 `dist/`：
 
