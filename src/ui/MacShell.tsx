@@ -1,7 +1,7 @@
 import { uiTextSize, uiLineHeight } from "./typography";
 import { Clipboard, Text, View, cleanup, effect, keymap, openUrl, platform, signal } from "nsh";
 import { AlertDialog, Button, Dialog, Input, ResizablePanel, ResizablePanelGroup } from "nsh/base";
-import { Menu, Window } from "nsh/desktop";
+import { Menu, currentWindow } from "nsh/desktop";
 import { StoatMeta, Vault, VaultDialog, type VaultEntryDto } from "stoatmd/native";
 import { activeStorage, readActiveStorage, storageBusy } from "../storage/state";
 import { syncRuntime } from "../sync/runtime";
@@ -54,8 +54,8 @@ const NARROW_OVERLAY = 920;
 
 /** Mac 两栏壳：左栏文件树 + 内嵌画布（编辑/预览） + 可收起文章栏。 */
 export function MacShell() {
-  Window.setTitle("StoatMD");
-  Window.setTitleBar("hidden", WINDOW_BAR_HEIGHT);
+  const win = currentWindow();
+  win.set({ title: "StoatMD", titleBar: { style: "hidden", height: WINDOW_BAR_HEIGHT } });
   const sidebarMode = signal<SidebarMode>("expanded");
   const sidebarWidth = signal(SIDEBAR_WIDTH);
   const mode = signal<ViewMode>("split");
@@ -304,7 +304,7 @@ export function MacShell() {
       vaultRoot.set(v.root);
       await restoreReaderWidth(v.root);
       await saveRoot(v.root);
-      Window.setTitle(`StoatMD — ${syncRuntime.connection()?.remoteName || vaultNameFromRoot(v.root)}`);
+      win.set({ title: `StoatMD — ${syncRuntime.connection()?.remoteName || vaultNameFromRoot(v.root)}` });
       folderId.set("");
       selectedNoteId.set("");
       collapsed.set([]);
@@ -453,7 +453,7 @@ export function MacShell() {
     const title =
       notes().find((n) => n.id === path)?.title ??
       titleFromName(path.split("/").pop() ?? path);
-    const action = await AlertDialog.show({
+    const { action } = await AlertDialog.show({
       title: t("trash.title"),
       description: t("trash.desc", { name: title }),
       actions: [
@@ -613,7 +613,7 @@ export function MacShell() {
     if (conflictOpen()) return;
     conflictOpen.set(true);
     try {
-      const action = await AlertDialog.show({
+      const { action } = await AlertDialog.show({
         title: t("vault.conflict.title"),
         description: t("vault.conflict.description"),
         actions: [
@@ -677,9 +677,9 @@ export function MacShell() {
       if (opened()?.dirty) throw new Error(t("storage.error.unsaved"));
     },
     onStorageActivated: async root => { await openVaultAt(root, true); },
-    onOpenVault: () => { Window.orderFront(); void pickAndOpen(); },
+    onOpenVault: () => { win.focus(); void pickAndOpen(); },
     onSyncNow: () => { void runSync(); },
-    onManageConflicts: () => { Window.orderFront(); syncConflictOpen.set(true); },
+    onManageConflicts: () => { win.focus(); syncConflictOpen.set(true); },
   });
   const openSettings = (tab: SettingsTab) => settingsWindow.open(tab);
 
@@ -736,7 +736,7 @@ export function MacShell() {
                     return;
                   }
                   status.set(t("update.available", { version: result }));
-                  const opened = await openUrl(
+                  const { opened } = await openUrl(
                     "https://github.com/richcalls/stoatmd-community/releases/latest/download/StoatMD-macos.dmg",
                   );
                   if (!opened) status.set(t("update.openFailed"));
@@ -938,9 +938,9 @@ export function MacShell() {
 
   return (
     <View
-      onLayout={(b) => {
-        windowWidth.set(b.size.width);
-        windowHeight.set(b.size.height);
+      onLayout={({ bounds }) => {
+        windowWidth.set(bounds.size.width);
+        windowHeight.set(bounds.size.height);
       }}
       style={{
         flex: 1,
@@ -1024,7 +1024,7 @@ export function MacShell() {
           handleStyle={{ width: 1, backgroundColor: "transparent" }}
           handleThumbStyle={{ width: 3, borderRadius: 2, backgroundColor: "transparent" }}
           handleAccessibilityLabel="Adjust sidebar width"
-          onResize={(sizes) => {
+          onResize={({ sizes }) => {
             const width = sizes[0];
             if (width !== undefined && Number.isFinite(width)) sidebarWidth.set(width);
           }}
@@ -1194,7 +1194,7 @@ export function MacShell() {
         <Dialog
           open
           testID="rename-dialog"
-          onOpenChange={(open) => {
+          onOpenChange={({ open }) => {
             if (!open) closeRename();
           }}
           onCancel={closeRename}
@@ -1229,8 +1229,8 @@ export function MacShell() {
             <Input
               testID="rename-input"
               value={renameDraft()}
-              onChange={(text) => {
-                renameDraft.set(text);
+              onChange={({ value }) => {
+                renameDraft.set(value);
                 if (renameError()) renameError.set("");
               }}
               onSubmit={() => {

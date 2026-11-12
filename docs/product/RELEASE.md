@@ -85,10 +85,10 @@ unset TOKEN
 
 ## Windows / Linux（公开下载）
 
-**必须在对应系统上打包。** nsh 0.3.0 不做桌面端的交叉编译：在 macOS 上
-`nsh package --target windows` 产出的 `StoatMD.exe` 实际是 macOS 的 Mach-O
-文件，Windows 上无法启动；Linux 同理。`scripts/desktop_release.py` 会拒绝在
-不匹配的主机上运行。
+**必须在对应系统上打包并验证。** nsh 0.5.0 允许在 macOS / Linux 上用
+`cargo-xwin`（或把 `NSH_RUNTIME` 指向 Windows runner）交叉构建 Windows 包，
+但这不在本项目的发布流程里：Windows / Linux 包都在各自系统上打包、启动
+验证后再上传。`scripts/desktop_release.py` 会拒绝在不匹配的主机上运行。
 
 在 Windows 上：
 

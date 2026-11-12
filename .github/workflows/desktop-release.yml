@@ -1,8 +1,8 @@
 # 在目标系统上打包 Windows / Linux 桌面版。
 #
-# nsh 0.3.0 的桌面 runner 不能交叉编译：Windows 包必须在 Windows 上打，
-# Linux 包必须在 Linux 上打。本工作流只产出构建产物（artifact），不会自动
-# 发布到公开 Release；下载并核验后再手动上传。
+# nsh 0.5.0 的桌面产物仍在目标系统上打包（Windows 包在 Windows 上打，
+# Linux 包在 Linux 上打），避免跨平台构建差异。本工作流只产出构建产物
+# （artifact），不会自动发布到公开 Release；下载并核验后再手动上传。
 #
 # 需要的仓库 Secrets（Settings → Secrets and variables → Actions）：
 #   STOATMD_GOOGLE_CLIENT_ID       Google OAuth Desktop client id
@@ -49,14 +49,14 @@ jobs:
       - name: Install nsh (Linux)
         if: matrix.target == 'linux'
         run: |
-          curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.3.0 sh
+          curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.5.0 sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Install nsh (Windows)
         if: matrix.target == 'windows'
         shell: pwsh
         run: |
-          $env:NSH_VERSION = "v0.3.0"
+          $env:NSH_VERSION = "v0.5.0"
           irm https://nsh.dev/install.ps1 | iex
           "$env:LOCALAPPDATA\nsh\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 

@@ -98,7 +98,7 @@ unset REMOVE_TOKEN
   - `Developer ID Application`（macOS 公证分发）
   - `Apple Distribution`（iOS App Store / TestFlight，如需要）
 - `asc` 已配置：`~/.asc/config.json`（App Store Connect API Key）
-- `nsh` 0.3.0 在 `~/.local/bin/nsh`
+- `nsh` 0.5.0 在 `~/.local/bin/nsh`（`nsh update` 或重跑安装脚本升级）
 - `gh` 在 `/opt/homebrew/bin/gh`
 - 构建缓存与公证临时文件至少预留 30–40GB
 

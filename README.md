@@ -87,16 +87,16 @@ locales/                # zh / en
 
 ## 版本锁定
 
-- **nsh CLI / crates：0.3.0**（`Cargo.toml` 中 `nsh-core` / `nsh-base` 与 CLI 同版本）
+- **nsh CLI / crates：0.5.0**（`Cargo.toml` 中 `nsh-core` / `nsh-base` 与 CLI 同版本）
 
 ```sh
-curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.3.0 sh
-nsh --version   # 期望 0.3.0
+curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.5.0 sh
+nsh --version   # 期望 0.5.0
 ```
 
 ## 在 Mac 上运行与验证 Vault
 
-需要：macOS 14+、Xcode Command Line Tools、Rust（rustup stable，需满足 nsh 0.3 依赖）、已安装的 `nsh` 0.3.x。
+需要：macOS 14+、Xcode Command Line Tools、Rust（rustup stable，需满足 nsh 0.5 依赖）、已安装的 `nsh` 0.5.x。
 
 ```sh
 git clone https://github.com/richcalls/stoatmd.git

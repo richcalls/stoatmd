@@ -1,11 +1,12 @@
-import { expect, open, test } from "nsh/test";
+import { expect, test } from "nsh/test";
+import { openApp } from "./testOpen";
 import { THEMES, themePreset } from "../ui/theme";
 
 const lightTheme = themePreset("merino-light").palette;
 const phone = { platform: "ios" as const, width: 390, height: 844, locale: "zh-CN", safeArea: { top: 47, right: 0, bottom: 34, left: 0 } };
 
 test("iPhone: create a folder and note, save Chinese text, read, rename and duplicate", async () => {
-  const app = await open("./MobileShell.harness.tsx", phone);
+  const app = await openApp("./MobileShell.harness.tsx", phone);
   await app.press("id:mobile-new-folder");
   await app.waitFor("id:mobile-name");
   await app.paste("id:mobile-name", { text: "想法" });
@@ -60,7 +61,7 @@ test("iPhone: create a folder and note, save Chinese text, read, rename and dupl
 }, 120_000);
 
 test("iPhone: theme, icon, language and font settings persist after restarting", async () => {
-  const app = await open("./MobileShell.harness.tsx", phone);
+  const app = await openApp("./MobileShell.harness.tsx", phone);
   await app.press("id:mobile-settings");
   await app.press("id:mobile-theme-toggle");
   expect(app.shows("text:浅色")).toBe(true);
@@ -78,7 +79,7 @@ test("iPhone: theme, icon, language and font settings persist after restarting",
   await app.press("id:mobile-language-toggle");
   await app.press("id:mobile-language-en");
   await app.waitUntil(() => app.storage()["prefs.locale"] === "en" && app.storage()["prefs.theme"] === "silver-point-dark" && app.storage()["prefs.renderMode"] === "monochrome" && app.storage()["prefs.fontSize"] === "17" && app.storage()["prefs.fontLineHeight"] === "1.6");
-  const again = await open("./MobileShell.harness.tsx", { ...phone, storage: app.storage() });
+  const again = await openApp("./MobileShell.harness.tsx", { ...phone, storage: app.storage() });
   await again.press("id:mobile-settings");
   expect(again.shows("text:Settings")).toBe(true);
   expect(again.shows("text:Kami · 17 / 1.60")).toBe(true);
@@ -92,7 +93,7 @@ test("iPhone: theme, icon, language and font settings persist after restarting",
 });
 
 test("iPhone: 左滑笔记露出删除按钮，删进最近删除还能恢复", async () => {
-  const app = await open("./MobileShell.harness.tsx", phone);
+  const app = await openApp("./MobileShell.harness.tsx", phone);
   await app.press("id:mobile-new-note");
   await app.waitFor("id:mobile-source");
   await app.paste("id:mobile-source", { text: "会被滑走" });
@@ -117,7 +118,7 @@ test("iPhone: 左滑笔记露出删除按钮，删进最近删除还能恢复", 
 }, 120_000);
 
 test("iPhone: move, recycle, restore and permanently delete a note", async () => {
-  const app = await open("./MobileShell.harness.tsx", phone);
+  const app = await openApp("./MobileShell.harness.tsx", phone);
   await app.press("id:mobile-new-folder");
   await app.waitFor("id:mobile-name");
   await app.paste("id:mobile-name", { text: "Archive" });
@@ -162,7 +163,7 @@ test("iPhone: move, recycle, restore and permanently delete a note", async () =>
 }, 120_000);
 
 test("iPhone: 库页三 Tab、文件树、搜索与阅读底栏工作", async () => {
-  const app = await open("./MobileShell.harness.tsx", phone);
+  const app = await openApp("./MobileShell.harness.tsx", phone);
   await app.waitFor("id:mobile-tab-recent");
   expect(app.shows("text:还没有笔记")).toBe(true);
   // 选中 tab 的文字颜色要跟着切换（曾经因为把 active 算成常量而不刷新）。
@@ -228,7 +229,7 @@ test("iPhone: 库页三 Tab、文件树、搜索与阅读底栏工作", async ()
 }, 120_000);
 
 test("iPhone: 收藏的笔记出现在收藏 Tab，还能取消收藏", async () => {
-  const app = await open("./MobileShell.harness.tsx", phone);
+  const app = await openApp("./MobileShell.harness.tsx", phone);
   await app.press("id:mobile-new-note");
   await app.waitFor("id:mobile-source");
   await app.paste("id:mobile-source", { text: "# 常看的笔记\n\n收藏成一条。" });
@@ -257,3 +258,12 @@ test("iPhone: 收藏的笔记出现在收藏 Tab，还能取消收藏", async ()
   await app.back();
   await app.waitFor("id:mobile-favorites-empty");
 }, 120_000);
+
+test("iPhone 搜索框：输入后按 Esc 清空内容（Obsidian 习惯）", async () => {
+  const app = await openApp("./MobileShell.harness.tsx", phone);
+  await app.waitFor("id:mobile-search");
+  await app.paste("id:mobile-search", { text: "写作" });
+  expect(app.value("id:mobile-search")).toBe("写作");
+  await app.keyboard.press("escape");
+  expect(app.value("id:mobile-search")).toBe("");
+});

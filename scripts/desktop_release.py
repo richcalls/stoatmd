@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Package the Windows or Linux build on its own operating system.
 
-nsh 0.3.0 does not cross-compile desktop runners: packaging for Windows on
-macOS produces a macOS Mach-O file with a Windows name, and vice versa. Run
-this script on Windows for the Windows zip, or on Linux for the Linux tar.gz.
+nsh 0.5.0 can cross-build a Windows runner on macOS or Linux with cargo-xwin,
+but this project packages each desktop build on its target OS and verifies it
+starts there. Run this script on Windows for the Windows zip, or on Linux for
+the Linux tar.gz.
 Both builds embed the same OAuth credentials as the macOS release (read from
 sync.json by build_environment, never printed).
 
@@ -42,9 +43,10 @@ def main():
 
     if host is None:
         raise SystemExit(
-            "nsh 0.3.0 must package Windows on Windows and Linux on Linux. "
-            "Run this script on the target operating system; cross-built "
-            "runners are host binaries and will not start."
+            "Package Windows on Windows and Linux on Linux: this project "
+            "packages and verifies each desktop build on its target OS. "
+            "(nsh 0.5.0 can cross-build with cargo-xwin, which this script "
+            "does not set up.)"
         )
 
     out = args.out.resolve()

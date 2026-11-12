@@ -105,6 +105,8 @@ test("EditorWorkspace：编辑器接收 macOS 复制、剪切、粘贴和全选�
   await app.keyboard.press("cmd+v");
   await app.keyboard.press("cmd+f");
   await app.type("id:document-find-input", "clipboard source");
+  // 搜索结果由一次搜索来回驱动，整轮并行跑时可能晚于输入落屏。
+  await app.waitUntil(() => app.texts().includes("1 of 1"));
   expect(app.texts()).toContain("1 of 1");
 });
 

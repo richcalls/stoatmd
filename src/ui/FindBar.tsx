@@ -1,4 +1,4 @@
-import { Text, View, keymap, type YNode } from "nsh";
+import { Text, View, keymap, type InputRef } from "nsh";
 import { Button, Input, type EditorSearchResult } from "nsh/base";
 import { chromeColors, controlFocusStyle, controlHoverStyle, controlPressStyle, iconButtonStyle } from "./chrome";
 import { findShortcuts } from "./findShortcuts";
@@ -9,7 +9,7 @@ import { colors } from "./theme";
 type Props = {
   query: string;
   result: EditorSearchResult;
-  inputRef: (node: YNode) => void;
+  inputRef: (node: InputRef) => void;
   onQuery: (query: string) => void;
   onFocus: (focused: boolean) => void;
   onNext: () => void;
@@ -51,7 +51,7 @@ export function FindBar(props: Props) {
         accessibilityLabel={t("find.placeholder")}
         placeholder={t("find.placeholder")}
         value={props.query}
-        onChange={props.onQuery}
+        onChange={({ value }) => props.onQuery(value)}
         onFocus={() => props.onFocus(true)}
         onBlur={() => props.onFocus(false)}
         autoFocus

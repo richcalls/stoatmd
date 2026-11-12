@@ -1,5 +1,5 @@
 import { uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
-import { List, Text, View, signal } from "nsh";
+import { List, Text, View, cleanup, effect, keymap, signal } from "nsh";
 import { Button, Input, Menu, MenuItem, MenuSeparator } from "nsh/base";
 import type { SyncPhase } from "../sync/runtime";
 import { Icon, type IconName } from "./Icon";
@@ -57,6 +57,13 @@ export function Sidebar(props: Props) {
   const rows = () =>
     libraryRows(props.folders, props.notes, props.collapsed, props.query, rootLabel(), props.contentMatches, props.currentNote);
 
+  // Obsidian 习惯：搜索框里按 Esc 先清空内容；空着时 Esc 才交给别的快捷键（如收起文章栏）。
+  effect(() => {
+    if (!searchFocused() || props.query === "") return;
+    const off = keymap.bind("escape", () => props.onQuery(""), { when: "always" });
+    cleanup(off);
+  });
+
   const syncLabel = (): string => {
     const phase = props.syncPhase ?? "off";
     if (phase === "conflict") {
@@ -97,7 +104,7 @@ export function Sidebar(props: Props) {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 0, height: uiControlHeight(30) }}>
           <Menu
             open={vaultMenuOpen()}
-            onOpenChange={(open) => vaultMenuOpen.set(open)}
+            onOpenChange={({ open }) => vaultMenuOpen.set(open)}
             placement="bottom"
             align="start"
             offset={6}
@@ -132,7 +139,7 @@ export function Sidebar(props: Props) {
                   alignItems: "center",
                 }}
               >
-                <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: uiTextSize(12), fontWeight: "600", color: colors().ink2 }}>
+                <Text style={{ flexShrink: 1, fontSize: uiTextSize(12), fontWeight: "600", color: colors().ink2, numberOfLines: 1 }}>
                   {rootLabel()}
                 </Text>
                 <Icon name="caret-down" color={colors().ink3} size={9} />
@@ -149,8 +156,8 @@ export function Sidebar(props: Props) {
             >
               <Icon name="folder" color={colors().ink2} size={14} />
               <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-                <Text numberOfLines={1} style={{ fontSize: uiTextSize(12), fontWeight: "600", color: colors().ink }}>{rootLabel()}</Text>
-                <Text numberOfLines={2} style={{ fontSize: uiTextSize(11), color: colors().ink3 }}>{props.vaultRoot ?? t("vault.none")}</Text>
+                <Text style={{ fontSize: uiTextSize(12), fontWeight: "600", color: colors().ink, numberOfLines: 1 }}>{rootLabel()}</Text>
+                <Text style={{ fontSize: uiTextSize(11), color: colors().ink3, numberOfLines: 2 }}>{props.vaultRoot ?? t("vault.none")}</Text>
               </View>
               <Icon name="check" color={colors().ink2} size={12} />
             </MenuItem>
@@ -201,7 +208,7 @@ export function Sidebar(props: Props) {
             onFocus={() => searchFocused.set(true)}
             onBlur={() => searchFocused.set(false)}
             value={props.query}
-            onChange={(text) => props.onQuery(text)}
+            onChange={({ value }) => props.onQuery(value)}
             placeholder={t("search.placeholder")}
             style={{
               flex: 1,
@@ -320,21 +327,20 @@ export function Sidebar(props: Props) {
                 <Icon name="file-text" color={selected() ? colors().ink2 : colors().ink3} size={14} />
               </If>
               <Text
-                numberOfLines={1}
                 style={{
                   flex: 1,
                   minWidth: 0,
                   fontSize: uiTextSize(12),
                   fontWeight: selected() || isFolder() ? "500" : "400",
                   color: selected() ? colors().ink : colors().ink2,
+                  numberOfLines: 1,
                 }}
               >
                 {label()}
               </Text>
               <If when={hint() !== ""}>
                 <Text
-                  numberOfLines={1}
-                  style={{ maxWidth: 60, fontSize: uiTextSize(10.5), color: colors().ink3 }}
+                  style={{ maxWidth: 60, fontSize: uiTextSize(10.5), color: colors().ink3, numberOfLines: 1 }}
                 >
                   {hint()}
                 </Text>
@@ -370,15 +376,13 @@ export function Sidebar(props: Props) {
           }}
         />
         <Text
-          numberOfLines={1}
-          style={{ fontSize: uiTextSize(11), color: colors().ink2, flex: 1, minWidth: 0 }}
+          style={{ fontSize: uiTextSize(11), color: colors().ink2, flex: 1, minWidth: 0, numberOfLines: 1 }}
         >
           {syncLabel()}
         </Text>
         <Text
           testID="sidebar-count"
-          numberOfLines={1}
-          style={{ fontSize: uiTextSize(10.5), color: colors().ink3 }}
+          style={{ fontSize: uiTextSize(10.5), color: colors().ink3, numberOfLines: 1 }}
         >
           {t("sidebar.noteCount", { n: props.notes.length })}
         </Text>
