@@ -737,7 +737,7 @@ export function MacShell() {
                   }
                   status.set(t("update.available", { version: result }));
                   const { opened } = await openUrl(
-                    "https://github.com/richcalls/stoatmd-community/releases/latest/download/StoatMD-macos.dmg",
+                    "https://github.com/richcalls/stoatmd/releases/latest/download/StoatMD-macos.dmg",
                   );
                   if (!opened) status.set(t("update.openFailed"));
                 } catch {

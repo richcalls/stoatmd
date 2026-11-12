@@ -29,7 +29,7 @@ env:
 jobs:
   website:
     name: 官网构建与发布
-    # 公开仓库用 GitHub 托管的 Ubuntu（标准 runner 免费），不依赖自托管 runner
+    # Public pull requests must run on GitHub-hosted machines.
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -41,7 +41,7 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Node
+      - name: 设置 Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -82,7 +82,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -uo pipefail
-          # GitHub 托管的 Ubuntu 没有预装 wrangler：用 npx 跑固定大版本
+          # GitHub-hosted runners are ephemeral; invoke a pinned major directly.
           npx --yes wrangler@4 --version
           echo "检查 / 创建 Pages 项目: ${PAGES_PROJECT}"
           if npx --yes wrangler@4 pages project create "${PAGES_PROJECT}" --production-branch=main; then
@@ -97,7 +97,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # 固定 v4，交给 action 安装；不依赖 runner 预装
+          # 固定 Wrangler v4，和 Pages 项目初始化命令保持一致。
           wranglerVersion: "4"
           # 同 job 内刚构建的 dist，无需 artifact 中转
           command: pages deploy website/dist --project-name=${{ env.PAGES_PROJECT }} --branch=main --commit-dirty=true

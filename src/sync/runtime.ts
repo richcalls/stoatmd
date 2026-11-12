@@ -2,7 +2,7 @@ import { Storage, signal } from "nsh";
 import { OAuth, Vault } from "stoatmd/native";
 import { loadSyncConfig } from "./config";
 import { DropboxProvider } from "./dropbox";
-import { planSync, probeCandidates, resolveConflict as resolveActions } from "./engine";
+import { effectiveLocalHash, planSync, probeCandidates, resolveConflict as resolveActions } from "./engine";
 import { GoogleDriveProvider } from "./google";
 import { activeStorage, readActiveStorage, writeActiveStorage, storageBusy, type Cleanup } from "../storage/state";
 import { sha256Hex, sha256Bytes } from "./hash";
@@ -36,6 +36,8 @@ const BASE_KEY = "sync.base";
 const LAST_KEY = "sync.lastAt";
 /** 长同步中途落锚点的间隔，单位：完成动作数。 */
 const BASE_SAVE_EVERY = 10;
+/** 每个路径最多记几份未确认的上传正文。 */
+const PENDING_PER_PATH = 4;
 
 export type SyncPhase =
   | "off"
@@ -110,10 +112,13 @@ export class SyncRuntime {
   private base: BaseState = emptyBase();
   private loaded = false;
   private loading: Promise<void> | null = null;
-  private running: Promise<SyncRunResult> | null = null;
-  private pushing: Promise<SyncRunResult | null> | null = null;
+  private running: Promise<SyncRunResult | null> | null = null;
+  /**
+   * 所有云端写操作（全量同步、单文件推送、删除推送、冲突处理）排成一条队列。
+   * 两轮交错时，一轮会看到另一轮刚写进云端、还没记进锚点的 rev，误判成别处改过。
+   */
+  private queue: Promise<unknown> = Promise.resolve();
   private readonly fetchImpl: FetchLike;
-  private resolving: Promise<void> | null = null;
   private sessions = new Map<ProviderId, TokenSession>();
   private pending: { provider: ProviderId; session: TokenSession } | null = null;
 
@@ -145,7 +150,7 @@ export class SyncRuntime {
 
   /** Drain a running sync before taking the migration snapshot. */
   async pause(): Promise<void> {
-    await Promise.all([this.running, this.resolving?.catch(() => {})]);
+    await this.queue.catch(() => {});
   }
 
   /** 全量同步中暂停：当前文件处理完后停在动作之间，库仍可浏览与编辑。 */
@@ -287,56 +292,57 @@ export class SyncRuntime {
   /** 手动 / 自动同步；并发调用返回同一轮。 */
   async syncNow(): Promise<SyncRunResult | null> {
     await this.load();
-    if (this.resolving) await this.resolving.catch(() => {});
     if (storageBusy() || !this.isAttached()) return null;
     if (loadSyncConfig(true).purchaseRequired) return this.finishError(new SyncError("config", "purchase required"));
+    // 已有一轮全量同步在排队或在跑：并发调用共用那一轮。
     if (this.running) return this.running;
-    this.running = this.run().finally(() => {
-      this.running = null;
+    const round = this.enqueue(async () => {
+      // 排队期间库可能已切走 / 进入迁移，轮到时再确认一次。
+      if (storageBusy() || !this.isAttached()) return null;
+      if (loadSyncConfig(true).purchaseRequired) return this.finishError(new SyncError("config", "purchase required"));
+      return this.run();
     });
-    return this.running;
+    this.running = round;
+    try {
+      return await round;
+    } finally {
+      if (this.running === round) this.running = null;
+    }
+  }
+
+  /** 把一次云端写操作排到队尾；前一个失败不影响后一个。 */
+  private enqueue<T>(work: () => Promise<T>): Promise<T> {
+    const next = this.queue.catch(() => {}).then(work);
+    this.queue = next;
+    return next;
   }
 
   /** 保存后只推变化的文件，不列远端目录。`quiet` 用于后台自动推送：失败不打断界面。 */
   async pushPaths(paths: string[], quiet = false): Promise<SyncRunResult | null> {
     await this.load();
-    if (this.resolving) await this.resolving.catch(() => {});
     if (storageBusy() || !this.isAttached()) return null;
     if (loadSyncConfig(true).purchaseRequired) {
       return this.finishError(new SyncError("config", "purchase required"));
     }
     if (this.phase() === "conflict") return null;
-    if (this.running) await this.running.catch(() => {});
-    if (this.pushing) await this.pushing.catch(() => {});
-    if (storageBusy() || !this.isAttached() || this.phase() === "conflict") return null;
-    const operation = this.push(paths, quiet);
-    this.pushing = operation;
-    try {
-      return await operation;
-    } finally {
-      if (this.pushing === operation) this.pushing = null;
-    }
+    return this.enqueue(async () => {
+      if (storageBusy() || !this.isAttached() || this.phase() === "conflict") return null;
+      return this.push(paths, quiet);
+    });
   }
 
   /** 本地删除 / 移动后只删对应的远端文件；云端版本变了就交回全量同步。 */
   async pushDeletions(paths: string[], quiet = false): Promise<SyncRunResult | null> {
     await this.load();
-    if (this.resolving) await this.resolving.catch(() => {});
     if (storageBusy() || !this.isAttached()) return null;
     if (loadSyncConfig(true).purchaseRequired) {
       return this.finishError(new SyncError("config", "purchase required"));
     }
     if (this.phase() === "conflict") return null;
-    if (this.running) await this.running.catch(() => {});
-    if (this.pushing) await this.pushing.catch(() => {});
-    if (storageBusy() || !this.isAttached() || this.phase() === "conflict") return null;
-    const operation = this.removeRemote(paths, quiet);
-    this.pushing = operation;
-    try {
-      return await operation;
-    } finally {
-      if (this.pushing === operation) this.pushing = null;
-    }
+    return this.enqueue(async () => {
+      if (storageBusy() || !this.isAttached() || this.phase() === "conflict") return null;
+      return this.removeRemote(paths, quiet);
+    });
   }
 
   private async push(paths: string[], quiet = false): Promise<SyncRunResult | null> {
@@ -359,7 +365,6 @@ export class SyncRuntime {
           continue;
         }
         const anchor = this.base.entries[path] ?? null;
-        const content = new Uint8Array(vault.readBytes(path));
         const existing: RemoteFile | null = anchor ? {
           path,
           id: anchor.remoteId,
@@ -368,14 +373,7 @@ export class SyncRuntime {
           size: anchor.localSize,
         } : null;
         try {
-          const uploaded = await remote.uploadBytes(root, path, content, { existing });
-          this.setBase(path, {
-            remoteId: uploaded.id,
-            remoteRev: uploaded.rev,
-            localMtimeMs: vault.mtime(path),
-            localSize: content.length,
-            hash: sha256Bytes(content),
-          });
+          await this.uploadTracked(vault, remote, root, path, existing);
           result.uploaded += 1;
         } catch (err) {
           // 云端版本已变 / 路径被占用：不在这里做冲突裁决，交回全量同步。
@@ -443,7 +441,7 @@ export class SyncRuntime {
         };
         try {
           await remote.remove(file);
-          delete this.base.entries[path];
+          this.dropBase(path);
           result.deletedRemote += 1;
         } catch (err) {
           // 云端也被改过：不在删除路径上裁决，交回全量同步让用户选。
@@ -483,14 +481,10 @@ export class SyncRuntime {
   /** 对单个冲突应用用户选择；调用方在所有冲突处理完后重新同步。 */
   async resolveConflict(item: ConflictItem, choice: ConflictChoice): Promise<void> {
     if (storageBusy() || loadSyncConfig(true).purchaseRequired) throw new SyncError("config", "cloud writes paused");
-    const operation = (this.resolving ?? Promise.resolve()).catch(() => {}).then(async () => {
-      if (this.running) await this.running;
+    await this.enqueue(async () => {
       if (storageBusy()) throw new SyncError("config", "cloud writes paused");
       await this.applyConflict(item, choice);
     });
-    this.resolving = operation;
-    try { await operation; }
-    finally { if (this.resolving === operation) this.resolving = null; }
   }
 
   private async applyConflict(item: ConflictItem, choice: ConflictChoice): Promise<void> {
@@ -507,16 +501,7 @@ export class SyncRuntime {
 
     for (const action of actions) {
       if (action.type === "upload") {
-        const content = new Uint8Array(vault.readBytes(item.path));
-        const remoteFile = item.remote ?? null;
-        const result = await remote.uploadBytes(root, item.path, content, { existing: remoteFile });
-        this.setBase(item.path, {
-          remoteId: result.id,
-          remoteRev: result.rev,
-          localMtimeMs: vault.mtime(item.path),
-          localSize: content.length,
-          hash: sha256Bytes(content),
-        });
+        await this.uploadTracked(vault, remote, root, item.path, item.remote ?? null);
       } else if (action.type === "download") {
         const source = item.remote;
         if (!source) continue;
@@ -539,7 +524,7 @@ export class SyncRuntime {
         }
       } else if (action.type === "localDelete") {
         vault.delete(item.path);
-        delete this.base.entries[item.path];
+        this.dropBase(item.path);
       } else if (action.type === "remoteDelete") {
         const anchor = item.base;
         if (!anchor) continue;
@@ -550,7 +535,7 @@ export class SyncRuntime {
           mtimeMs: 0,
           size: 0,
         });
-        delete this.base.entries[item.path];
+        this.dropBase(item.path);
       }
     }
 
@@ -630,19 +615,8 @@ export class SyncRuntime {
 
       for (const action of plan.uploads) {
         await this.checkpoint();
-        const content = new Uint8Array(vault.readBytes(action.path));
-        const mtimeMs = vault.mtime(action.path);
         const remoteFile = remoteFiles.find((r) => r.path === action.path) ?? null;
-        const uploaded = await remote.uploadBytes(root, action.path, content, {
-          existing: remoteFile,
-        });
-        this.setBase(action.path, {
-          remoteId: uploaded.id,
-          remoteRev: uploaded.rev,
-          localMtimeMs: mtimeMs,
-          localSize: content.length,
-          hash: sha256Bytes(content),
-        });
+        await this.uploadTracked(vault, remote, root, action.path, remoteFile);
         result.uploaded += 1;
         await tick();
       }
@@ -652,16 +626,22 @@ export class SyncRuntime {
         assertLocalUnchanged(vault, action.path, action.local);
         const content = await remote.downloadBytes(action.remote);
         assertLocalUnchanged(vault, action.path, action.local);
-        writeLocal(vault, action.path, content);
+        const hash = sha256Bytes(content);
+        // 云端只是 rev 变了、正文和本地一样（Drive version 自增）：不重写文件，
+        // 否则正在编辑的笔记 mtime 被改，下一次保存会误报「文件已在外部被修改」。
+        const same = action.local !== null && effectiveLocalHash(action.local, action.base) === hash;
+        if (!same) writeLocal(vault, action.path, content);
         this.setBase(action.path, {
           remoteId: action.remote.id,
           remoteRev: action.remote.rev,
           localMtimeMs: vault.mtime(action.path),
           localSize: content.length,
-          hash: sha256Bytes(content),
+          hash,
         });
-        result.downloaded += 1;
-        result.changedLocal.push(action.path);
+        if (!same) {
+          result.downloaded += 1;
+          result.changedLocal.push(action.path);
+        }
         await tick();
       }
 
@@ -674,7 +654,7 @@ export class SyncRuntime {
           hash: null,
         });
         vault.delete(action.path);
-        delete this.base.entries[action.path];
+        this.dropBase(action.path);
         result.deletedLocal += 1;
         result.changedLocal.push(action.path);
         await tick();
@@ -688,17 +668,19 @@ export class SyncRuntime {
         for (const action of plan.remoteDeletes) {
           await this.checkpoint();
           const current = fresh.get(action.path);
-          if (current && current.rev !== action.base.remoteRev) {
+          const expected = action.remote ?? null;
+          const rev = expected?.rev ?? action.base.remoteRev;
+          if (current && current.rev !== rev) {
             throw new RemoteConflictError("remote file changed before delete", action.path);
           }
           await remote.remove({
             path: action.path,
-            id: action.base.remoteId,
-            rev: action.base.remoteRev,
+            id: expected?.id ?? action.base.remoteId,
+            rev,
             mtimeMs: 0,
             size: 0,
           });
-          delete this.base.entries[action.path];
+          this.dropBase(action.path);
           result.deletedRemote += 1;
           await tick();
         }
@@ -718,7 +700,7 @@ export class SyncRuntime {
 
       for (const path of plan.forgets) {
         await this.checkpoint();
-        delete this.base.entries[path];
+        this.dropBase(path);
         await tick();
       }
 
@@ -781,6 +763,67 @@ export class SyncRuntime {
     fields: Omit<BaseEntry, "path">,
   ): void {
     this.base.entries[path] = { path, ...fields };
+    // 已确认落地：锚点本身就代表云端当前正文，之前未确认的上传不再需要记。
+    if (this.base.pending) delete this.base.pending[path];
+  }
+
+  private dropBase(path: string): void {
+    delete this.base.entries[path];
+    if (this.base.pending) delete this.base.pending[path];
+  }
+
+  /**
+   * 三条上传路径（推送 / 全量同步 / 冲突处理）共用：顺序上的约束都在这里。
+   * 1. 先取 mtime 再读正文：上传途中又保存一次时，锚点记旧 mtime，下一轮才看得出还有改动。
+   * 2. 请求发出前把正文哈希记进 pending 并落盘：超时或进程被杀时云端可能已写入，
+   *    下次同步看到云端正是这份内容，就按本机自己的版本处理，不误报冲突。
+   * 3. 云端明确拒绝（rev 冲突 / 路径被占用）时，只撤掉本次新加的记录；
+   *    同一份正文之前若已超时落地，那条记录要留着。
+   */
+  private async uploadTracked(
+    vault: Vault,
+    remote: SyncProvider,
+    root: RemoteDir,
+    path: string,
+    existing: RemoteFile | null,
+  ): Promise<RemoteFile> {
+    const mtimeMs = vault.mtime(path);
+    const content = new Uint8Array(vault.readBytes(path));
+    const hash = sha256Bytes(content);
+    const added = this.recordPending(path, hash);
+    if (added) await this.persistBase();
+    let uploaded: RemoteFile;
+    try {
+      uploaded = await remote.uploadBytes(root, path, content, { existing });
+    } catch (err) {
+      if (added && err instanceof RemoteConflictError) this.unrecordPending(path, hash);
+      throw err;
+    }
+    this.setBase(path, {
+      remoteId: uploaded.id,
+      remoteRev: uploaded.rev,
+      localMtimeMs: mtimeMs,
+      localSize: content.length,
+      hash,
+    });
+    return uploaded;
+  }
+
+  /** 记一份未确认的上传正文；已经记过（重试同一版本）返回 false。 */
+  private recordPending(path: string, hash: string): boolean {
+    const pending = (this.base.pending ??= {});
+    const list = pending[path] ?? [];
+    if (list.includes(hash)) return false;
+    pending[path] = [...list, hash].slice(-PENDING_PER_PATH);
+    return true;
+  }
+
+  private unrecordPending(path: string, hash: string): void {
+    const list = this.base.pending?.[path];
+    if (!list) return;
+    const rest = list.filter((h) => h !== hash);
+    if (rest.length) this.base.pending![path] = rest;
+    else delete this.base.pending![path];
   }
 
   private async persistBase(): Promise<void> {

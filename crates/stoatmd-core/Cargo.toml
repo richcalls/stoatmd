@@ -2,6 +2,7 @@
 name = "stoatmd-core"
 version = "0.1.0"
 edition = "2024"
+license = "PolyForm-Noncommercial-1.0.0"
 publish = false
 description = "StoatMD Vault：本地库读写与路径沙箱"
 

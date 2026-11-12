@@ -33,6 +33,12 @@ export type BaseState = {
   version: 1;
   savedAt: number;
   entries: Record<string, BaseEntry>;
+  /**
+   * 已发出、但还没确认落地的上传正文哈希（按路径）。
+   * 请求超时 / 被杀时云端可能已经写进去了；下次同步看到云端正是这些内容，
+   * 就知道那是本机自己的版本，而不是别处的改动。
+   */
+  pending?: Record<string, string[]>;
 };
 
 export type ConflictKind =
@@ -63,6 +69,8 @@ export type LocalDeleteAction = {
 export type RemoteDeleteAction = {
   path: string;
   base: BaseEntry;
+  /** 云端 rev 已变但正文仍是本机认得的版本时，按这一版删除。 */
+  remote?: RemoteFile | null;
 };
 
 export type AdoptAction = {

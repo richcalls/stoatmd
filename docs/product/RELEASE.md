@@ -15,17 +15,7 @@ python3 scripts/macos_release.py \
 - `StoatMD-<版本>-<构建号>.zip`（公证用的原始压缩包）
 - `SHA256SUMS.txt`
 
-macOS 应用菜单的 **Check for Updates… / 检查更新…** 会查询公开仓库的最新正式版；发现新版本时，在浏览器打开固定名称的 `StoatMD-macos.dmg` 下载。退出 StoatMD 后，将 DMG 中的新 App 拖到 Applications 替换现有版本。发布 workflow 会持续上传这个固定名称，应用版本号取本次发布 tag。
-
-发到公开仓库：
-
-```sh
-gh release create v<版本> -R richcalls/stoatmd-community \
-  --title "StoatMD <版本>（macOS）" --notes-file <说明.md> \
-  .nsh/release-macos/StoatMD-<版本>-<构建号>.dmg \
-  .nsh/release-macos/StoatMD-<版本>-<构建号>.zip \
-  .nsh/release-macos/SHA256SUMS.txt
-```
+macOS 应用菜单的 **Check for Updates… / 检查更新…** 会查询公开仓库的最新正式版；发现新版本时，在浏览器打开固定名称的 `StoatMD-macos.dmg` 下载。退出 StoatMD 后，将 DMG 中的新 App 拖到 Applications 替换现有版本。发布时由维护者上传这个固定名称，应用版本号取本次发布 tag。
 
 ### 凭据策略
 
@@ -49,45 +39,62 @@ gh release create v<版本> -R richcalls/stoatmd-community \
   `drive` 属于 restricted scope，公开分发需要完成 Google 验证（必要时 CASA）。
 - 配额与错误率告警已开启；准备好客户端停用 / 用户重新授权的流程。
 - 授权链路保持系统浏览器 + 随机 loopback 端口 + S256 PKCE + `state`；token 只进系统钥匙串。
-- 确认待发布的 DMG 由当前提交构建：发布前重新跑脚本，不要复用旧产物。
+- 确认待发布的 DMG 由当前提交构建：CI 从 tag 指向的提交构建；本地发版时重新跑脚本，
+  不要复用旧产物。
 
-### 手动发布（GitHub 托管 macOS CI）
+### macOS 发布
 
-macOS 发布跑在 GitHub 托管的 `macos-latest`（Apple Silicon）上，签名证书与
-asc 凭据全部来自仓库 Secrets。Secrets 清单、导出/轮换方式与自托管 runner
-退役步骤见 [macOS CI](../ops/macos-ci.md)。
+推送 `v*` tag 后，`.github/workflows/desktop-release.yml` 的 macOS 任务在 `macos-15`
+托管 runner 上完成打包、Developer ID 签名、`asc` 公证、`stapler` 钉票与 `spctl` 验收，
+再把 macOS、Windows、Linux 的包附加到本仓库的 Release，校验和统一生成为
+`SHA256SUMS-desktop.txt`；DMG 另存一份
+`StoatMD-macos.dmg` 供官网与应用内更新的固定直链使用。
 
-`.github/workflows/macos-release.yml`：
+公开仓库不能使用自托管 `apple-ci`（runner group 禁止公开仓库），签名与公证凭据改放
+仓库 Actions Secrets，PR 运行拿不到：
 
-- 只通过 `workflow_dispatch` 手动发布：先创建并推送版本 tag，再在
-  Actions → **macOS · Release** 选择该 tag 并运行 workflow。
-- `publish=false` 只构建，不发布；默认发布到 `richcalls/stoatmd-community`。
-- build number 默认取 `git rev-list --count HEAD`，可用手动输入覆盖。
-- 上传资产：版本化 DMG、版本化 ZIP、`SHA256SUMS.txt`，以及官网固定直链用的
-  副本 `StoatMD-macos.dmg`。
+| Secret | 内容 | 怎么生成 |
+|--------|------|----------|
+| `MACOS_CERTIFICATE` | Developer ID Application 证书与私钥的 `.p12`，base64 单行 | 钥匙串访问里导出 `.p12`，再 `base64 -i cert.p12 \| pbcopy` |
+| `MACOS_CERTIFICATE_PASSWORD` | 导出 `.p12` 时设置的密码 | 自行设置 |
+| `ASC_KEY_ID` | App Store Connect API Key ID | App Store Connect → Users and Access → Integrations |
+| `ASC_ISSUER_ID` | Issuer ID | 同上 |
+| `ASC_PRIVATE_KEY` | `AuthKey_<KEY_ID>.p8` 全文 | 同上，只能下载一次 |
 
-发布前先手动跑一次 `.github/workflows/macos-ci-smoke.yml` 确认 CI 环境。
+证书或 API key 轮换后更新对应 Secret，下一次 tag 发版生效。托管 runner 没有钥匙串，
+workflow 每次新建临时 keychain 导入证书，机器销毁即失效。
 
-需要仓库 Secret `STOATMD_COMMUNITY_TOKEN`：fine-grained PAT，对
-`richcalls/stoatmd-community` 有 `Contents: Read and write`。设置方式：
+CI 不可用时可以本地发版：在可信的 Apple Silicon Mac 上跑
+`scripts/macos_release.py` 完成签名与公证，再手动上传：
 
 ```sh
-read -rsp 'PAT: ' TOKEN
-printf '%s' "$TOKEN" | gh secret set STOATMD_COMMUNITY_TOKEN -R richcalls/stoatmd
-unset TOKEN
+TAG=v<版本>
+git tag "$TAG"
+git push origin "$TAG"
+cp .nsh/release-macos/StoatMD-<版本>-<构建号>.dmg \
+  .nsh/release-macos/StoatMD-macos.dmg
+gh release create "$TAG" \
+  --title "StoatMD <版本>（macOS）" --notes-file <说明.md> \
+  .nsh/release-macos/StoatMD-<版本>-<构建号>.dmg \
+  .nsh/release-macos/StoatMD-<版本>-<构建号>.zip \
+  .nsh/release-macos/SHA256SUMS.txt \
+  .nsh/release-macos/StoatMD-macos.dmg
 ```
 
-轮换影响：更新 Secret 后下一次发版生效；旧 token 立即在 GitHub 设置里吊销。
-只重新上传资产不需要重新构建。
+## 桌面版 CI 构建（macOS / Windows / Linux）
 
-安全：发布 workflow 只允许手动触发，**不要加 `pull_request`**；限制谁能创建 `v*` tag。
+`.github/workflows/desktop-release.yml` 在对应的 GitHub 托管系统上分别构建三种
+桌面客户端。推送 `v*` tag 后，CI 会自动把 macOS（已签名、公证的 DMG 与 ZIP）、
+Windows、Linux 包及 `SHA256SUMS-desktop.txt` 附加到同一个 GitHub Release。手动运行
+workflow 会构建并保存 14 天的 Actions artifact，不发布 Release。
 
-## Windows / Linux（公开下载）
+GitHub 托管的 macOS arm64 runner 偶尔分配不到机器：任务排队 15 分钟后被取消，日志里
+是 `The job was not acquired by Runner of type hosted`。这不是构建失败，
+`.github/workflows/desktop-release-retry.yml` 会找出「失败但从未被机器领取」的任务并
+自动重跑，同一轮最多三次；真正跑过再失败的任务不会被自动重跑，仍然需要人工查看。
 
-**必须在对应系统上打包并验证。** nsh 0.5.0 允许在 macOS / Linux 上用
-`cargo-xwin`（或把 `NSH_RUNTIME` 指向 Windows runner）交叉构建 Windows 包，
-但这不在本项目的发布流程里：Windows / Linux 包都在各自系统上打包、启动
-验证后再上传。`scripts/desktop_release.py` 会拒绝在不匹配的主机上运行。
+每个平台都在原生系统上打包。nsh 0.5.0 交叉编译需要额外的目标工具链（例如 Windows
+需要 cargo-xwin / MSVC 目标）；脚本会拒绝在不匹配的主机运行。
 
 在 Windows 上：
 
@@ -107,7 +114,14 @@ python3 scripts/desktop_release.py --build <构建号>
 产物：`.nsh/release-desktop/StoatMD-<版本>-<构建号>-linux.tar.gz`，
 解压后运行 `StoatMD/StoatMD`，或安装其中的 `com.stoatmd.app.desktop`。
 
-两个平台都会生成 `SHA256SUMS.txt`，并把同一套 `sync.json` 凭据编进二进制。
+macOS 也会由 `macos-15` runner 生成
+`.nsh/release-desktop/StoatMD-<版本>-<构建号>-macos.zip`，内含 ad hoc 签名的
+`StoatMD.app`。该公开构建不含 Developer ID 签名或公证，首次打开时按 macOS 安全提示
+在「系统设置 → 隐私与安全性」批准应用。维护者仍可在可信 Mac 上运行上面的签名与公证
+流程，并将正式 DMG 一并上传到 Release。
+
+各平台 workflow artifact 内含对应安装包和 `SHA256SUMS.txt`；tag Release 另附
+`SHA256SUMS-desktop.txt`，并把同一套 `sync.json` OAuth 客户端配置编进桌面包。
 
 已知限制：
 
@@ -116,11 +130,11 @@ python3 scripts/desktop_release.py --build <构建号>
 - Windows 的 `.exe` 图标在该平台上打包时嵌入；Linux 包内带 PNG 图标。
 - 发布前必须在对应系统启动一次，确认能打开、授权云盘、保存一篇笔记。
 
-### 用 GitHub Actions 构建
+### 配置 GitHub Actions
 
-`.github/workflows/desktop-release.yml` 在 `windows-latest` 与 `ubuntu-24.04`
-上分别打包，手动触发（Actions → Desktop · Windows & Linux → Run workflow）。
-产物是 workflow artifact，不会自动上传到公开 Release。
+为让公开 Release 可直接连接 Google Drive / Dropbox，需要在仓库 Settings → Secrets and
+variables → Actions 配置下面三个 OAuth 客户端值。Google Desktop client secret 属于
+公开 native app 客户端的一部分，会编入安装包；不要把个人账号令牌或私钥放进这些值。
 
 需要先配置仓库 Secrets：
 
@@ -130,10 +144,9 @@ python3 scripts/desktop_release.py --build <构建号>
 | `STOATMD_GOOGLE_CLIENT_SECRET` | 同上，token 交换 | 是 | 同上 | 同上 |
 | `STOATMD_DROPBOX_APP_KEY` | 编进安装包，连接 Dropbox（PKCE，不需要 app secret） | 是 | Dropbox App Console → App key | 同上 |
 
-配置位置：GitHub 仓库 Settings → Secrets and variables → Actions。
-轮换影响：更新 Secret 后必须重新打包并替换 Release 资产；旧安装包仍带旧凭据，
-若凭据泄漏，应先在 Google / Dropbox 控制台轮换，再重发所有平台。
-`sync.json` 或同名环境变量仍优先于内置值，开发机行为不变。
+更新 Secret 后，下一次 tag build 会使用新配置；已发布安装包继续包含构建时的客户端值。
+如果某个平台 OAuth 客户端轮换，应先在 Google / Dropbox 控制台更新客户端，再重发所有
+平台。`sync.json` 或同名环境变量仍优先于内置值，开发机行为不变。
 
 ## iOS（App Store / TestFlight）
 

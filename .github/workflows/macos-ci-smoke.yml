@@ -1,5 +1,5 @@
 # 手动自检 GitHub 托管的 macOS CI 环境：系统、Xcode、nsh 与磁盘。
-# 不构建、不公证、不发版；也不检查签名证书与 asc（macos-release.yml 自己校验）。
+# 不构建、不公证、不发版；也不检查签名证书与 asc（desktop-release.yml 自己校验）。
 #
 # 触发：Actions → macOS · CI Smoke Test → Run workflow
 

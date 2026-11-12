@@ -12,7 +12,9 @@ import json
 from pathlib import Path
 import plistlib
 import subprocess
+import sys
 import tempfile
+import time
 
 from ios import build_environment
 
@@ -47,10 +49,64 @@ def sign(identity, target, runtime):
     run(*command, target)
 
 
-def notarize(path):
+def notarize(path, attempts=3):
     # asc talks to the Apple Notary API v2 directly; no notarytool profile needed.
-    run("asc", "notarization", "submit", "--file", path,
-        "--wait", "--poll-interval", "30s", "--timeout", "45m", "--pretty")
+    # Retry network interruptions during the upload; Apple-side validation errors
+    # remain immediate failures so the original cause stays visible.
+    command = ["asc", "notarization", "submit", "--file", path,
+               "--wait", "--poll-interval", "30s", "--timeout", "45m", "--pretty"]
+    transient_markers = (
+        "connection reset by peer",
+        "connection refused",
+        "unexpected eof",
+        "temporary failure",
+        "tls handshake timeout",
+        "i/o timeout",
+    )
+    for attempt in range(1, attempts + 1):
+        result = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.stdout:
+            print(result.stdout, end="", flush=True)
+        if result.returncode == 0:
+            if result.stderr:
+                print(result.stderr, end="", file=sys.stderr, flush=True)
+            return
+        if result.stderr:
+            print(result.stderr, end="", file=sys.stderr, flush=True)
+        diagnostic = (result.stdout + "\n" + result.stderr).lower()
+        retryable = any(marker in diagnostic for marker in transient_markers)
+        if retryable and attempt < attempts:
+            delay = attempt * 15
+            print(f"Notarization upload hit a temporary network error; retrying in {delay}s "
+                  f"(attempt {attempt + 1}/{attempts}).", file=sys.stderr, flush=True)
+            time.sleep(delay)
+            continue
+        raise subprocess.CalledProcessError(
+            result.returncode, command, output=result.stdout, stderr=result.stderr
+        )
+
+
+def staple(target, attempts=3):
+    # stapler fetches the notarization ticket from Apple's CloudKit CDN. The
+    # connection occasionally drops (error 68) right after a successful
+    # notarization, so retry before failing the release.
+    command = ["xcrun", "stapler", "staple", str(target)]
+    for attempt in range(1, attempts + 1):
+        result = subprocess.run(
+            command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
+        if result.stdout:
+            print(result.stdout, end="", flush=True)
+        if result.returncode == 0:
+            return
+        if attempt == attempts:
+            raise subprocess.CalledProcessError(
+                result.returncode, command, output=result.stdout
+            )
+        delay = attempt * 15
+        print(f"stapler failed with exit {result.returncode}; retrying in {delay}s "
+              f"(attempt {attempt + 1}/{attempts}).", file=sys.stderr, flush=True)
+        time.sleep(delay)
 
 
 def verify(app, identity):
@@ -138,7 +194,7 @@ def main():
         return
 
     notarize(zip_path)
-    run("xcrun", "stapler", "staple", app)
+    staple(app)
     run("xcrun", "stapler", "validate", app)
     # 公证并 staple 之后才代表 Gatekeeper 会放行。
     run("spctl", "--assess", "--type", "execute", "--verbose", app)
@@ -147,7 +203,7 @@ def main():
     make_dmg(app, dmg)
     sign(args.identity, dmg, runtime=False)
     notarize(dmg)
-    run("xcrun", "stapler", "staple", dmg)
+    staple(dmg)
     run("xcrun", "stapler", "validate", dmg)
     # 模拟用户下载后的 Gatekeeper 判定。
     run("spctl", "--assess", "--type", "open", "--context",

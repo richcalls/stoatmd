@@ -18,6 +18,8 @@ The comparison on the website is about the sync and agent path, not a feature ch
 
 - Desktop app (currently macOS): free, including cloud sync. Price $0. Windows and Linux builds will use the same free desktop model.
 - iPhone app: one-time purchase. The price is TBA — never invent or guess a dollar amount.
+- Source code: publicly available under a noncommercial license. Personal builds are allowed under the license; commercial use requires separate permission. The official iOS App Store app remains a paid one-time purchase.
+- Source repository: https://github.com/richcalls/stoatmd
 - No subscription. No account. No StoatMD server.
 - Sync providers v1: Google Drive and Dropbox only. No iCloud, OneDrive, WebDAV, or self-hosted server.
 - Conflict handling: keep local, keep cloud, or keep both. The “keep both” copy is `original (cloud conflict yyyy-mm-dd).md`.
@@ -38,7 +40,7 @@ The comparison on the website is about the sync and agent path, not a feature ch
 
 ## Release status (as of 2026-11)
 
-- macOS: downloadable through the public GitHub Releases page of `richcalls/stoatmd-community`; the fixed installer is `releases/latest/download/StoatMD-macos.dmg`, requiring macOS 14+ on Apple Silicon. (That repository hosts builds and issues; the source repository is private.)
+- macOS: source code and downloadable installers are published in `richcalls/stoatmd`. The fixed installer is `releases/latest/download/StoatMD-macos.dmg`, requiring macOS 14+ on Apple Silicon. Report issues in the repository's Issues page.
 - Windows / Linux: builds are planned; do not link to or imply an existing installer yet.
 - iOS: not listed in the App Store yet.
 - Do not fabricate an App Store link, release date, user count, testimonial, benchmark, or iPhone price.

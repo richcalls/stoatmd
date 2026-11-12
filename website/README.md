@@ -72,9 +72,9 @@ npm run preview  # 预览构建产物
 | 安装 | `npm ci`（无需 sudo） |
 | 构建 | `npm run build` |
 | 输出目录 | `website/dist` |
-| Node | `actions/setup-node@v4` 固定 v22（带 npm 缓存） |
-| Runner | `ubuntu-latest`（GitHub 托管，公开仓库免费） |
-| Wrangler | workflow 里 `npx wrangler@4` / `wrangler-action` 固定 `wranglerVersion: "4"` |
+| Node | GitHub Actions workflow 固定使用 Node.js 22 |
+| Runner | GitHub 托管 `ubuntu-latest`（公共 PR 无需访问私有机器） |
+| Wrangler | 项目初始化用 `npx wrangler@4`；部署 action 固定 `wranglerVersion: "4"` |
 
 静态配置文件随构建进入 `dist/`：
 
@@ -143,7 +143,7 @@ npx wrangler@4 pages deploy dist --project-name=stoatmd-website --branch=main
 
 ## 发布状态
 
-- macOS：已通过公开的 [`richcalls/stoatmd-community`](https://github.com/richcalls/stoatmd-community) Releases 发布；源码仓保持私有
+- macOS：安装包与构建源码统一发布于 [`richcalls/stoatmd`](https://github.com/richcalls/stoatmd/releases)
   - 官网下载按钮按系统切换：macOS 直链 `releases/latest/download/StoatMD-macos.dmg`；iOS 指向下载区；Windows / Linux 指向 Releases 并显示「准备中」
   - 安装包要求 macOS 14+、Apple Silicon；改资源名时要同步 `src/lib/download.ts`
 - Windows / Linux：桌面版同一套代码库面向这两个平台，构建与发布随后补充；官网只写「稍后」，不要提前给下载链接

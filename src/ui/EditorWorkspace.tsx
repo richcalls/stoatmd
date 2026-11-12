@@ -223,7 +223,13 @@ export function EditorWorkspace(props: Props) {
     cleanup(off);
   });
   effect(() => {
+    // Esc closes find only while the find field or the document has the focus.
+    // Bound "always" so it also fires in the find field, but an unrelated input
+    // (the sidebar search, where Esc cancels an input method's candidates) must
+    // keep its Esc: closing find there would move the focus into the document,
+    // and the keys typed next (backspace, select all) would edit the note.
     if (!findOpen() || props.searchEnabled === false) return;
+    if (!findFocused() && !editorFocused()) return;
     const off = keymap.bind("escape", closeFind, { when: "always" });
     cleanup(off);
   });

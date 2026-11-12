@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Package the Windows or Linux build on its own operating system.
+"""Package a desktop build on its own operating system.
 
-nsh 0.5.0 can cross-build a Windows runner on macOS or Linux with cargo-xwin,
-but this project packages each desktop build on its target OS and verifies it
-starts there. Run this script on Windows for the Windows zip, or on Linux for
-the Linux tar.gz.
-Both builds embed the same OAuth credentials as the macOS release (read from
-sync.json by build_environment, never printed).
+nsh 0.5.0 cross-compiles desktop runners only with extra target toolchains
+(cargo-xwin / MSVC targets for Windows). Run this script on the target operating
+system: Windows produces a zip, Linux a tar.gz, and macOS an unsigned zip
+containing the ad-hoc signed app. Public macOS builds are not notarized; users
+may need to approve the app in macOS Privacy & Security on first launch.
+Builds embed the same public OAuth client configuration used by the official
+desktop release (read from sync.json by build_environment, never printed).
 
 Windows icons are embedded only when packaging on Windows, so run the script
 there for a branded .exe. The Linux bundle ships its PNG icon.
@@ -22,7 +23,7 @@ from ios import build_environment
 
 ROOT = Path(__file__).resolve().parents[1]
 
-HOST_TARGETS = {"win32": "windows", "linux": "linux"}
+HOST_TARGETS = {"win32": "windows", "linux": "linux", "darwin": "macos"}
 
 
 def sha256(path):
@@ -43,10 +44,9 @@ def main():
 
     if host is None:
         raise SystemExit(
-            "Package Windows on Windows and Linux on Linux: this project "
-            "packages and verifies each desktop build on its target OS. "
-            "(nsh 0.5.0 can cross-build with cargo-xwin, which this script "
-            "does not set up.)"
+            "nsh 0.5.0 must package desktop apps on their target operating "
+            "system unless cross toolchains are configured. Run this script "
+            "on macOS, Windows, or Linux."
         )
 
     out = args.out.resolve()
@@ -66,16 +66,20 @@ def main():
     env.setdefault("STOATMD_PURCHASE_REQUIRED", "false")
 
     icon = ROOT / "assets/app-logos/thread.png"
-    extension = "zip" if host == "windows" else "tar.gz"
+    extension = "tar.gz" if host == "linux" else "zip"
     command = ["nsh", "package", "--target", host, "--out", str(out),
                "--icon", str(icon), "--app-version", version, "--build", str(build)]
     subprocess.run(command, check=True, env=env, cwd=ROOT)
 
-    source = out / f"{name}.{extension}"
+    source = out / f"{name}.app" if host == "macos" else out / f"{name}.{extension}"
     if not source.is_file():
-        raise FileNotFoundError(source)
+        if not source.exists():
+            raise FileNotFoundError(source)
     artifact = out / f"{name}-{version}-{build}-{host}.{extension}"
-    source.replace(artifact)
+    if host == "macos":
+        subprocess.run(["ditto", "-c", "-k", "--keepParent", str(source), str(artifact)], check=True)
+    else:
+        source.replace(artifact)
 
     # 每个平台单独出校验文件，避免把另一台机器的产物混进来。
     sums = out / "SHA256SUMS.txt"

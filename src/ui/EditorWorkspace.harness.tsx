@@ -1,5 +1,5 @@
 import { Text, View, host, mount, signal } from "nsh";
-import { Button } from "nsh/base";
+import { Button, Input } from "nsh/base";
 import { applyRenderMode, restoreRenderMode } from "./documentAppearance";
 import { applyTheme, restoreTheme } from "./theme";
 import { EditorWorkspace } from "./EditorWorkspace";
@@ -41,6 +41,9 @@ function Harness() {
         source.set("hi in another file");
         preview.set("hi in another file");
       }}><Text>Switch document</Text></View>
+      {/* 编辑器之外的普通输入框（如侧栏搜索）：正文的快捷键回退不能作用到这里。 */}
+      <Input testID="outside-input" placeholder="outside" />
+      <Text testID="preview-value">{preview()}</Text>
       <Text testID="mode-value">{mode()}</Text>
       <Button testID="render-color" onPress={() => applyRenderMode("color")}><Text>Color</Text></Button>
       <Button testID="render-monochrome" onPress={() => applyRenderMode("monochrome")}><Text>Monochrome</Text></Button>
