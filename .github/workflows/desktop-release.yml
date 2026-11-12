@@ -108,7 +108,10 @@ jobs:
         if: matrix.target == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev clang
+          # nsh 0.5 Linux 后端：GTK 4 + WebKitGTK 6 之外还需要 GStreamer 核心与
+          # base 插件的开发头（音频解码/混音），缺少时 gstreamer-sys 构建失败。
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev \
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev clang
 
       - name: Install nsh on macOS / Linux
         if: matrix.target != 'windows'
