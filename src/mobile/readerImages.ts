@@ -75,6 +75,23 @@ function stripInlines(content: TextViewInline[], out: TextViewImage[]): TextView
   return kept;
 }
 
+/** 附件扩展名 → Blob 的 MIME 类型；未知扩展名交给平台按内容嗅探。 */
+export function imageMime(path: string): string {
+  const ext = path.split(/[?#]/, 1)[0].split(".").pop()?.toLowerCase() ?? "";
+  switch (ext) {
+    case "png": return "image/png";
+    case "jpg":
+    case "jpeg": return "image/jpeg";
+    case "gif": return "image/gif";
+    case "webp": return "image/webp";
+    case "svg": return "image/svg+xml";
+    case "avif": return "image/avif";
+    case "heic": return "image/heic";
+    case "bmp": return "image/bmp";
+    default: return "application/octet-stream";
+  }
+}
+
 /**
  * TextView 的 renderImage 在 iOS 上只占位不绘制（实测 0.3.0），
  * 所以把图片从块里摘出来，交给块下面的 `<Image>` 自己画。

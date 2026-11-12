@@ -10,8 +10,8 @@ license = "PolyForm-Noncommercial-1.0.0"
 publish = false
 
 [dependencies]
-nsh-core = "=0.3.0"
-nsh-base = "=0.3.0"
+nsh-core = "=0.5.0"
+nsh-base = "=0.5.0"
 stoatmd-core = { path = "crates/stoatmd-core" }
 notify = "7"
 serde_json = "1"
@@ -22,10 +22,10 @@ rfd = "0.15"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 dispatch2 = "0.3"
-nsh-platform-macos = "=0.3.0"
-nsh-engine = { version = "=0.3.0", default-features = false }
-nsh-dev = { version = "=0.3.0", features = ["client"] }
-nsh-js = { version = "=0.3.0", default-features = false }
+nsh-platform-macos = "=0.5.0"
+nsh-engine = { version = "=0.5.0", default-features = false }
+nsh-dev = { version = "=0.5.0", features = ["client"] }
+nsh-js = { version = "=0.5.0", default-features = false, features = ["crypto"] }
 objc2 = "0.6"
 objc2-app-kit = { version = "0.3.2", default-features = false, features = [
     "std",

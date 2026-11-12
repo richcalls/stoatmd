@@ -1,4 +1,4 @@
-import { Image, Keyboard, List, Scroll, Text, View, cleanup, computed, createAnimatedValue, effect, keymap, keyboardFrame, platform, safeAreaInsets, signal, windowSize, type JSX, type YNode } from "nsh";
+import { Image, Keyboard, List, Scroll, Text, View, cleanup, computed, createAnimatedValue, effect, keymap, keyboardFrame, platform, safeAreaInsets, signal, windowSize, type InputRef, type JSX, type ListRef, type PanEvent } from "nsh";
 import { Button, Dialog, Input, NavPage, NavStack, TextView, createNavStack } from "nsh/base";
 import { InputAccessoryView, TabBar } from "nsh/mobile";
 import { MobileFiles, Vault } from "stoatmd/native";
@@ -25,7 +25,7 @@ import { LINE_HEIGHT_MAX, LINE_HEIGHT_MIN, LINE_HEIGHT_STEP, applyEditorFontSize
 import { formatDateTime, formatWhen, titleFromName } from "../ui/vaultModel";
 import { mobileLibrary, type MobileLibrary } from "./library";
 import { flattenTree } from "./libraryTree";
-import { imageRelPath, resolveImageSrc, stripImages } from "./readerImages";
+import { imageMime, imageRelPath, resolveImageSrc, stripImages } from "./readerImages";
 import { MOBILE_THEMES, glass, mobileColors, mobileIsDark, mobileThemeId, type MobileTheme } from "./palette";
 import { syncStatus } from "./syncStatus";
 
@@ -150,9 +150,9 @@ function SettingsRow(props: { id?: string; icon?: IconName; iconBg?: string; tit
     </View> : null}
     <View style={{ flex: 1, minWidth: 0 }}>
       <Text style={{ fontSize: 17, fontWeight: 400, letterSpacing: 0, color: c.ink }}>{props.title}</Text>
-      {props.detail ? <Text numberOfLines={1} style={{ marginTop: 2, fontSize: 13, color: c.ink2 }}>{props.detail}</Text> : null}
+      {props.detail ? <Text style={{ marginTop: 2, fontSize: 13, color: c.ink2, numberOfLines: 1 }}>{props.detail}</Text> : null}
     </View>
-    {props.value ? <Text numberOfLines={1} style={{ maxWidth: 180, textAlign: "right", fontSize: 17, color: c.ink3 }}>{props.value}</Text> : null}
+    {props.value ? <Text style={{ maxWidth: 180, textAlign: "right", fontSize: 17, color: c.ink3, numberOfLines: 1 }}>{props.value}</Text> : null}
     {props.onPress ? <Icon name="caret-right" color={c.ink3} size={14} /> : null}
   </View>;
   return <View>
@@ -182,7 +182,7 @@ function PanelRow(props: { id?: string; icon: IconName; title: string; detail?: 
         <Icon name={props.icon} color={props.destructive ? danger : props.accent ? c.accent : c.ink2} size={16} />
       </View>
       <Text style={{ flex: 1, fontSize: 17, color: props.destructive ? danger : c.ink }}>{props.title}</Text>
-      {props.detail ? <Text numberOfLines={1} style={{ maxWidth: 170, textAlign: "right", fontSize: 15, color: c.ink3 }}>{props.detail}</Text> : null}
+      {props.detail ? <Text style={{ maxWidth: 170, textAlign: "right", fontSize: 15, color: c.ink3, numberOfLines: 1 }}>{props.detail}</Text> : null}
       {props.selected ? <Icon name="check" color={c.accent} size={18} /> : null}
     </Button>
     {props.last ? null : <RowDivider inset={57} />}
@@ -216,7 +216,7 @@ function SyncAccessory(props: { error?: SyncErrorView | null; onPause: () => voi
         {failed ? <Icon name="arrows-clockwise" color="#FF3B30" size={15} />
           : paused ? <Icon name="pause" color="#FF9500" size={15} />
           : <View style={{ animationName: "spin", animationDuration: 1100, animationIterationCount: "infinite" }}><Icon name="sync" color={c.ink2} size={15} /></View>}
-        <Text numberOfLines={1} style={{ fontSize: 12.5, fontWeight: 500, letterSpacing: -0.15, color: tint }}>{label}</Text>
+        <Text style={{ fontSize: 12.5, fontWeight: 500, letterSpacing: -0.15, color: tint, numberOfLines: 1 }}>{label}</Text>
       </View>
       <GlassIconButton size={30} icon={failed ? "arrows-clockwise" : paused ? "play" : "pause"}
         label={failed ? t("sync.error.retry") : paused ? t("mobile.resume") : t("mobile.pause")}
@@ -326,23 +326,47 @@ function ConnectPage(props: { loading: boolean; error: string; onRetry: () => vo
 const failedImages = signal<Record<string, true>>({});
 
 /** 阅读页图片：按原始宽高比铺满正文宽度；onLoad 之前先占位，避免列表高度跳动。 */
-function ReaderImage(props: { src: string; alt?: string; width?: number | `${number}%`; height?: number | `${number}%` }) {
+function ReaderImage(props: {
+  src?: string;
+  /** 本地附件：读到字节后转成 blob: URL。0.5 起带 capabilities 的应用在 iOS / Android 上不能把文件路径交给 <Image>。 */
+  read?: () => Uint8Array;
+  mime?: string;
+  /** 失败去重用的原始地址（blob URL 每次挂载都不同）。 */
+  sourceKey: string;
+  alt?: string;
+  width?: number | `${number}%`;
+  height?: number | `${number}%`;
+}) {
   const ratio = signal<number | null>(null);
   const loaded = signal(false);
-  if (failedImages()[props.src]) return <ReaderImageNotice alt={props.alt} hint={t("mobile.imageFailed")} testID="mobile-image-failed" />;
+  let objectUrl: string | null = null;
+  // data:/blob: 是应用已有的字节，不经过媒体源的 fs.read 授权；本地路径在移动端会被直接拒绝。
+  const localSrc = computed(() => {
+    if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
+    if (!props.read) return null;
+    try {
+      objectUrl = URL.createObjectURL(new Blob([props.read()], { type: props.mime ?? "application/octet-stream" }));
+      return objectUrl;
+    } catch {
+      return null;
+    }
+  });
+  cleanup(() => { if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; } });
+  const src = () => props.src ?? localSrc() ?? "";
+  if (failedImages()[props.sourceKey]) return <ReaderImageNotice alt={props.alt} hint={t("mobile.imageFailed")} testID="mobile-image-failed" />;
   return <View style={{ position: "relative", width: props.width ?? "100%", maxWidth: "100%" }}>
-    <Image src={props.src} accessibilityLabel={props.alt} resizeMode="contain"
-      onLoad={size => {
+    <Image src={src()} accessibilityLabel={props.alt}
+      onLoad={({ size }) => {
         if (size.width > 0 && size.height > 0) ratio.set(size.width / size.height);
         loaded.set(true);
       }}
-      onError={() => failedImages.set({ ...failedImages(), [props.src]: true })}
-      style={{ width: "100%",
+      onError={() => failedImages.set({ ...failedImages(), [props.sourceKey]: true })}
+      style={{ width: "100%", objectFit: "contain",
         ...(props.height ? { height: props.height } : ratio() ? { aspectRatio: ratio()! } : { height: 140 }),
         borderRadius: 6, backgroundColor: mobileColors().thread }} />
     {/* 网络图片和刚同步下来的本地图片都要读一会儿；在 onLoad 之前盖一层细转圈，别让读者以为图坏了。 */}
-    {loaded() ? null : <View testID="mobile-image-loading" pointerEvents="none"
-      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 6,
+    {loaded() ? null : <View testID="mobile-image-loading"
+      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 6, pointerEvents: "none",
         backgroundColor: mobileColors().thread, alignItems: "center", justifyContent: "center" }}>
       <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2,
         borderColor: mobileColors().thread, borderTopColor: mobileColors().ink3,
@@ -434,8 +458,8 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   }); };
   const docTitle = () => titleFromName(lib.note()?.path.split("/").pop() ?? "");
   const docFolder = () => { const parts = (lib.note()?.path ?? "").split("/"); return parts.length > 1 ? parts[parts.length - 2] : t("mobile.library"); };
-  let reader: YNode | null = null;
-  let editor: YNode | null = null;
+  let reader: ListRef | null = null;
+  let editor: InputRef | null = null;
   let selected = { start: 0, end: 0 };
   const insert = (before: string, after = "") => {
     const text = lib.note()?.content ?? "";
@@ -575,7 +599,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     <Action label={t("vault.conflict.reload")} disabled={busy()} onPress={() => { void running(() => lib.reload()); }} />
   </View> : null;
   const errorBanner = () => operationError() || lib.error() ? <View testID="mobile-error" style={{ padding: 14, borderRadius: 14, backgroundColor: mobileColors().accentSoft }}>
-    <Text selectable style={{ color: mobileColors().ink }}>{operationError() || lib.error()}</Text>
+    <Text style={{ color: mobileColors().ink, userSelect: "text" }}>{operationError() || lib.error()}</Text>
     <Action label={t("sync.error.retry")} onPress={() => { void running(async () => { await lib.flush(); await lib.refresh(); }); }} />
   </View> : null;
 
@@ -588,7 +612,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
         <GlassPill id="mobile-back" label={docFolder()} icon="arrow-left" onPress={back} />
       </View>
       <View style={{ flex: 1, minWidth: 0, alignItems: "center", gap: 1 }}>
-        <Text numberOfLines={1} style={{ width: "100%", textAlign: "center", fontSize: 15, fontWeight: 600, letterSpacing: -0.3, color: mobileColors().ink }}>{docTitle()}</Text>
+        <Text style={{ width: "100%", textAlign: "center", fontSize: 15, fontWeight: 600, letterSpacing: -0.3, color: mobileColors().ink, numberOfLines: 1 }}>{docTitle()}</Text>
         {editing() ? <Text testID="mobile-save-status" style={{ fontSize: 11, fontWeight: 500, color: mobileColors().ink3 }}>{saveHint()}</Text> : null}
       </View>
       <View style={{ flexGrow: 0, flexShrink: 0, minWidth: 72, flexDirection: "row", justifyContent: "flex-end", gap: 8 }}>
@@ -642,7 +666,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
   /** 源码编辑面板；分屏时左右各占一半，留白收窄。 */
   const sourcePane = (compact: boolean) => <Input ref={(node) => { editor = node; selected = { start: 0, end: 0 }; }}
     testID="mobile-source" readonly={busy()} value={lib.note()?.content ?? ""} multiline autoCorrect={false} autoCapitalize="none"
-    placeholder={t("mobile.writeHint")} onChange={lib.edit} onSelectionChange={range => { selected = range; }}
+    placeholder={t("mobile.writeHint")} onChange={({ value }) => lib.edit(value)} onSelectionChange={range => { selected = range; }}
     ios={{ inputAccessoryViewID: "markdown-tools", keyboardAppearance: mobileIsDark() ? "dark" : "light" }}
     style={{ flex: 1, paddingTop: ios ? 14 : 66 + bottom().top, paddingHorizontal: compact ? 14 : 20, paddingBottom: 14, color: mobileColors().ink, backgroundColor: mobileColors().editor,
       fontSize: editorFontSize() + 2, lineHeight: Math.round((editorFontSize() + 2) * 1.7), letterSpacing: 0.1 }} />;
@@ -666,8 +690,10 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
           {stripped.images.map(image => {
             const rel = root && exists ? imageRelPath(image.src, notePath, exists) : null;
             if (root && exists && rel && !exists(rel)) return <ReaderImageNotice alt={image.alt} hint={t("mobile.imagePending")} testID="mobile-image-pending" />;
-            const src = root ? resolveImageSrc(image.src, notePath, root, exists) : image.src;
-            return <ReaderImage src={src} alt={image.alt} width={image.width} height={image.height} />;
+            const read = rel && lib.vault.readBytes ? () => lib.vault.readBytes!(rel) : undefined;
+            const src = read ? undefined : (root ? resolveImageSrc(image.src, notePath, root, exists) : image.src);
+            return <ReaderImage src={src} read={read} mime={rel ? imageMime(rel) : undefined}
+              sourceKey={image.src} alt={image.alt} width={image.width} height={image.height} />;
           })}
         </View>;
       }}
@@ -754,13 +780,13 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
       : <NavStack state={nav} testID="mobile-navigation" style={{ flex: 1 }}>
         {(route) => route.kind === "library" ? libraryPage() : documentPage(false)}
       </NavStack>}
-    <Dialog open={panelOpen()} presentation="pageSheet" onOpenChange={open => { if (!open) closePanel(); }}
+    <Dialog open={panelOpen()} presentation="pageSheet" onOpenChange={({ open }) => { if (!open) closePanel(); }}
       style={{ flex: 1, backgroundColor: mobileColors().paper }} statusBar={{ foreground: mobileIsDark() ? "light" : "dark" }}>
       <View style={{ flex: 1, backgroundColor: mobileColors().paper }}>
-        {platform.os === "ios" ? <View pointerEvents="none" style={{ position: "absolute", top: 5, left: "50%", marginLeft: -18, width: 36, height: 5, borderRadius: 2.5,
+        {platform.os === "ios" ? <View style={{ position: "absolute", top: 5, left: "50%", marginLeft: -18, width: 36, height: 5, borderRadius: 2.5, pointerEvents: "none",
           backgroundColor: mobileIsDark() ? "rgba(235, 235, 245, 0.28)" : "rgba(60, 60, 67, 0.28)", zIndex: 5 }} /> : null}
         <View style={{ paddingTop: platform.os === "ios" ? 18 : bottom().top + 4, minHeight: 62, paddingHorizontal: 8, flexDirection: "row", alignItems: "center" }}>
-          <Text numberOfLines={1} style={{ position: "absolute", left: 72, right: 72, textAlign: "center", color: mobileColors().ink, fontSize: 17, fontWeight: 600 }}>
+          <Text style={{ position: "absolute", left: 72, right: 72, textAlign: "center", color: mobileColors().ink, fontSize: 17, fontWeight: 600, numberOfLines: 1 }}>
             {panel() === "settings" ? t("settings.title")
             : panel() === "storage" ? t("mobile.storageLocation") : panel() === "outline" ? t("inspector.outline") : panel() === "type" ? t("settings.font.size")
             : panel() === "folder" ? t("mobile.newFolder") : panel() === "rename" ? t("rename.title") : panel() === "move" ? t("mobile.move")
@@ -812,7 +838,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
               </View> : null}
               {lib.recycled().map(item => <View style={{ gap: 8 }}>
                 <View style={{ paddingHorizontal: 4, gap: 2 }}>
-                  <Text numberOfLines={1} style={{ fontSize: 17, color: mobileColors().ink }}>{item.original}</Text>
+                  <Text style={{ fontSize: 17, color: mobileColors().ink, numberOfLines: 1 }}>{item.original}</Text>
                   <Text style={{ fontSize: 13, color: mobileColors().ink3 }}>{formatWhen(item.deletedAt, locale())}</Text>
                 </View>
                 <SettingsGroup>
@@ -823,7 +849,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
             </View> : panel() === "erase" ? <View style={{ gap: 20 }}>
               <View style={{ paddingHorizontal: 4, gap: 6 }}>
                 <Text style={{ fontSize: 17, lineHeight: 24, color: mobileColors().ink }}>{t("mobile.eraseHint")}</Text>
-                <Text numberOfLines={1} style={{ fontSize: 15, color: mobileColors().ink2 }}>{lib.recycled().find(item => item.path === trashSelection())?.original}</Text>
+                <Text style={{ fontSize: 15, color: mobileColors().ink2, numberOfLines: 1 }}>{lib.recycled().find(item => item.path === trashSelection())?.original}</Text>
               </View>
               <SettingsGroup>
                 <PanelRow id="mobile-erase-confirm" icon="x" title={t("mobile.erase")} destructive last disabled={busy()} onPress={() => { void running(async () => { await lib.removePermanently(trashSelection()); show("trash"); }); }} />
@@ -837,7 +863,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
                 <View>
                   <Button testID={`mobile-heading-${h.id}`} onPress={() => { closePanel(); goToBlock(h.blockIndex); }}
                     style={{ minHeight: 44, paddingHorizontal: 16, paddingLeft: 16 + (h.level - 1) * 16, justifyContent: "center", backgroundColor: mobileColors().list }}>
-                    <Text numberOfLines={1} style={{ color: mobileColors().ink, fontSize: 17 }}>{h.text}</Text>
+                    <Text style={{ color: mobileColors().ink, fontSize: 17, numberOfLines: 1 }}>{h.text}</Text>
                   </Button>
                   {index === articleModel(lib.note()?.content ?? "").headings.length - 1 ? null : <RowDivider inset={16 + (h.level - 1) * 16} />}
                 </View>)}
@@ -845,7 +871,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
             panel() === "rename" || panel() === "folder" ? <View style={{ gap: 16 }}>
               <SettingsGroup>
                 <View style={{ backgroundColor: mobileColors().list, paddingHorizontal: 16, paddingVertical: 12 }}>
-                  <Input testID="mobile-name" value={input()} onChange={value => input.set(value)}
+                  <Input testID="mobile-name" value={input()} onChange={({ value }) => input.set(value)}
                     returnKeyType="done" onSubmit={event => { input.set(event.text); Keyboard.dismiss(); }}
                     placeholder={t("rename.label")} autoCorrect={false} autoCapitalize="none"
                     style={{ minHeight: 24, fontSize: 17, color: mobileColors().ink }} />
@@ -870,7 +896,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
                 <InfoRow label={t("info.path")} value={lib.note()?.path ?? ""} last />
               </SettingsGroup>
             </View> : panel() === "actions" ? <View style={{ gap: 16 }}>
-              <Text numberOfLines={1} style={{ paddingHorizontal: 4, fontSize: 13, color: mobileColors().ink3 }}>{lib.note()?.path}</Text>
+              <Text style={{ paddingHorizontal: 4, fontSize: 13, color: mobileColors().ink3, numberOfLines: 1 }}>{lib.note()?.path}</Text>
               <SettingsGroup>
                 <PanelRow id="mobile-rename" icon="pencil" title={t("rename.title")} onPress={() => { input.set(docTitle()); show("rename"); }} />
                 <PanelRow id="mobile-duplicate" icon="file-text" title={t("context.duplicate")} disabled={busy()} onPress={() => { void running(async () => { if (await lib.copy(t("context.duplicateSuffix"))) closePanel(); }); }} />
@@ -925,7 +951,7 @@ function NativeTabBar(props: { tab: () => Tab; onTab: (next: Tab) => void; onRes
     style={{ height: 49 + bottom().bottom, backgroundColor: mobileColors().list }}
     items={items}
     selectedIndex={settled() ? selected() : items.length}
-    onChange={index => {
+    onChange={({ index }) => {
       Keyboard.dismiss();
       if (index === SETTINGS_TAB) { props.onSettings(); return; }
       const next = TABS[index];
@@ -971,12 +997,19 @@ function LibraryPage(props: {
   const c = mobileColors();
   const bottom = safeAreaInsets();
   const query = signal("");
+  // 和桌面一致：搜索框里按 Esc 先清空内容（iPad 外接键盘）。
+  const searchFocused = signal(false);
   // 底栏再点当前 tab 时滚回列表顶部（系统的 reselect 行为）。
   let listScroll: { scrollTo(options: { y?: number; animated?: boolean }): void } | null = null;
   const expanded = signal<Set<string>>(new Set());
   const pulling = signal(false);
   const titleCollapsed = signal(false);
   const search = librarySearch(() => lib.vault, query, lib.entries);
+  effect(() => {
+    if (!searchFocused() || query() === "") return;
+    const off = keymap.bind("escape", () => query.set(""), { when: "always" });
+    cleanup(off);
+  });
   // 缓存派生列表：切 tab 时列表会整体重绘，tree() 又在每行里被调用，
   // 缓存后大库不会因为反复排序 / 平铺而卡顿。
   const allNotes = computed(() => lib.entries().filter(e => !e.isDir && /\.(md|markdown)$/i.test(e.name))
@@ -1020,7 +1053,7 @@ function LibraryPage(props: {
       <View style={{ width: 26, height: 26, borderRadius: 7, alignItems: "center", justifyContent: "center", backgroundColor: c.searchBg }}>
         <Icon name="file-text" color={c.ink2} size={14} />
       </View>
-      <Text numberOfLines={1} style={{ flex: 1, fontFamily: props.ios ? undefined : "monospace", fontSize: props.ios ? 17 : 13, fontWeight: 400, color: c.ink }}>{props.ios ? row.title : row.name}</Text>
+      <Text style={{ flex: 1, fontFamily: props.ios ? undefined : "monospace", fontSize: props.ios ? 17 : 13, fontWeight: 400, color: c.ink, numberOfLines: 1 }}>{props.ios ? row.title : row.name}</Text>
       <Text style={{ fontSize: props.ios ? 15 : 11.5, color: c.ink3 }}>{formatWhen(row.mtimeMs, locale())}</Text>
     </Button>;
     return platform.os === "ios" && swipe
@@ -1062,7 +1095,8 @@ function LibraryPage(props: {
   const searchField = () => <View style={{ height: 36, marginBottom: 10, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", gap: 7,
     borderRadius: 10, borderCurve: "continuous", backgroundColor: c.searchBg }}>
     <Icon name="magnifying-glass" color={c.ink3} size={16} />
-    <Input testID="mobile-search" value={query()} onChange={value => query.set(value)} placeholder={t("search.placeholder")} returnKeyType="search"
+    <Input testID="mobile-search" value={query()} onChange={({ value }) => query.set(value)} placeholder={t("search.placeholder")} returnKeyType="search"
+      onFocus={() => searchFocused.set(true)} onBlur={() => searchFocused.set(false)}
       onSubmit={event => { query.set(event.text); Keyboard.dismiss(); }}
       style={{ flex: 1, height: 36, paddingRight: query() ? 2 : 8, fontSize: 16, color: c.ink }} />
     {query() ? <Button testID="mobile-search-clear" accessibilityLabel={t("search.empty")} onPress={() => { query.set(""); Keyboard.dismiss(); }}
@@ -1085,7 +1119,7 @@ function LibraryPage(props: {
         {!props.ios && notPulling() ? <PullIndicator percent={percent()} /> : null}
         {props.ios ? <View style={{ paddingHorizontal: 16 }}>
           <Text style={{ fontSize: 34, fontWeight: 700, letterSpacing: 0.2, lineHeight: 41, color: c.ink }}>{libraryTitle()}</Text>
-          {librarySubtitle() ? <Text numberOfLines={1} style={{ marginTop: 1, fontSize: 13, color: c.ink3 }}>{librarySubtitle()}</Text> : null}
+          {librarySubtitle() ? <Text style={{ marginTop: 1, fontSize: 13, color: c.ink3, numberOfLines: 1 }}>{librarySubtitle()}</Text> : null}
           <View style={{ marginTop: 12 }}>{searchField()}</View>
           {/* 原生 UITabBar 的项不在 nsh 的视图树里，测试点不到底栏的「设置」；只有截图 harness 打开这块透明点击区。 */}
           {props.settingsTap ? <Button testID="mobile-settings" accessibilityLabel={t("settings.title")} onPress={props.onSettings}
@@ -1145,7 +1179,7 @@ function LibraryPage(props: {
           <View style={{ width: 26, height: 26, borderRadius: 7, alignItems: "center", justifyContent: "center", backgroundColor: c.accentSoft }}>
             <Icon name="folder" color={c.accent} size={14} />
           </View>
-          <Text numberOfLines={1} style={{ flex: 1, fontSize: props.ios ? 17 : 16, fontWeight: props.ios ? 400 : 500, letterSpacing: 0, color: c.ink }}>{row.name}</Text>
+          <Text style={{ flex: 1, fontSize: props.ios ? 17 : 16, fontWeight: props.ios ? 400 : 500, letterSpacing: 0, color: c.ink, numberOfLines: 1 }}>{row.name}</Text>
           <Text style={{ fontSize: 15, color: c.ink3 }}>{row.count}</Text>
         </Button> : treeNote(row)}
         {props.ios && index < tree().length - 1 ? <RowDivider inset={16 + row.depth * 18 + 56} /> : null}
@@ -1185,7 +1219,8 @@ function LibraryPage(props: {
       </Button>
       <View style={{ flex: 1, minWidth: 0, height: 48, paddingLeft: 16, flexDirection: "row", alignItems: "center", gap: 8, ...glassStyle(999) }}>
         <Icon name="magnifying-glass" color={c.ink3} size={16} />
-        <Input testID="mobile-search" value={query()} onChange={value => query.set(value)} placeholder={t("search.placeholder")} returnKeyType="search"
+        <Input testID="mobile-search" value={query()} onChange={({ value }) => query.set(value)} placeholder={t("search.placeholder")} returnKeyType="search"
+      onFocus={() => searchFocused.set(true)} onBlur={() => searchFocused.set(false)}
           onSubmit={event => { query.set(event.text); Keyboard.dismiss(); }}
           style={{ flex: 1, height: 48, paddingRight: query() ? 4 : 16, fontSize: 16, color: c.ink }} />
         {query() ? <Button testID="mobile-search-clear" accessibilityLabel={t("search.empty")} onPress={() => { query.set(""); Keyboard.dismiss(); }}
@@ -1230,8 +1265,8 @@ function SwipeRow(props: { path: string; selected: boolean; swipe: SwipeState; r
   const open = () => props.swipe.open() === props.path;
   // 别的行被滑开时，这一行自动收回去。
   effect(() => { if (!open()) void drag.timing(0, { duration: 160 }); });
-  const settle = (event: { valueX?: number }) => {
-    if ((event.valueX ?? 0) <= -64) {
+  const settle = (event: PanEvent) => {
+    if ((event.value?.x ?? 0) <= -64) {
       // 先把这一行标成滑开（渲染出删除按钮），再把内容收拢到按钮宽度。
       props.swipe.setOpen(props.path);
       void drag.timing(-88, { duration: 160 });
@@ -1273,9 +1308,9 @@ function noteRow(note: { path: string; title: string; mtimeMs: number }, snippet
     }}
     style={{ minHeight: ios ? 64 : 58, paddingVertical: 10, paddingHorizontal: ios ? 16 : 4, gap: 3,
       backgroundColor: selected ? c.accentSoft : ios ? c.list : "transparent", borderBottomWidth: ios ? 0 : 0.5, borderBottomColor: c.thread }}>
-    <Text numberOfLines={1} style={{ fontSize: ios ? 17 : 16, fontWeight: ios ? 600 : 590, letterSpacing: ios ? -0.2 : -0.25, color: c.ink }}>{note.title}</Text>
+    <Text style={{ fontSize: ios ? 17 : 16, fontWeight: ios ? 600 : 590, letterSpacing: ios ? -0.2 : -0.25, color: c.ink, numberOfLines: 1 }}>{note.title}</Text>
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-      <Text numberOfLines={1} style={{ flex: 1, fontSize: ios ? 15 : 12, color: c.ink2 }}>{secondary}</Text>
+      <Text style={{ flex: 1, fontSize: ios ? 15 : 12, color: c.ink2, numberOfLines: 1 }}>{secondary}</Text>
       <Text style={{ fontSize: ios ? 15 : 11, color: c.ink3 }}>{formatWhen(note.mtimeMs, locale())}</Text>
     </View>
   </Button>;
@@ -1301,7 +1336,7 @@ function InfoRow(props: { label: string; value: string; last?: boolean }) {
   return <View>
     <View style={{ minHeight: 44, paddingHorizontal: 16, paddingVertical: 10, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.list }}>
       <Text style={{ flexShrink: 0, fontSize: 17, color: c.ink }}>{props.label}</Text>
-      <Text numberOfLines={2} style={{ flex: 1, textAlign: "right", fontSize: 15, color: c.ink2 }}>{props.value}</Text>
+      <Text style={{ flex: 1, textAlign: "right", fontSize: 15, color: c.ink2, numberOfLines: 2 }}>{props.value}</Text>
     </View>
     {props.last ? null : <RowDivider inset={16} />}
   </View>;
@@ -1310,7 +1345,7 @@ function InfoRow(props: { label: string; value: string; last?: boolean }) {
 function ReaderDock(props: { content: string; bottom: number; onOutline: () => void; onType: () => void; onFind?: () => void; onSplit?: () => void; onToggleLibrary?: () => void; sidebarOpen?: boolean; onActions?: () => void }) {
   const c = mobileColors();
   const words = () => articleModel(props.content).stats.chars;
-  return <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0,
+  return <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, pointerEvents: "box-none",
     paddingBottom: Math.max(8, props.bottom - 10), alignItems: "center" }}>
     <View style={{ height: 52, paddingHorizontal: 6, flexDirection: "row", alignItems: "center", gap: 2, ...glassStyle(26) }}>
       <Button testID="mobile-outline" accessibilityLabel={t("inspector.outline")} onPress={props.onOutline}
@@ -1357,10 +1392,10 @@ function MobileFindBar(props: { query: string; total: number; current: number; o
     flexDirection: "row", alignItems: "center", gap: 2, ...glassStyle(14), zIndex: 10 }}>
     <Icon name="magnifying-glass" color={c.ink3} size={16} />
     <Input testID="mobile-find-input" accessibilityLabel={t("find.placeholder")} placeholder={t("find.placeholder")}
-      value={props.query} onChange={props.onQuery} autoFocus autoCorrect={false} autoCapitalize="none"
+      value={props.query} onChange={({ value }) => props.onQuery(value)} autoFocus autoCorrect={false} autoCapitalize="none"
       returnKeyType="search" onSubmit={props.onNext}
       style={{ flex: 1, minWidth: 0, height: 36, fontSize: 15, color: c.ink, backgroundColor: "transparent" }} />
-    <Text testID="mobile-find-count" numberOfLines={1} style={{ flexShrink: 0, fontSize: 12.5, color: c.ink3 }}>
+    <Text testID="mobile-find-count" style={{ flexShrink: 0, fontSize: 12.5, color: c.ink3, numberOfLines: 1 }}>
       {props.query ? (props.total ? t("find.count", { current: props.current + 1, total: props.total }) : t("find.noResults")) : ""}
     </Text>
     {step("mobile-find-previous", t("find.previous"), "↑", props.onPrevious)}
@@ -1440,7 +1475,7 @@ function TypeSettings() {
       </SettingsGroup>
     </View>)}
     <View style={{ marginTop: 24, paddingHorizontal: 4 }}>
-      <Text numberOfLines={3} style={{ width: "100%", fontSize: fontSize(), lineHeight: lineHeightPx(), color: c.ink2 }}>
+      <Text style={{ width: "100%", fontSize: fontSize(), lineHeight: lineHeightPx(), color: c.ink2, numberOfLines: 3 }}>
         {t("mobile.typeSample")}
       </Text>
     </View>
@@ -1467,7 +1502,7 @@ function ThemeCard(props: { theme: MobileTheme }) {
       </View>
     </View>
     <View style={{ paddingHorizontal: 8, paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: theme.palette.list }}>
-      <Text numberOfLines={1} style={{ flex: 1, fontSize: 12.5, fontWeight: 500, letterSpacing: -0.1, color: theme.palette.ink }}>{theme.name}</Text>
+      <Text style={{ flex: 1, fontSize: 12.5, fontWeight: 500, letterSpacing: -0.1, color: theme.palette.ink, numberOfLines: 1 }}>{theme.name}</Text>
       {active() ? <Icon name="check" color={theme.palette.accent} size={13} /> : null}
     </View>
   </Button>;

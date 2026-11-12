@@ -1,0 +1,49 @@
+# 手动自检 GitHub 托管的 macOS CI 环境：系统、Xcode、nsh 与磁盘。
+# 不构建、不公证、不发版；也不检查签名证书与 asc（desktop-release.yml 自己校验）。
+#
+# 触发：Actions → macOS · CI Smoke Test → Run workflow
+
+name: macOS · CI Smoke Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Check GitHub-hosted CI
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install nsh
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.5.0 sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: System
+        shell: bash
+        run: |
+          set -euo pipefail
+          sw_vers
+          uname -a
+          xcodebuild -version
+          xcode-select -p
+          df -h /
+
+      - name: Tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          for tool in nsh gh codesign xcrun security; do
+            printf '%-10s ' "$tool"
+            command -v "$tool" || { echo "missing"; exit 1; }
+          done
+          nsh --version
+          nsh --version | grep -q "nsh 0.5.0" || { echo "::error::期望 nsh 0.5.0"; exit 1; }
+          gh --version | head -1
+          /usr/bin/python3 --version
+          [[ "$(uname -m)" == "arm64" ]] || { echo "::error::期望 Apple Silicon runner"; exit 1; }

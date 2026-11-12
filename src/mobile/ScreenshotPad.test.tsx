@@ -1,4 +1,5 @@
-import { expect, open, test } from "nsh/test";
+import { expect, test } from "nsh/test";
+import { openApp } from "./testOpen";
 
 // iPad Pro 11 寸：横 1194×834、竖 834×1194（points）。
 const pad = (width: number, height: number) => ({
@@ -7,7 +8,7 @@ const pad = (width: number, height: number) => ({
 });
 
 test("iPad 横屏：左库右文两栏", async () => {
-  const app = await open("./Screenshot.harness.tsx", pad(1194, 834));
+  const app = await openApp("./Screenshot.harness.tsx", pad(1194, 834));
   try { await app.screenshot(); } catch { return; }
   await app.waitFor("id:mobile-note-开始使用.md");
   expect(app.shows("id:mobile-split")).toBe(true);
@@ -105,7 +106,7 @@ test("iPad 横屏：左库右文两栏", async () => {
 }, 120_000);
 
 test("iPad 竖屏：仍然是两栏", async () => {
-  const app = await open("./Screenshot.harness.tsx", pad(834, 1194));
+  const app = await openApp("./Screenshot.harness.tsx", pad(834, 1194));
   try { await app.screenshot(); } catch { return; }
   await app.waitFor("id:mobile-note-开始使用.md");
   expect(app.shows("id:mobile-split")).toBe(true);

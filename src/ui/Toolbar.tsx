@@ -77,8 +77,8 @@ export function WindowBar(props: Props) {
     <View
       testID="window-bar"
       desktop={{ windowDrag: true }}
-      onHoverIn={() => hovered.set(true)}
-      onHoverOut={() => hovered.set(false)}
+      onMouseEnter={() => hovered.set(true)}
+      onMouseLeave={() => hovered.set(false)}
       style={{
         height: barH(),
         flexShrink: 0,
@@ -111,7 +111,6 @@ export function WindowBar(props: Props) {
 
       <View
         testID="toolbar-heading"
-        pointerEvents="none"
         style={{
           flex: 1,
           minWidth: 0,
@@ -120,11 +119,11 @@ export function WindowBar(props: Props) {
           alignItems: "center",
           justifyContent: "center",
           paddingHorizontal: 8,
+          pointerEvents: "none",
         }}
       >
         <Text
           testID="toolbar-title"
-          numberOfLines={1}
           style={{
             fontSize: uiTextSize(),
             fontWeight: "500",
@@ -132,6 +131,7 @@ export function WindowBar(props: Props) {
             textAlign: "center",
             flexShrink: 1,
             minWidth: 0,
+            numberOfLines: 1,
           }}
         >
           {props.title || props.vaultName || t("app.name")}

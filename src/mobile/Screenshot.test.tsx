@@ -1,9 +1,10 @@
-import { expect, open, test } from "nsh/test";
+import { expect, test } from "nsh/test";
+import { openApp } from "./testOpen";
 
 const phone = { platform: "ios" as const, width: 440, height: 956, locale: "zh-CN", safeArea: { top: 62, right: 0, bottom: 34, left: 0 } };
 
 test("iOS 当前界面截图", async () => {
-  const app = await open("./Screenshot.harness.tsx", phone);
+  const app = await openApp("./Screenshot.harness.tsx", phone);
   // 只在真机/模拟器上跑：无头引擎画不出图，原生 TabBar 也没有 testID。
   try { await app.screenshot(); } catch { return; }
   await app.waitFor("id:mobile-note-开始使用.md");
@@ -108,21 +109,21 @@ test("iOS 当前界面截图", async () => {
 }, 180_000);
 
 test("iOS 编辑页截图", async () => {
-  const app = await open("./ScreenshotEditor.harness.tsx", phone);
+  const app = await openApp("./ScreenshotEditor.harness.tsx", phone);
   try { await app.screenshot(); } catch { return; }
   await app.waitFor("id:mobile-source");
   await app.screenshot("screenshots/ios-raw/03-editor.png");
 }, 60_000);
 
 test("iOS 首启连接云盘截图", async () => {
-  const app = await open("./Connect.harness.tsx", phone);
+  const app = await openApp("./Connect.harness.tsx", phone);
   try { await app.screenshot(); } catch { return; }
   await new Promise(resolve => setTimeout(resolve, 600));
   await app.screenshot("screenshots/ios-raw/13-connect.png");
 }, 60_000);
 
 test("iOS 全部 Tab 与文件夹截图", async () => {
-  const app = await open("./ScreenshotAll.harness.tsx", phone);
+  const app = await openApp("./ScreenshotAll.harness.tsx", phone);
   try { await app.screenshot(); } catch { return; }
   await app.waitFor("id:mobile-folder-工作");
   await app.press("id:mobile-folder-工作");
@@ -135,7 +136,7 @@ test("iOS 全部 Tab 与文件夹截图", async () => {
 }, 120_000);
 
 test("iOS 收藏 Tab 截图", async () => {
-  const app = await open("./ScreenshotFavorites.harness.tsx", phone);
+  const app = await openApp("./ScreenshotFavorites.harness.tsx", phone);
   try { await app.screenshot(); } catch { return; }
   await app.waitFor("id:mobile-note-工作/项目计划.md");
   await app.screenshot("screenshots/ios-raw/11b-favorites.png");

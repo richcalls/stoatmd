@@ -1,4 +1,4 @@
-import { List, View, batch, cleanup, effect, keymap, signal, type YNode } from "nsh";
+import { List, View, batch, cleanup, effect, keymap, signal, type InputRef } from "nsh";
 import { Editor, ResizablePanel, ResizablePanelGroup, TextView, type EditorDecoration, type EditorRef, type EditorSearchResult, type TextViewStyles } from "nsh/base";
 import { FindBar } from "./FindBar";
 import { findShortcuts, type FindRequest } from "./findShortcuts";
@@ -152,7 +152,7 @@ export function EditorWorkspace(props: Props) {
   // fallback bindings only act on the document editor, while find inputs keep
   // their own native editing behavior.
   const editorFocused = signal(false);
-  let findInput: YNode | null = null;
+  let findInput: InputRef | null = null;
   let findGeneration = 0;
   let selectPending = false;
   const shortcuts = findShortcuts();
@@ -199,7 +199,7 @@ export function EditorWorkspace(props: Props) {
     }
     editor?.run(forward ? "findNext" : "findPrevious");
   };
-  const onSearchChange = (result: EditorSearchResult) => {
+  const onSearchChange = ({ result }: { result: EditorSearchResult }) => {
     findResult.set(result);
     // A new query highlights every match; select and reveal the nearest one as well.
     if (selectPending) {
@@ -338,10 +338,10 @@ export function EditorWorkspace(props: Props) {
     <View
       style={{ flex: 1, backgroundColor: colors().editor, position: "relative" }}
       testID="pane-editor"
-      onHoverIn={() => markEditorHover(true)}
-      onHoverOut={() => markEditorHover(false)}
+      onMouseEnter={() => markEditorHover(true)}
+      onMouseLeave={() => markEditorHover(false)}
     >
-      <View style={{ flex: 1, paddingTop: 12 }} onLayout={(b) => setEditorViewHeight(b.size.height)}>
+      <View style={{ flex: 1, paddingTop: 12 }} onLayout={({ bounds }) => setEditorViewHeight(bounds.size.height)}>
         <Editor
           ref={(ref) => {
             editor = ref;
@@ -351,12 +351,12 @@ export function EditorWorkspace(props: Props) {
           testID="document-editor"
           value={props.source}
           readOnly={props.readOnly}
-          onChange={props.onChange}
+          onChange={({ value }) => props.onChange(value)}
           onFocus={() => { editorFocused.set(true); markEditorFocus(true); }}
           onBlur={() => { editorFocused.set(false); markEditorFocus(false); }}
           search={findOpen() ? { query: findQuery() } : null}
           onSearchChange={onSearchChange}
-          onFindWithSelection={(query) => {
+          onFindWithSelection={({ query }) => {
             openFind();
             findGeneration += 1;
             selectPending = query !== findQuery();
@@ -380,9 +380,8 @@ export function EditorWorkspace(props: Props) {
       </View>
       {/* 隐藏探针：同宽同字体，滚到最大值即可反推出可见编辑器的内容高度（不可见、不可交互） */}
       <View
-        style={{ height: 1, opacity: 0, overflow: "hidden" }}
-        pointerEvents="none"
-        onLayout={(b) => setHiddenViewHeight(b.size.height)}
+        style={{ height: 1, opacity: 0, overflow: "hidden", pointerEvents: "none" }}
+        onLayout={({ bounds }) => setHiddenViewHeight(bounds.size.height)}
       >
         <Editor
           ref={attachHiddenEditor}
@@ -402,8 +401,7 @@ export function EditorWorkspace(props: Props) {
       </View>
       <If when={findOpen()}>
         <View
-          pointerEvents="box-none"
-          style={{ position: "absolute", top: 10, left: 10, right: 10, zIndex: 10, alignItems: "flex-end" }}
+          style={{ position: "absolute", top: 10, left: 10, right: 10, zIndex: 10, alignItems: "flex-end", pointerEvents: "box-none" }}
         >
           <FindBar
             query={findQuery()}
@@ -431,9 +429,9 @@ export function EditorWorkspace(props: Props) {
     return (
       <View
         style={{ flex: 1, backgroundColor: colors().preview }}
-        onLayout={(b) => {
-          setPreviewViewHeight(b.size.height);
-          previewWidth.set(b.size.width);
+        onLayout={({ bounds }) => {
+          setPreviewViewHeight(bounds.size.height);
+          previewWidth.set(bounds.size.width);
         }}
       >
         {/* 整篇 TextView 不虚拟化，长文档会拖垮整窗帧率：按块交给 List 回收渲染 */}

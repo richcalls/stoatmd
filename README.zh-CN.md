@@ -27,12 +27,12 @@
 
 ## 从源码构建
 
-需要 Rust stable、Python 3 和 [nsh CLI 0.3.0](https://nsh.dev)。运行 iOS 模拟器和构建真机版本需要完整 Xcode。
+需要 Rust stable、Python 3 和 [nsh CLI 0.5.0](https://nsh.dev)。运行 iOS 模拟器和构建真机版本需要完整 Xcode。
 
 ```sh
 git clone https://github.com/richcalls/stoatmd.git
 cd stoatmd
-curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.3.0 sh
+curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.5.0 sh
 nsh check
 nsh test
 nsh run --target macos

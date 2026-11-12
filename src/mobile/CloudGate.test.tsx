@@ -1,9 +1,10 @@
-import { expect, open, test } from "nsh/test";
+import { expect, test } from "nsh/test";
+import { openApp } from "./testOpen";
 
 const phone = { platform: "ios" as const, width: 390, height: 844, locale: "zh-CN" };
 
 test("iOS paid app starts with its two included cloud providers", async () => {
-  const app = await open("./CloudGate.harness.tsx", phone);
+  const app = await openApp("./CloudGate.harness.tsx", phone);
   await app.waitFor("id:storage-location-google");
   expect(app.shows("id:storage-location-dropbox")).toBe(true);
   expect(app.shows("id:storage-location-local")).toBe(false);
@@ -17,7 +18,7 @@ test("iOS paid app starts with its two included cloud providers", async () => {
 });
 
 test("iOS keeps legacy local records behind the cloud connection screen", async () => {
-  const app = await open("./CloudGate.harness.tsx", { ...phone, storage: {
+  const app = await openApp("./CloudGate.harness.tsx", { ...phone, storage: {
     "storage.active": JSON.stringify({ version: 1, root: "/legacy/local", connection: null, cleanup: null }),
   } });
   await app.waitFor("id:storage-location-google");

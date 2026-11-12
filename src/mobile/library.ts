@@ -10,6 +10,8 @@ export interface LocalVault {
   mtime?(path: string): number;
   listRecursive(dir: string): MaybeAsync<VaultEntryDto[]>;
   read(path: string): MaybeAsync<VaultFileDto>;
+  /** Exact bytes of a file in the library; the reader shows local attachments through a blob: URL. */
+  readBytes?(path: string): Uint8Array;
   write(path: string, content: string, expectedMtimeMs: number | null): MaybeAsync<VaultWriteDto>;
   create(path: string, content: string): MaybeAsync<VaultWriteDto>;
   ensureDir(path: string): MaybeAsync<void>;

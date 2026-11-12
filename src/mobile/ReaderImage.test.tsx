@@ -1,8 +1,9 @@
-import { expect, open, test } from "nsh/test";
+import { expect, test } from "nsh/test";
+import { openApp } from "./testOpen";
 
 // 阅读模式里的本地图片：正文相对路径要能解析到缓存库，并真的画出像素。
 test("阅读模式显示本地图片", async () => {
-  const app = await open("./ReaderImage.harness.tsx", { platform: "ios", width: 1194, height: 834, locale: "zh-CN" });
+  const app = await openApp("./ReaderImage.harness.tsx", { platform: "ios", width: 1194, height: 834, locale: "zh-CN" });
   // 只在模拟器/真机上跑：无头引擎没有真实图片解码。
   try { await app.screenshot(); } catch { return; }
   await app.waitFor("id:mobile-note-日记/图片测试.md", { timeout: 5000 });

@@ -91,8 +91,7 @@ function DetailRow(props: { label: string; value: string }) {
     >
       <Text style={{ fontSize: uiTextSize(11), color: colors().ink3 }}>{props.label}</Text>
       <Text
-        numberOfLines={1}
-        style={{ fontSize: uiTextSize(11), color: colors().ink, textAlign: "right" }}
+        style={{ fontSize: uiTextSize(11), color: colors().ink, textAlign: "right", numberOfLines: 1 }}
       >
         {props.value}
       </Text>
@@ -254,11 +253,11 @@ export function ArticleInspector(props: Props) {
                       activeStyle={controlPressStyle()}
                     >
                       <Text
-                        numberOfLines={1}
                         style={{
                           fontSize: uiTextSize(12),
                           fontWeight: active() ? "500" : "400",
                           color: active() ? colors().accent : colors().ink2,
+                          numberOfLines: 1,
                         }}
                       >
                         {heading().text}
@@ -310,8 +309,7 @@ export function ArticleInspector(props: Props) {
                   {t("info.path")}
                 </Text>
                 <Text
-                  selectable
-                  style={{ fontSize: uiTextSize(11), color: colors().ink2, lineHeight: uiLineHeight(16) }}
+                  style={{ fontSize: uiTextSize(11), color: colors().ink2, lineHeight: uiLineHeight(16), userSelect: "text" }}
                 >
                   {props.path}
                 </Text>

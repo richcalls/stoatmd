@@ -221,8 +221,8 @@ function ThemeCard(props: { item: ThemePreset }) {
           letterSpacing: -0.12,
           color: props.item.mode === "dark" ? "#F4F6F8" : "#20242A",
           flex: 1,
+          numberOfLines: 1,
         }}
-        numberOfLines={1}
       >
         {props.item.name}
       </Text>
@@ -253,8 +253,7 @@ function LogoCard(props: { item: (typeof APP_LOGOS)[number] }) {
     >
       <Image
         src={logoAsset(props.item)}
-        resizeMode="contain"
-        style={{ width: 40, height: 40, borderRadius: 9 }}
+        style={{ width: 40, height: 40, borderRadius: 9, objectFit: "contain" }}
       />
       <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
         <Text
@@ -263,13 +262,13 @@ function LogoCard(props: { item: (typeof APP_LOGOS)[number] }) {
             fontWeight: "560",
             letterSpacing: -0.12,
             color: colors().ink,
+            numberOfLines: 1,
           }}
-          numberOfLines={1}
         >
           {t(props.item.nameKey)}
         </Text>
         <If when={props.item.id === "thread"}>
-          <Text style={{ fontSize: uiTextSize(11.5), color: colors().ink3 }} numberOfLines={1}>
+          <Text style={{ fontSize: uiTextSize(11.5), color: colors().ink3, numberOfLines: 1 }}>
             {t("settings.logo.default")}
           </Text>
         </If>
@@ -372,7 +371,7 @@ function FontPicker() {
   return (
     <Popover
       open={menuOpen()}
-      onOpenChange={(next) => menuOpen.set(next)}
+      onOpenChange={({ open }) => menuOpen.set(open)}
       onOpen={() => {
         query.set("");
         loadSystemFonts();
@@ -413,8 +412,8 @@ function FontPicker() {
               fontWeight: "500",
               color: colors().ink,
               fontFamily: documentFontFamily(),
+              numberOfLines: 1,
             }}
-            numberOfLines={1}
           >
             {documentFontFamily()}
           </Text>
@@ -426,7 +425,7 @@ function FontPicker() {
         <Input
           testID="font-search"
           value={query()}
-          onChange={(text) => query.set(text)}
+          onChange={({ value }) => query.set(value)}
           placeholder={t("settings.font.search")}
           autoFocus
           style={{
@@ -462,8 +461,8 @@ function FontPicker() {
               flex: 1,
               fontSize: uiTextSize(13),
               color: defaultSelected() ? colors().accent : colors().ink,
+              numberOfLines: 1,
             }}
-            numberOfLines={1}
           >
             {t("settings.font.defaultOption", { font: documentFontFamily() })}
           </Text>
@@ -512,8 +511,8 @@ function FontPicker() {
                     fontSize: uiTextSize(13),
                     color: selected() ? colors().accent : colors().ink,
                     fontFamily: name(),
+                    numberOfLines: 1,
                   }}
-                  numberOfLines={1}
                 >
                   {name()}
                 </Text>
@@ -535,7 +534,7 @@ function LocalePicker() {
   return (
     <Popover
       open={menuOpen()}
-      onOpenChange={(next) => menuOpen.set(next)}
+      onOpenChange={({ open }) => menuOpen.set(open)}
       placement="bottom"
       align="start"
       offset={6}
@@ -566,8 +565,7 @@ function LocalePicker() {
           }}
         >
           <Text
-            style={{ flex: 1, fontSize: uiTextSize(13), fontWeight: "500", color: colors().ink }}
-            numberOfLines={1}
+            style={{ flex: 1, fontSize: uiTextSize(13), fontWeight: "500", color: colors().ink, numberOfLines: 1 }}
           >
             {localeName(localePref())}
           </Text>
@@ -604,8 +602,8 @@ function LocalePicker() {
                     flex: 1,
                     fontSize: uiTextSize(13),
                     color: selected() ? colors().accent : colors().ink,
+                    numberOfLines: 1,
                   }}
-                  numberOfLines={1}
                 >
                   {item.key ? t(item.key) : item.label}
                 </Text>
@@ -664,7 +662,7 @@ export function SettingsSheet(props: Props) {
         >
           <View style={{ width: titleBar().left + 8, flexShrink: 0 }} />
           <View style={{ flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center" }}>
-            <Text numberOfLines={1} style={{ fontSize: uiTextSize(13), fontWeight: "600", color: colors().ink2 }}>{t("settings.title")}</Text>
+            <Text style={{ fontSize: uiTextSize(13), fontWeight: "600", color: colors().ink2, numberOfLines: 1 }}>{t("settings.title")}</Text>
           </View>
           <View style={{ width: titleBar().left + 8, flexShrink: 0 }} />
         </View>
