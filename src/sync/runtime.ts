@@ -7,6 +7,7 @@ import { GoogleDriveProvider } from "./google";
 import { activeStorage, readActiveStorage, writeActiveStorage, storageBusy, type Cleanup } from "../storage/state";
 import { sha256Hex, sha256Bytes } from "./hash";
 import { uniqueConflictCopyPath } from "./naming";
+import { eachLimit } from "./pool";
 import { dirName, isMarkdownName, libraryPath, normalizeSyncPath } from "./paths";
 import {
   RemoteConflictError,
@@ -38,6 +39,11 @@ const LAST_KEY = "sync.lastAt";
 const BASE_SAVE_EVERY = 10;
 /** 每个路径最多记几份未确认的上传正文。 */
 const PENDING_PER_PATH = 4;
+/** 下载 / 正文比对的并发数：首次同步几百篇时不再一篇一篇排队。 */
+const TRANSFER_CONCURRENCY = 4;
+
+/** 存储迁移要求停下：当前文件做完就退出这一轮，不算失败。 */
+class SyncCancelled extends Error {}
 
 export type SyncPhase =
   | "off"
@@ -105,7 +111,9 @@ export class SyncRuntime {
 
   /** 用户在全量同步中按下暂停；动作之间检查，恢复后从原位置继续。 */
   private readonly paused = signal(false);
-  private resumeWaiter: (() => void) | null = null;
+  private resumeWaiters: (() => void)[] = [];
+  /** 迁移等待队列清空期间：进行中的全量同步在下一个动作之间退出。 */
+  private draining = false;
 
   private vault: Vault | null = null;
   private stored: SyncConnection | null = null;
@@ -148,9 +156,18 @@ export class SyncRuntime {
     return this.loading;
   }
 
-  /** Drain a running sync before taking the migration snapshot. */
+  /**
+   * Drain a running sync before taking the migration snapshot.
+   * 被用户暂停的同步会停在 checkpoint 永远等下去，所以先唤醒它，让它在动作之间退出。
+   */
   async pause(): Promise<void> {
-    await this.queue.catch(() => {});
+    this.draining = true;
+    this.resumeSync();
+    try {
+      await this.queue.catch(() => {});
+    } finally {
+      this.draining = false;
+    }
   }
 
   /** 全量同步中暂停：当前文件处理完后停在动作之间，库仍可浏览与编辑。 */
@@ -165,14 +182,23 @@ export class SyncRuntime {
     if (!this.paused()) return;
     this.paused.set(false);
     if (this.phase() === "paused") this.phase.set("syncing");
-    const waiter = this.resumeWaiter;
-    this.resumeWaiter = null;
-    waiter?.();
+    const waiters = this.resumeWaiters;
+    this.resumeWaiters = [];
+    for (const waiter of waiters) waiter();
   }
 
   private async checkpoint(): Promise<void> {
-    if (!this.paused()) return;
-    await new Promise<void>(resolve => { this.resumeWaiter = resolve; });
+    if (this.paused()) await new Promise<void>(resolve => { this.resumeWaiters.push(resolve); });
+    if (this.draining) throw new SyncCancelled();
+  }
+
+  /** 一轮结束后的状态：还有没处理的冲突就继续显示冲突。 */
+  private settle(): void {
+    this.phase.set(this.conflicts().length > 0 ? "conflict" : "synced");
+  }
+
+  private conflictPaths(): Set<string> {
+    return new Set(this.conflicts().map((item) => item.path));
   }
 
   async providerFor(provider: ProviderId, expectedAccount?: string | null): Promise<SyncProvider> {
@@ -300,7 +326,13 @@ export class SyncRuntime {
       // 排队期间库可能已切走 / 进入迁移，轮到时再确认一次。
       if (storageBusy() || !this.isAttached()) return null;
       if (loadSyncConfig(true).purchaseRequired) return this.finishError(new SyncError("config", "purchase required"));
-      return this.run();
+      // 暂停只对这一轮有效：推送途中或最后一个动作之后才按下的暂停不能留到下一轮，否则下一轮第一步就卡住。
+      this.paused.set(false);
+      try {
+        return await this.run();
+      } finally {
+        this.paused.set(false);
+      }
     });
     this.running = round;
     try {
@@ -324,9 +356,8 @@ export class SyncRuntime {
     if (loadSyncConfig(true).purchaseRequired) {
       return this.finishError(new SyncError("config", "purchase required"));
     }
-    if (this.phase() === "conflict") return null;
     return this.enqueue(async () => {
-      if (storageBusy() || !this.isAttached() || this.phase() === "conflict") return null;
+      if (storageBusy() || !this.isAttached()) return null;
       return this.push(paths, quiet);
     });
   }
@@ -338,9 +369,8 @@ export class SyncRuntime {
     if (loadSyncConfig(true).purchaseRequired) {
       return this.finishError(new SyncError("config", "purchase required"));
     }
-    if (this.phase() === "conflict") return null;
     return this.enqueue(async () => {
-      if (storageBusy() || !this.isAttached() || this.phase() === "conflict") return null;
+      if (storageBusy() || !this.isAttached()) return null;
       return this.removeRemote(paths, quiet);
     });
   }
@@ -358,8 +388,11 @@ export class SyncRuntime {
     try {
       const remote = await this.providerFor(conn.provider);
       const root = this.rootDir(conn);
+      // 冲突里的路径等用户选；其余文件照常推，一个冲突不该卡住整库。
+      const held = this.conflictPaths();
       for (const raw of paths) {
         const path = normalizeSyncPath(raw);
+        if (held.has(path)) continue;
         if (!path || !localExists(vault, path)) {
           result.needsFullSync = true;
           continue;
@@ -373,8 +406,7 @@ export class SyncRuntime {
           size: anchor.localSize,
         } : null;
         try {
-          await this.uploadTracked(vault, remote, root, path, existing);
-          result.uploaded += 1;
+          if (await this.uploadTracked(vault, remote, root, path, existing)) result.uploaded += 1;
         } catch (err) {
           // 云端版本已变 / 路径被占用：不在这里做冲突裁决，交回全量同步。
           if (err instanceof RemoteConflictError) {
@@ -389,7 +421,7 @@ export class SyncRuntime {
         this.phase.set(previous);
         return result;
       }
-      this.phase.set("synced");
+      this.settle();
       // 后台推送成功说明云端可达，顺手清掉上一轮全量同步留下的错误。
       this.error.set(null);
       const now = Date.now();
@@ -426,9 +458,10 @@ export class SyncRuntime {
     }
     try {
       const remote = await this.providerFor(conn.provider);
+      const held = this.conflictPaths();
       for (const raw of paths) {
         const path = normalizeSyncPath(raw);
-        if (!path) continue;
+        if (!path || held.has(path)) continue;
         // 没有锚点说明远端本来就没有这份文件（或从没同步过），不必请求。
         const anchor = this.base.entries[path];
         if (!anchor) continue;
@@ -454,7 +487,7 @@ export class SyncRuntime {
       }
       await this.persistBase();
       if (result.needsFullSync) return result;
-      this.phase.set("synced");
+      this.settle();
       this.error.set(null);
       const now = Date.now();
       this.lastSyncAt.set(now);
@@ -491,9 +524,7 @@ export class SyncRuntime {
     const vault = this.requireVault();
     const conn = this.connection();
     if (!conn) throw new SyncError("config", "no connection");
-    const config = loadSyncConfig(true);
-    const session = this.sessionFor(conn.provider, config);
-    const remote = this.makeProvider(conn.provider, session);
+    const remote = await this.providerFor(conn.provider);
     const root = this.rootDir(conn);
 
     const actions = resolveActions(item, choice);
@@ -526,24 +557,23 @@ export class SyncRuntime {
         vault.delete(item.path);
         this.dropBase(item.path);
       } else if (action.type === "remoteDelete") {
-        const anchor = item.base;
-        if (!anchor) continue;
-        await remote.remove({
+        // 这类冲突本来就是云端改过：按冲突时看到的云端版本删，锚点里的旧 rev 必然被拒。
+        const target = item.remote ?? (item.base && {
           path: item.path,
-          id: anchor.remoteId,
-          rev: anchor.remoteRev,
+          id: item.base.remoteId,
+          rev: item.base.remoteRev,
           mtimeMs: 0,
           size: 0,
         });
+        if (!target) continue;
+        await remote.remove(target);
         this.dropBase(item.path);
       }
     }
 
     this.conflicts.update((list) => list.filter((c) => c.path !== item.path));
     await this.persistBase();
-    if (this.conflicts().length === 0) {
-      this.phase.set("synced");
-    }
+    if (this.conflicts().length === 0) this.phase.set("synced");
   }
 
   /** 应用启动 / 切换库时调用：只保留与当前库根匹配的绑定。 */
@@ -581,21 +611,24 @@ export class SyncRuntime {
       const local = buildLocalFiles(vault, this.base, true);
       const inventory = await remote.inventory(root);
       const remoteFiles = inventory.files;
-      for (const dir of inventory.directories) {
+      const remoteByPath = new Map(remoteFiles.map((file) => [file.path, file] as const));
+      const remoteDirs = new Set(inventory.directories);
+      for (const dir of remoteDirs) {
         if (libraryPath(dir)) vault.ensureDir(dir);
       }
+      // 只建云端还没有的目录：Dropbox 每建一次（已存在时）要两次请求。
       for (const entry of vault.inventory()) {
-        if (entry.isDir && libraryPath(entry.path)) await remote.ensureDirectory(root, entry.path);
+        const dir = normalizeSyncPath(entry.path);
+        if (entry.isDir && libraryPath(dir) && !remoteDirs.has(dir)) await remote.ensureDirectory(root, dir);
       }
 
       const remoteHashes: Record<string, string> = {};
       const candidates = probeCandidates({ base: this.base, local, remote: remoteFiles });
-      for (const candidate of candidates) {
-        const file = remoteFiles.find((r) => r.path === candidate.path);
-        if (!file) continue;
-        const content = await remote.downloadBytes(file);
-        remoteHashes[candidate.path] = sha256Bytes(content);
-      }
+      await eachLimit(candidates, TRANSFER_CONCURRENCY, async (candidate) => {
+        const file = remoteByPath.get(candidate.path);
+        if (!file) return;
+        remoteHashes[candidate.path] = sha256Bytes(await remote.downloadBytes(file));
+      });
 
       const plan = planSync({ base: this.base, local, remote: remoteFiles, remoteHashes });
       const total =
@@ -604,7 +637,7 @@ export class SyncRuntime {
         plan.localDeletes.length +
         plan.remoteDeletes.length +
         plan.adopts.length +
-        plan.conflicts.length;
+        plan.forgets.length;
       this.progress.set({ done: 0, total });
       let done = 0;
       // 长同步每完成 10 个动作落一次锚点：中断或被杀后重试不用从头再来。
@@ -612,17 +645,30 @@ export class SyncRuntime {
         this.progress.set({ done: ++done, total });
         if (done % BASE_SAVE_EVERY === 0) await this.persistBase();
       };
+      /**
+       * 单个文件在规划之后又变了（本地刚保存 / 云端被别处改了）：跳过它，留给下一轮重新规划，
+       * 不能让一篇正在编辑的笔记把整轮同步打成失败。
+       */
+      const step = <T extends { path: string }>(work: (action: T) => Promise<void>) => async (action: T) => {
+        await this.checkpoint();
+        try {
+          await work(action);
+        } catch (err) {
+          if (!(err instanceof RemoteConflictError)) throw err;
+        }
+        await tick();
+      };
 
       for (const action of plan.uploads) {
-        await this.checkpoint();
-        const remoteFile = remoteFiles.find((r) => r.path === action.path) ?? null;
-        await this.uploadTracked(vault, remote, root, action.path, remoteFile);
-        result.uploaded += 1;
-        await tick();
+        await step(async () => {
+          if (!localExists(vault, action.path)) throw new RemoteConflictError("local file disappeared during sync", action.path);
+          if (await this.uploadTracked(vault, remote, root, action.path, remoteByPath.get(action.path) ?? null)) {
+            result.uploaded += 1;
+          }
+        })(action);
       }
 
-      for (const action of plan.downloads) {
-        await this.checkpoint();
+      await eachLimit(plan.downloads, TRANSFER_CONCURRENCY, step(async (action) => {
         assertLocalUnchanged(vault, action.path, action.local);
         const content = await remote.downloadBytes(action.remote);
         assertLocalUnchanged(vault, action.path, action.local);
@@ -642,66 +688,53 @@ export class SyncRuntime {
           result.downloaded += 1;
           result.changedLocal.push(action.path);
         }
-        await tick();
-      }
+      }));
 
       for (const action of plan.localDeletes) {
-        await this.checkpoint();
-        assertLocalUnchanged(vault, action.path, {
-          path: action.path,
-          mtimeMs: action.base.localMtimeMs,
-          size: action.base.localSize,
-          hash: null,
-        });
-        vault.delete(action.path);
-        this.dropBase(action.path);
-        result.deletedLocal += 1;
-        result.changedLocal.push(action.path);
-        await tick();
+        await step(async () => {
+          assertLocalUnchanged(vault, action.path, {
+            path: action.path,
+            mtimeMs: action.base.localMtimeMs,
+            size: action.base.localSize,
+            hash: null,
+          });
+          vault.delete(action.path);
+          this.dropBase(action.path);
+          result.deletedLocal += 1;
+          result.changedLocal.push(action.path);
+        })(action);
       }
 
-      if (plan.remoteDeletes.length > 0) {
-        // 删除远端不可逆：先确认云端版本仍是规划时那一版
-        const fresh = new Map(
-          (await remote.inventory(root)).files.map((file) => [file.path, file] as const),
-        );
-        for (const action of plan.remoteDeletes) {
-          await this.checkpoint();
-          const current = fresh.get(action.path);
-          const expected = action.remote ?? null;
-          const rev = expected?.rev ?? action.base.remoteRev;
-          if (current && current.rev !== rev) {
-            throw new RemoteConflictError("remote file changed before delete", action.path);
-          }
-          await remote.remove({
+      // 删除云端不可逆：两家的删除都带版本条件（Drive 先核对 version，Dropbox 用 parent_rev），
+      // 云端在规划之后被改过会被拒绝并跳过，不必为此再把整个云端列一遍。
+      for (const action of plan.remoteDeletes) {
+        await step(async () => {
+          await remote.remove(action.remote ?? {
             path: action.path,
-            id: expected?.id ?? action.base.remoteId,
-            rev,
+            id: action.base.remoteId,
+            rev: action.base.remoteRev,
             mtimeMs: 0,
             size: 0,
           });
           this.dropBase(action.path);
           result.deletedRemote += 1;
-          await tick();
-        }
+        })(action);
       }
 
       for (const action of plan.adopts) {
-        await this.checkpoint();
-        this.setBase(action.path, {
-          remoteId: action.remote.id,
-          remoteRev: action.remote.rev,
-          localMtimeMs: action.local.mtimeMs,
-          localSize: action.local.size,
-          hash: action.hash,
-        });
-        await tick();
+        await step(async () => {
+          this.setBase(action.path, {
+            remoteId: action.remote.id,
+            remoteRev: action.remote.rev,
+            localMtimeMs: action.local.mtimeMs,
+            localSize: action.local.size,
+            hash: action.hash,
+          });
+        })(action);
       }
 
       for (const path of plan.forgets) {
-        await this.checkpoint();
-        this.dropBase(path);
-        await tick();
+        await step(async () => this.dropBase(path))({ path });
       }
 
       result.conflicts = plan.conflicts;
@@ -719,6 +752,11 @@ export class SyncRuntime {
     } catch (err) {
       // 失败前把已完成动作的锚点保存下来，下次同步只补剩余文件。
       await this.persistBase().catch(() => {});
+      result.conflicts = this.conflicts();
+      if (err instanceof SyncCancelled) {
+        this.settle();
+        return result;
+      }
       const error: { kind: SyncErrorKind; message: string } =
         err instanceof SyncError
           ? { kind: err.kind, message: err.message }
@@ -732,7 +770,6 @@ export class SyncRuntime {
       );
       result.ok = false;
       result.error = error;
-      result.conflicts = this.conflicts();
       return result;
     }
   }
@@ -779,6 +816,7 @@ export class SyncRuntime {
    *    下次同步看到云端正是这份内容，就按本机自己的版本处理，不误报冲突。
    * 3. 云端明确拒绝（rev 冲突 / 路径被占用）时，只撤掉本次新加的记录；
    *    同一份正文之前若已超时落地，那条记录要留着。
+   * 正文就是锚点、云端也还是锚点那一版（重存同样内容、阅读偏好没变）时不上传，只刷新 mtime，返回 null。
    */
   private async uploadTracked(
     vault: Vault,
@@ -786,10 +824,15 @@ export class SyncRuntime {
     root: RemoteDir,
     path: string,
     existing: RemoteFile | null,
-  ): Promise<RemoteFile> {
+  ): Promise<RemoteFile | null> {
     const mtimeMs = vault.mtime(path);
     const content = new Uint8Array(vault.readBytes(path));
     const hash = sha256Bytes(content);
+    const anchor = this.base.entries[path];
+    if (anchor && existing && anchor.hash === hash && anchor.remoteId === existing.id && anchor.remoteRev === existing.rev) {
+      this.setBase(path, { ...anchor, localMtimeMs: mtimeMs, localSize: content.length });
+      return null;
+    }
     const added = this.recordPending(path, hash);
     if (added) await this.persistBase();
     let uploaded: RemoteFile;

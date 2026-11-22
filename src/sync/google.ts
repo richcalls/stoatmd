@@ -9,12 +9,15 @@ import {
   type RemoteDir,
   type SyncProvider,
 } from "./provider";
+import { eachLimit } from "./pool";
 import { baseName, dirName, isMarkdownName, joinPath, normalizeSyncPath, usableName, libraryPath } from "./paths";
 import type { TokenSession } from "./tokens";
 import type { ProviderId, RemoteFile } from "./types";
 
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 const FILE_FIELDS = "id,name,mimeType,version,modifiedTime,size";
+/** Drive 没有递归列目录：每个文件夹一次请求，同一层并发列。 */
+const WALK_CONCURRENCY = 4;
 
 type GoogleItem = {
   id: string;
@@ -49,7 +52,33 @@ export class GoogleDriveProvider implements SyncProvider {
     const out: RemoteFile[] = [];
     const directories: string[] = [];
     const seen = new Set<string>();
-    await this.walk(root, root.id, "", out, seen, directories);
+    let level = [{ id: root.id, prefix: "" }];
+    while (level.length > 0) {
+      const next: { id: string; prefix: string }[] = [];
+      await eachLimit(level, WALK_CONCURRENCY, async (folder) => {
+        this.folderCache.set(folder.prefix, folder.id);
+        for (const item of await this.children(folder.id)) {
+          if (!usableName(item.name)) {
+            if (item.mimeType === FOLDER_MIME) {
+              throw new SyncError("ambiguous", `unsupported remote folder name: ${item.name}`);
+            }
+            continue;
+          }
+          const path = joinPath(folder.prefix, item.name);
+          if (!libraryPath(path)) continue;
+          if (seen.has(path)) throw new SyncError("ambiguous", `duplicate remote path: ${path}`);
+          seen.add(path);
+          if (item.mimeType === FOLDER_MIME) {
+            directories.push(path);
+            next.push({ id: item.id, prefix: path });
+            continue;
+          }
+          if (item.mimeType.startsWith("application/vnd.google-apps.")) continue;
+          out.push(toRemote(path, item));
+        }
+      });
+      level = next;
+    }
     return { files: out, directories };
   }
 
@@ -71,8 +100,7 @@ export class GoogleDriveProvider implements SyncProvider {
 
   async createFolder(root: RemoteDir, parent: RemoteDir, name: string): Promise<RemoteDir> {
     if (!usableName(name)) throw new SyncError("ambiguous", `unsupported folder name: ${name}`);
-    const kids = await this.children(parent.id);
-    const existing = kids.find((item) => item.mimeType === FOLDER_MIME && item.name === name);
+    const existing = (await this.childrenNamed(parent.id, name)).find((item) => item.mimeType === FOLDER_MIME);
     const id = existing ? existing.id : (await this.createFolderRaw(parent.id, name)).id;
     const path = joinPath(parent.path, name);
     this.folderCache.set(path, id);
@@ -132,8 +160,8 @@ export class GoogleDriveProvider implements SyncProvider {
     const name = baseName(path);
     if (!usableName(name)) throw new SyncError("ambiguous", `unsupported file name: ${name}`);
     const parentId = await this.ensureFolderPath(root, dirName(path));
-    const siblings = await this.children(parentId);
-    if (siblings.some((item) => item.name === name)) {
+    // 只按名字查同名项，不把整个文件夹列一遍（大文件夹里每建一篇都要翻好几页）。
+    if ((await this.childrenNamed(parentId, name)).length > 0) {
       throw new RemoteConflictError("remote path appeared before upload", path);
     }
     const created = await this.createFile(parentId, name, content);
@@ -161,36 +189,6 @@ export class GoogleDriveProvider implements SyncProvider {
     if (!response.ok) throw providerStatusError(response.status, await readBodyText(response));
   }
 
-  private async walk(
-    root: RemoteDir,
-    folderId: string,
-    prefix: string,
-    out: RemoteFile[],
-    seen: Set<string>,
-    directories: string[],
-  ): Promise<void> {
-    this.folderCache.set(prefix, folderId);
-    for (const item of await this.children(folderId)) {
-      if (!usableName(item.name)) {
-        if (item.mimeType === FOLDER_MIME) {
-          throw new SyncError("ambiguous", `unsupported remote folder name: ${item.name}`);
-        }
-        continue;
-      }
-      const path = joinPath(prefix, item.name);
-      if (!libraryPath(path)) continue;
-      if (seen.has(path)) throw new SyncError("ambiguous", `duplicate remote path: ${path}`);
-      seen.add(path);
-      if (item.mimeType === FOLDER_MIME) {
-        directories.push(path);
-        await this.walk(root, item.id, path, out, seen, directories);
-        continue;
-      }
-      if (item.mimeType.startsWith("application/vnd.google-apps.")) continue;
-      out.push(toRemote(path, item));
-    }
-  }
-
   private async children(folderId: string): Promise<GoogleItem[]> {
     const out: GoogleItem[] = [];
     let pageToken: string | undefined;
@@ -205,6 +203,16 @@ export class GoogleDriveProvider implements SyncProvider {
       pageToken = page.nextPageToken || undefined;
     } while (pageToken);
     return out;
+  }
+
+  /** 父目录下同名（未删除）的项；Drive 查询的比较规则不保证逐字节一致，结果再按原名精确过滤。 */
+  private async childrenNamed(folderId: string, name: string): Promise<GoogleItem[]> {
+    const url = new URL("https://www.googleapis.com/drive/v3/files");
+    url.searchParams.set("q", `'${folderId}' in parents and name = '${queryLiteral(name)}' and trashed=false`);
+    url.searchParams.set("fields", `files(${FILE_FIELDS})`);
+    url.searchParams.set("pageSize", "100");
+    const page = await this.json<GoogleList>(url);
+    return (page.files ?? []).filter((item) => item.name === name);
   }
 
   private async ensureFolderPath(root: RemoteDir, relDir: string): Promise<string> {
@@ -224,9 +232,8 @@ export class GoogleDriveProvider implements SyncProvider {
         parentId = hit;
         continue;
       }
-      const kids = await this.children(parentId);
-      const existing = kids.find(
-        (item) => item.mimeType === FOLDER_MIME && item.name === segment,
+      const existing = (await this.childrenNamed(parentId, segment)).find(
+        (item) => item.mimeType === FOLDER_MIME,
       );
       parentId = existing ? existing.id : (await this.createFolderRaw(parentId, segment)).id;
       this.folderCache.set(prefix, parentId);
@@ -316,6 +323,11 @@ export class GoogleDriveProvider implements SyncProvider {
       networkError(err);
     }
   }
+}
+
+/** Drive 查询字符串里的单引号与反斜杠要转义。 */
+function queryLiteral(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
 function revOf(item: GoogleItem): string {

@@ -11,7 +11,6 @@ import {
 } from "./provider";
 import {
   baseName,
-  dirName,
   isMarkdownName,
   joinPath,
   normalizeSyncPath,
@@ -158,8 +157,8 @@ export class DropboxProvider implements SyncProvider {
   private async uploadContent(root: RemoteDir, path: string, content: string | Uint8Array,
     options: { existing: RemoteFile | null }): Promise<RemoteFile> {
     const existing = options.existing;
+    // Dropbox 的 upload 会自动补齐父目录；预先逐级 create_folder 每级要多花一到两次请求。
     const absolute = joinDropboxPath(root.id, path);
-    await this.ensureFolderPath(root, dirName(path));
     const mode = existing
       ? { ".tag": "update", update: existing.rev }
       : { ".tag": "add" };
@@ -220,23 +219,16 @@ export class DropboxProvider implements SyncProvider {
     return out;
   }
 
+  /** create_folder_v2 一次补齐所有中间目录，不必逐级创建。 */
   private async ensureFolderPath(root: RemoteDir, relDir: string): Promise<void> {
     const dir = normalizeSyncPath(relDir);
-    if (!dir) return;
-    const cached = this.folderCache.get(dir);
-    if (cached) return;
-    let prefix = "";
-    for (const segment of dir.split("/")) {
-      if (!usableName(segment)) {
-        throw new SyncError("ambiguous", `unsupported folder name: ${segment}`);
-      }
-      prefix = joinPath(prefix, segment);
-      const hit = this.folderCache.get(prefix);
-      if (hit) continue;
-      const absolute = joinDropboxPath(root.id, prefix);
-      const created = await this.createFolderRaw(absolute);
-      this.folderCache.set(prefix, created.path_display ?? absolute);
+    if (!dir || this.folderCache.has(dir)) return;
+    if (!dir.split("/").every(usableName)) {
+      throw new SyncError("ambiguous", `unsupported folder name: ${dir}`);
     }
+    const absolute = joinDropboxPath(root.id, dir);
+    const created = await this.createFolderRaw(absolute);
+    this.folderCache.set(dir, created.path_display ?? absolute);
   }
 
   private async createFolderRaw(path: string): Promise<DropboxMetadata> {

@@ -37,6 +37,10 @@ function listOf(folderId: string): string {
   return new URLSearchParams({ q: `'${folderId}' in parents and trashed=false` }).toString();
 }
 
+function named(folderId: string, name: string): string {
+  return new URLSearchParams({ q: `'${folderId}' in parents and name = '${name}' and trashed=false` }).toString();
+}
+
 test("Google Drive：递归列出 Markdown 并翻页，跳过 Google 原生文档", async () => {
   const { fetchImpl, calls } = makeFetch((call) => {
     if (call.url.includes("drive/v3/files?") && call.url.includes(listOf("root"))) {
@@ -86,6 +90,9 @@ test("Google Drive：递归列出 Markdown 并翻页，跳过 Google 原生文�
 
 test("Google Drive：listFolders 过滤文件夹并排序，createFolder 复用同名", async () => {
   const { fetchImpl, calls } = makeFetch((call) => {
+    if (call.url.includes(named("root", "写作"))) {
+      return json({ files: [{ id: "b", name: "写作", mimeType: FOLDER }] });
+    }
     if (call.url.includes(listOf("root"))) {
       return json({
         files: [
@@ -109,7 +116,7 @@ test("Google Drive：listFolders 过滤文件夹并排序，createFolder 复用�
 
 test("Google Drive：createFolder 新建并带 parent id", async () => {
   const { fetchImpl, calls } = makeFetch((call) => {
-    if (call.method === "GET" && call.url.includes(listOf("root"))) return json({ files: [] });
+    if (call.method === "GET" && call.url.includes(named("root", "新目录"))) return json({ files: [] });
     if (call.method === "POST" && call.url.includes("/drive/v3/files?")) {
       return json({ id: "new-folder", name: "新目录", mimeType: FOLDER });
     }
@@ -179,9 +186,9 @@ test("Google Drive：version 一致时 PATCH 媒体并返回新 rev", async () =
 
 test("Google Drive：新文件先建父目录再 multipart 创建；同名已存在则冲突", async () => {
   const created: Call[] = [];
-  const { fetchImpl } = makeFetch((call) => {
-    if (call.url.includes(listOf("root"))) return json({ files: [] });
-    if (call.url.includes(listOf("new-folder"))) return json({ files: [] });
+  const { fetchImpl, calls } = makeFetch((call) => {
+    if (call.url.includes(named("root", "写作"))) return json({ files: [] });
+    if (call.url.includes(named("new-folder", "a.md"))) return json({ files: [] });
     if (call.method === "POST" && call.url.includes("uploadType=multipart")) {
       created.push(call);
       return json({
@@ -205,9 +212,10 @@ test("Google Drive：新文件先建父目录再 multipart 创建；同名已存
   expect(created[0]!.body).toContain('"parents":["new-folder"]');
   expect(created[0]!.body).toContain("hello");
   expect(created[0]!.headers["Content-Type"]).toContain("multipart/related");
+  expect(calls.some((c) => c.url.includes(listOf("new-folder")))).toBe(false);
 
   const conflicting = makeFetch((call) => {
-    if (call.url.includes(listOf("root"))) {
+    if (call.url.includes(named("root", "a.md"))) {
       return json({ files: [{ id: "f3", name: "a.md", mimeType: "text/markdown" }] });
     }
     throw new Error(`unexpected url: ${call.url}`);
@@ -285,4 +293,20 @@ test("Google Drive：二进制 multipart 上传和下载保留全部字节", asy
   const file = await provider.uploadBytes(root, "image.png", content, { existing: null });
   expect(uploaded).toBe(true);
   expect([...await provider.downloadBytes(file)]).toEqual([...content]);
+});
+
+test("Google Drive：按名字查同名项时转义引号，并按原名精确过滤", async () => {
+  const { fetchImpl, calls } = makeFetch((call) => {
+    if (call.url.includes(named("root", "it\\'s.md"))) {
+      return json({ files: [{ id: "x", name: "IT'S.md", mimeType: "text/markdown" }] });
+    }
+    if (call.method === "POST" && call.url.includes("uploadType=multipart")) {
+      return json({ id: "n1", name: "it's.md", mimeType: "text/markdown", version: "1" });
+    }
+    throw new Error(`unexpected url: ${call.url}`);
+  });
+  const provider = new GoogleDriveProvider(tokens, fetchImpl, null);
+  const result = await provider.upload(root, "it's.md", "x", { existing: null });
+  expect(result.id).toBe("n1");
+  expect(calls.length).toBe(2);
 });

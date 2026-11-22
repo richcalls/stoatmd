@@ -48,7 +48,7 @@ test("全量同步可以暂停，暂停后停在动作之间，继续时从原�
   };
   await syncRuntime.activate(vault.root, connection, null);
 
-  const files = [remote("a.md"), remote("b.md"), remote("c.md")];
+  const files = Array.from({ length: 10 }, (_, index) => remote(`note-${index}.md`));
   const downloads: string[] = [];
   let release!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; });
@@ -60,10 +60,8 @@ test("全量同步可以暂停，暂停后停在动作之间，继续时从原�
     inventory: async () => ({ files, directories: [] }),
     downloadBytes: async (file: RemoteFile) => {
       downloads.push(file.path);
-      if (downloads.length === 1) {
-        started();
-        await gate;
-      }
+      started();
+      await gate;
       return new TextEncoder().encode(file.path);
     },
   } as unknown as SyncProvider;
@@ -75,15 +73,19 @@ test("全量同步可以暂停，暂停后停在动作之间，继续时从原�
     syncRuntime.pauseSync();
     expect(syncRuntime.phase()).toBe("paused");
 
+    // 已经在路上的几篇（并发下载）做完，之后不再领新的。
     release();
-    await waitFor(() => syncRuntime.progress().done === 1);
-    expect(downloads).toEqual(["a.md"]);
+    await waitFor(() => syncRuntime.progress().done > 0 && syncRuntime.progress().done === downloads.length);
+    await new Promise(resolve => setTimeout(resolve, 30));
+    const inFlight = downloads.length;
+    expect(inFlight < files.length).toBe(true);
+    expect(syncRuntime.progress().done).toBe(inFlight);
     expect(syncRuntime.phase()).toBe("paused");
 
     syncRuntime.resumeSync();
     const result = await running;
     expect(result?.ok).toBe(true);
-    expect(downloads).toEqual(["a.md", "b.md", "c.md"]);
+    expect(downloads.slice().sort()).toEqual(files.map(file => file.path).sort());
   } finally {
     syncRuntime.providerFor = original;
     vault.discardCache();
