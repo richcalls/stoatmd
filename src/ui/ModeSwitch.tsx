@@ -5,7 +5,7 @@ import { Icon } from "./Icon";
 import { t } from "./i18n";
 import { colors } from "./theme";
 import type { ViewMode } from "./Toolbar";
-import { controlFocusStyle, controlPressStyle, segmentStyle } from "./chrome";
+import { controlFocusStyle, controlPressStyle, motion, segmentStyle } from "./chrome";
 
 type Props = {
   mode: ViewMode;
@@ -37,6 +37,8 @@ function ModeButton(props: {
         justifyContent: "center",
         ...segmentStyle(props.active),
         opacity: props.revealed ? 1 : 0,
+        ...motion,
+        transitionDuration: 150,
       }}
       hoverStyle={{ backgroundColor: props.active ? colors().paper : colors().thread, opacity: 1 }}
       focusStyle={{ ...controlFocusStyle(), opacity: 1 }}

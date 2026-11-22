@@ -1,5 +1,12 @@
 import { colors, isDarkTheme } from "./theme";
 
+/** Shared hover/selection ease: state styles run in the native host. */
+export const motion = {
+  transitionProperty: "background-color, opacity",
+  transitionDuration: 120,
+  transitionTimingFunction: "ease-out",
+} as const;
+
 /** Shared window controls. State styles run in the native host, including focus. */
 export const iconButtonStyle = {
   width: 30,
@@ -8,18 +15,19 @@ export const iconButtonStyle = {
   alignItems: "center",
   justifyContent: "center",
   flexShrink: 0,
+  ...motion,
 } as const;
 
 /** Neutral window chrome follows the current theme; accent is reserved for focus. */
 export const chromeColors = () => ({
-  hover: isDarkTheme() ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)",
-  pressed: isDarkTheme() ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)",
-  selection: isDarkTheme() ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.78)",
-  selectionEdge: isDarkTheme() ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.055)",
+  hover: isDarkTheme() ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+  pressed: isDarkTheme() ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
+  selection: isDarkTheme() ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.075)",
+  field: isDarkTheme() ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
   panelEdge: isDarkTheme() ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.09)",
   panelShadow: isDarkTheme()
     ? "0 1px 3px rgba(0,0,0,0.18)"
-    : "0 1px 3px rgba(0,0,0,0.04)",
+    : "0 1px 3px rgba(0,0,0,0.06)",
   shellFinish: isDarkTheme()
     ? "linear-gradient(180deg, rgba(255,255,255,0.02), transparent)"
     : "linear-gradient(180deg, rgba(255,255,255,0.35), transparent)",

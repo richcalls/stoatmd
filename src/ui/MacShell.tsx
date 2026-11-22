@@ -5,8 +5,9 @@ import { Menu, currentWindow } from "nsh/desktop";
 import { StoatMeta, Vault, VaultDialog, type VaultEntryDto } from "stoatmd/native";
 import { activeStorage, readActiveStorage, storageBusy } from "../storage/state";
 import { syncRuntime } from "../sync/runtime";
+import { isTransientSyncError, shownSyncFailure } from "../sync/errorText";
 import { remoteNotePath } from "../sync/paths";
-import { READER_CONFIG_PATH, restoreReaderWidth } from "./readerWidth";
+import { READER_CONFIG_PATH, readerWidth, restoreReaderWidth } from "./readerWidth";
 import { ArticleInspector, type InspectorTab } from "./ArticleInspector";
 import { articleModel, type OutlineEntry } from "./articleModel";
 import { ConflictDialog } from "./ConflictDialog";
@@ -21,8 +22,10 @@ import type { SettingsTab } from "./SettingsSheet";
 import { createSettingsWindow } from "./settingsWindow";
 import { checkLatestVersion } from "./macosUpdates";
 import { Sidebar } from "./Sidebar";
-import { colors, statusColor } from "./theme";
-import { chromeColors, controlFocusStyle, controlHoverStyle, controlPressStyle } from "./chrome";
+import { colors, statusColor, themeId } from "./theme";
+import { renderMode } from "./documentAppearance";
+import { appMenu } from "./appMenu";
+import { chromeColors, controlFocusStyle, controlHoverStyle, controlPressStyle, motion } from "./chrome";
 import { SIDEBAR_WIDTH, WINDOW_BAR_HEIGHT, WindowBar, type SidebarMode, type ViewMode } from "./Toolbar";
 import {
   duplicateNotePath,
@@ -51,6 +54,8 @@ const SYNC_PULL_MS = 90_000;
 const SYNC_START_DELAY_MS = 1200;
 /** 窄窗口下右栏改为覆盖画布，避免挤压正文。 */
 const NARROW_OVERLAY = 920;
+/** Mac 瞬时同步错误连续出现这么多次才显示（手动同步立即显示）。 */
+const SYNC_ERROR_AFTER = 3;
 
 /** Mac 两栏壳：左栏文件树 + 内嵌画布（编辑/预览） + 可收起文章栏。 */
 export function MacShell() {
@@ -244,7 +249,9 @@ export function MacShell() {
     }
   };
 
-  const runSync = async () => {
+  /** 连续瞬时同步失败计数：达到阈值才把错误摆到状态栏（手动同步立即显示）。 */
+  const syncFails = signal(0);
+  const runSync = async (manual = false) => {
     if (storageBusy()) return;
     const v = vault();
     if (!v || !syncRuntime.isAttached()) return;
@@ -252,6 +259,12 @@ export function MacShell() {
     // 冲突不再挡住整库同步；只在出现新的冲突路径时弹窗，定时同步不反复打断。
     const known = new Set(syncRuntime.conflicts().map((item) => item.path));
     const result = await syncRuntime.syncNow();
+    const failure = syncRuntime.error();
+    syncFails.set(
+      !failure || !isTransientSyncError(failure)
+        ? 0
+        : manual ? SYNC_ERROR_AFTER : syncFails() + 1,
+    );
     if (!result || storageBusy() || vault() !== v) return;
     if (result.changedLocal.includes(READER_CONFIG_PATH)) await restoreReaderWidth(v.root);
     if (result.conflicts.some((item) => !known.has(item.path))) syncConflictOpen.set(true);
@@ -277,11 +290,15 @@ export function MacShell() {
       const paths = Array.from(pendingPush);
       pendingPush.clear();
       void (async () => {
-        const result = await syncRuntime.pushPaths(paths);
+        // quiet：保存后的后台推送失败不翻状态栏，下一轮全量同步再报告。
+        const result = await syncRuntime.pushPaths(paths, true);
         if (result?.needsFullSync) await runSync();
       })();
     }, SYNC_AFTER_SAVE_MS);
   };
+
+  /** 状态栏可见的同步失败：瞬时错误未达阈值时按「已同步」显示，不吓人。 */
+  const shownSyncError = () => shownSyncFailure(syncRuntime.error(), syncFails(), SYNC_ERROR_AFTER);
 
   /** 保存后只改这一篇的 mtime 并重排，不再全库扫描。 */
   const patchNoteMtime = (path: string, mtimeMs: number) => {
@@ -679,7 +696,7 @@ export function MacShell() {
     },
     onStorageActivated: async root => { await openVaultAt(root, true); },
     onOpenVault: () => { win.focus(); void pickAndOpen(); },
-    onSyncNow: () => { void runSync(); },
+    onSyncNow: () => { void runSync(true); },
     onManageConflicts: () => { win.focus(); syncConflictOpen.set(true); },
   });
   const openSettings = (tab: SettingsTab) => settingsWindow.open(tab);
@@ -710,116 +727,58 @@ export function MacShell() {
     })().catch(err => status.set(String(err)));
   });
 
-  // 应用菜单：文件 / 视图 / 编辑；语言切换后随 t() 重建
+  const checkUpdates = () => {
+    void (async () => {
+      status.set(t("update.checking"));
+      try {
+        const result = await checkLatestVersion(await StoatMeta.version());
+        if (result === "current") {
+          status.set(t("update.current"));
+          return;
+        }
+        status.set(t("update.available", { version: result }));
+        const { opened } = await openUrl(
+          "https://github.com/richcalls/stoatmd/releases/latest/download/StoatMD-macos.dmg",
+        );
+        if (!opened) status.set(t("update.openFailed"));
+      } catch {
+        status.set(t("update.failed"));
+      }
+    })();
+  };
+
+  // 应用菜单：语言切换或状态变化（模式 / 主题 / 侧栏 / 同步…）后随信号重建
   effect(() => {
     const mac = platform.os === "macos";
     const findKeys = findShortcuts();
-    const settingsItem = {
-      label: t("menu.settings"),
-      shortcut: "mod+,",
-      onSelect: () => openSettings("appearance"),
-    };
-    Menu.setApplicationMenu([
-      mac && {
-        label: "StoatMD",
-        submenu: [
-          { role: "about" },
-          { type: "separator" },
-          {
-            label: t("menu.checkUpdates"),
-            onSelect: () => {
-              void (async () => {
-                status.set(t("update.checking"));
-                try {
-                  const result = await checkLatestVersion(await StoatMeta.version());
-                  if (result === "current") {
-                    status.set(t("update.current"));
-                    return;
-                  }
-                  status.set(t("update.available", { version: result }));
-                  const { opened } = await openUrl(
-                    "https://github.com/richcalls/stoatmd/releases/latest/download/StoatMD-macos.dmg",
-                  );
-                  if (!opened) status.set(t("update.openFailed"));
-                } catch {
-                  status.set(t("update.failed"));
-                }
-              })();
-            },
-          },
-          { type: "separator" },
-          settingsItem,
-          { type: "separator" },
-          { role: "hide" },
-          { role: "hideOthers" },
-          { type: "separator" },
-          { role: "quit" },
-        ],
+    const syncPhase = syncRuntime.phase();
+    Menu.setApplicationMenu(appMenu(
+      {
+        mac,
+        mode: mode(),
+        sidebarVisible: sidebarMode() !== "hidden",
+        inspectorOpen: inspectorOpen(),
+        noteOpen: opened() !== null,
+        theme: themeId(),
+        readerWidth: readerWidth(),
+        renderMode: renderMode(),
+        syncEnabled: syncRuntime.connection() !== null &&
+          syncPhase !== "syncing" && syncPhase !== "authorizing",
+        searchEnabled: searchEnabled(),
+        findKeys,
       },
       {
-        label: t("menu.file"),
-        submenu: [
-          {
-            label: t("vault.open"),
-            shortcut: "mod+o",
-            onSelect: () => {
-              void pickAndOpen();
-            },
-          },
-          {
-            label: t("note.new"),
-            shortcut: "mod+n",
-            onSelect: () => {
-              void createNote();
-            },
-          },
-          !mac && { type: "separator" },
-          !mac && settingsItem,
-          !mac && { type: "separator" },
-          !mac && { role: "quit", label: t("menu.quit") },
-        ],
+        openSettings: () => openSettings("appearance"),
+        checkUpdates,
+        openFolder: () => void pickAndOpen(),
+        newNote: () => void createNote(),
+        syncNow: () => void runSync(true),
+        toggleSidebar: () => cycleSidebar(),
+        toggleInspector: () => inspectorOpen.set(!inspectorOpen()),
+        setMode: (m) => changeMode(m),
+        find: requestFind,
       },
-      {
-        label: t("menu.view"),
-        submenu: [
-          { label: t("menu.view.sidebar"), shortcut: "mod+b", onSelect: cycleSidebar },
-          { type: "separator" },
-          {
-            label: t("mode.edit"),
-            shortcut: "mod+1",
-            onSelect: () => changeMode("edit"),
-          },
-          {
-            label: t("mode.split"),
-            shortcut: "mod+2",
-            onSelect: () => changeMode("split"),
-          },
-          {
-            label: t("mode.preview"),
-            shortcut: "mod+3",
-            onSelect: () => changeMode("preview"),
-          },
-        ],
-      },
-      {
-        label: t("menu.edit"),
-        submenu: [
-          // Let focused native text controls consume editing shortcuts first.
-          // The EditorWorkspace fallback handles the custom Editor surface.
-          { role: "undo", shortcut: "mod+z", when: "auto" },
-          { role: "redo", shortcut: "mod+shift+z", when: "auto" },
-          { type: "separator" },
-          { role: "cut", shortcut: "mod+x", when: "auto" },
-          { role: "copy", shortcut: "mod+c", when: "auto" },
-          { role: "paste", shortcut: "mod+v", when: "auto" },
-          { role: "selectAll", shortcut: "mod+a", when: "auto" },
-          { type: "separator" },
-          { label: t("find.open"), shortcut: findKeys.open, disabled: !searchEnabled(), onSelect: () => requestFind("open") },
-          { label: t("find.next"), shortcut: findKeys.next, disabled: !searchEnabled(), onSelect: () => requestFind("next") },
-          { label: t("find.previous"), shortcut: findKeys.previous, disabled: !searchEnabled(), onSelect: () => requestFind("previous") },
-        ],
-      },
-    ]);
+    ));
   });
 
   // 外部改文件：轮询递归监视事件（含子目录）
@@ -945,8 +904,8 @@ export function MacShell() {
       }}
       style={{
         flex: 1,
-        backgroundColor: vault() ? colors().sidebar : colors().paper,
-        backgroundImage: vault() ? chromeColors().shellFinish : "none",
+        backgroundColor: vault() && sidebarMode() !== "hidden" ? colors().sidebar : colors().paper,
+        backgroundImage: vault() && sidebarMode() !== "hidden" ? chromeColors().shellFinish : "none",
         flexDirection: "column",
       }}
     >
@@ -1067,7 +1026,11 @@ export function MacShell() {
                   }
                 }}
                 vaultRoot={syncRuntime.connection() ? null : vaultRoot()}
-                syncPhase={syncRuntime.phase()}
+                syncPhase={!shownSyncError() &&
+                  (syncRuntime.phase() === "error" || syncRuntime.phase() === "offline")
+                  ? "synced"
+                  : syncRuntime.phase()}
+                syncError={shownSyncError()}
                 syncConflictCount={syncRuntime.conflicts().length}
               />
             </View>
@@ -1080,8 +1043,9 @@ export function MacShell() {
                 flex: 1,
                 minWidth: 0,
                 paddingLeft: 0,
-                paddingRight: 9,
-                paddingBottom: 9,
+                // 侧栏隐藏时画布铺满窗口，与窗口栏同色无缝衔接。
+                paddingRight: sidebarMode() === "hidden" ? 0 : 9,
+                paddingBottom: sidebarMode() === "hidden" ? 0 : 9,
               }}
           >
             <View
@@ -1091,10 +1055,10 @@ export function MacShell() {
                 minWidth: 0,
                 flexDirection: "row",
                 overflow: "hidden",
-                borderRadius: 10,
-                borderWidth: 1,
+                borderRadius: sidebarMode() === "hidden" ? 0 : 10,
+                borderWidth: sidebarMode() === "hidden" ? 0 : 1,
                 borderColor: chromeColors().panelEdge,
-                boxShadow: chromeColors().panelShadow,
+                boxShadow: sidebarMode() === "hidden" ? "none" : chromeColors().panelShadow,
                 backgroundColor: colors().paper,
                 position: "relative",
               }}
@@ -1115,8 +1079,11 @@ export function MacShell() {
                   />
                 </If>
                 <If when={!opened()}>
-                  <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ fontSize: uiTextSize(13), color: colors().ink3 }}>{t("note.empty")}</Text>
+                  <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 10 }}>
+                    <Icon name="file-text" color={colors().ink3} size={28} />
+                    <Text style={{ fontSize: uiTextSize(13), color: colors().ink2 }}>
+                      {notes().length === 0 ? t("note.empty") : t("mobile.selectNote")}
+                    </Text>
                   </View>
                 </If>
                 <If when={!!status()}>
@@ -1174,6 +1141,7 @@ export function MacShell() {
                     paddingHorizontal: 8,
                     borderRadius: 6,
                     backgroundColor: colors().paper,
+                    ...motion,
                   }}
                   hoverStyle={controlHoverStyle()}
                   focusStyle={controlFocusStyle()}

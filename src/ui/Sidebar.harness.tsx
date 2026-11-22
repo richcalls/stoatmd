@@ -1,5 +1,6 @@
 import { Text, View, mount, signal } from "nsh";
 import type { SyncPhase } from "../sync/runtime";
+import type { SyncErrorKind } from "../sync/provider";
 import { Sidebar } from "./Sidebar";
 import { librarySearch } from "./librarySearch";
 import type { FolderNode, NoteItem } from "./vaultModel";
@@ -34,6 +35,7 @@ function Harness() {
   const vaultOpen = signal(false);
   const menuNote = signal("");
   const phase = signal<SyncPhase>("off");
+  const syncErr = signal<{ kind: SyncErrorKind; message: string } | null>(null);
   const conflicts = signal(0);
   return (
     <View style={{ flex: 1, flexDirection: "column" }}>
@@ -62,6 +64,7 @@ function Harness() {
           onSync={() => syncOpen.set(true)}
           vaultRoot="/notes/我的库"
           syncPhase={phase()}
+          syncError={syncErr()}
           syncConflictCount={conflicts()}
         />
       </View>
@@ -90,6 +93,22 @@ function Harness() {
       <Text testID="new-value">{newNote() ? "new-open" : "new-closed"}</Text>
       <Text testID="vault-value">{vaultOpen() ? "vault-open" : "vault-closed"}</Text>
       <Text testID="menu-value">{menuNote()}</Text>
+      <View style={{ flexDirection: "row", gap: 8, height: 18, flexShrink: 0 }}>
+        <View
+          role="button"
+          testID="err-network"
+          onPress={() => { phase.set("offline"); syncErr.set({ kind: "network", message: "HTTP 503" }); }}
+        >
+          <Text>err-network</Text>
+        </View>
+        <View
+          role="button"
+          testID="err-auth"
+          onPress={() => { phase.set("error"); syncErr.set({ kind: "auth", message: "HTTP 401" }); }}
+        >
+          <Text>err-auth</Text>
+        </View>
+      </View>
     </View>
   );
 }

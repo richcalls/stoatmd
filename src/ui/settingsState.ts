@@ -7,6 +7,7 @@ import { renderMode } from "./documentAppearance";
 import { localePref, t } from "./i18n";
 import { themeId, themePreset } from "./theme";
 import { uiFontSize, editorFontSize, fontFamily, fontSize, fontLineHeight } from "./typography";
+import { readerWidth } from "./readerWidth";
 import type { SettingsTab } from "./SettingsSheet";
 
 /** JSON state shared by the two engines; all sync operations run in the main engine. */
@@ -14,7 +15,7 @@ export function settingsState(vaultRoot: string | null, tab: SettingsTab) {
   return {
     title: t("settings.title"), vaultRoot, tab,
     theme: themeId(), locale: localePref(), logo: appLogo(), renderMode: renderMode(),
-    typography: { ui: uiFontSize(), editor: editorFontSize(), family: fontFamily(), size: fontSize(), line: fontLineHeight() },
+    typography: { ui: uiFontSize(), editor: editorFontSize(), family: fontFamily(), size: fontSize(), line: fontLineHeight(), width: readerWidth() },
     storage: {
       busy: storageBusy(), active: activeStorage(),
       phase: storageMigration.phase(), target: storageMigration.target(), summary: storageMigration.summary(),
@@ -40,6 +41,7 @@ export function applySettingsState(state: SettingsState) {
   fontFamily.set(state.typography.family);
   fontSize.set(state.typography.size);
   fontLineHeight.set(state.typography.line);
+  readerWidth.set(state.typography.width);
   storageBusy.set(state.storage.busy);
   activeStorage.set(state.storage.active);
   storageMigration.phase.set(state.storage.phase);

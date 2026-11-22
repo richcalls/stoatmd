@@ -1,12 +1,13 @@
 import { uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
 import { Image, List, Scroll, Text, View, cleanup, effect, keymap, signal } from "nsh";
-import { Button, Input, Popover, Radio, RadioGroup } from "nsh/base";
+import { Button, Input, Popover, Radio, RadioGroup, TextView } from "nsh/base";
 import { titleBar } from "nsh/desktop";
 import { WINDOW_BAR_HEIGHT } from "./Toolbar";
 import { APP_LOGOS, applyAppLogo, appLogo, logoAsset } from "./appLogo";
 import { Icon, type IconName } from "./Icon";
 import { applyRenderMode, renderMode, type RenderMode } from "./documentAppearance";
-import { controlFocusStyle, controlHoverStyle, controlPressStyle, chromeColors } from "./chrome";
+import { controlFocusStyle, controlHoverStyle, controlPressStyle, chromeColors, motion, segmentStyle } from "./chrome";
+import { previewTextStyles } from "./EditorWorkspace";
 import { localePref, setLocalePref, t, type LocalePref } from "./i18n";
 import { saveLocale } from "./prefs";
 import { storageBusy } from "../storage/state";
@@ -34,10 +35,10 @@ import {
   fontLineHeight,
   fontSize,
   isDefaultTypography,
-  lineHeightPx,
   loadSystemFonts,
   documentFontFamily,
   resetTypography,
+  systemFontLabel,
   systemFonts,
 } from "./typography";
 
@@ -137,10 +138,77 @@ function RenderModePicker() {
   );
 }
 
-function ReaderWidthPicker() {
+/** macOS 系统设置式分组表单：外圈可选组标题，里面是圆角卡片与发丝分隔的行。 */
+function FormGroup(props: { label?: string; children: any }) {
+  return (
+    <View style={{ gap: 6 }}>
+      {props.label ? (
+        <Text
+          style={{
+            fontSize: uiTextSize(11.5),
+            fontWeight: "600",
+            color: colors().ink3,
+            marginLeft: 4,
+          }}
+        >
+          {props.label}
+        </Text>
+      ) : null}
+      <View
+        style={{
+          backgroundColor: colors().list,
+          borderRadius: 10,
+          borderWidth: 1,
+          borderColor: colors().thread,
+          overflow: "hidden",
+        }}
+      >
+        {props.children}
+      </View>
+    </View>
+  );
+}
+
+function FormRow(props: { label: string; detail?: string; last?: boolean; children: any }) {
+  return (
+    <View
+      style={{
+        minHeight: uiControlHeight(44),
+        paddingHorizontal: 14,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        borderBottomWidth: props.last ? 0 : 1,
+        borderBottomColor: colors().thread,
+      }}
+    >
+      <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+        <Text style={{ fontSize: uiTextSize(13), color: colors().ink, numberOfLines: 1 }}>
+          {props.label}
+        </Text>
+        {props.detail ? (
+          <Text style={{ fontSize: uiTextSize(11.5), color: colors().ink3, numberOfLines: 1 }}>
+            {props.detail}
+          </Text>
+        ) : null}
+      </View>
+      {props.children}
+    </View>
+  );
+}
+
+function ReaderWidthSegments() {
   const modes: ReaderWidth[] = ["comfortable", "full"];
   return (
-    <RadioGroup style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+    <RadioGroup
+      style={{
+        flexDirection: "row",
+        backgroundColor: colors().searchBg,
+        borderRadius: 7,
+        padding: 2,
+        gap: 2,
+      }}
+    >
       <Each of={modes}>
         {(row) => {
           const mode = row();
@@ -152,30 +220,17 @@ function ReaderWidthPicker() {
               checked={selected()}
               onChange={() => { void applyReaderWidth(mode); }}
               style={{
-                width: LOGO_CARD_WIDTH,
-                minHeight: uiControlHeight(58),
-                flexDirection: "row",
-                gap: 9,
+                height: uiControlHeight(24),
                 paddingHorizontal: 10,
-                borderRadius: 9,
-                borderWidth: 1,
-                borderColor: selected() ? colors().accent : colors().thread,
-                backgroundColor: selected() ? colors().accentSoft : colors().list,
+                borderRadius: 5,
                 alignItems: "center",
+                justifyContent: "center",
+                ...segmentStyle(selected()),
               }}
-              hoverStyle={controlHoverStyle()}
-              focusStyle={controlFocusStyle()}
-              activeStyle={controlPressStyle()}
             >
-              <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-                <Text style={{ fontSize: uiTextSize(12.5), fontWeight: selected() ? "600" : "500", color: colors().ink }}>
-                  {t(`settings.readerWidth.${mode}`)}
-                </Text>
-                <Text style={{ fontSize: uiTextSize(10.5), color: colors().ink3 }}>
-                  {t(`settings.readerWidth.${mode}.desc`)}
-                </Text>
-              </View>
-              {selected() ? <Icon name="check" color={colors().accent} size={13} /> : null}
+              <Text style={{ fontSize: uiTextSize(12), fontWeight: selected() ? "600" : "500", color: colors().ink }}>
+                {t(`settings.readerWidth.${mode}`)}
+              </Text>
             </Radio>
           );
         }}
@@ -415,7 +470,7 @@ function FontPicker() {
               numberOfLines: 1,
             }}
           >
-            {documentFontFamily()}
+            {documentFontFamily() ?? systemFontLabel()}
           </Text>
           <Icon name="caret-down" color={colors().ink3} size={14} />
         </View>
@@ -464,7 +519,7 @@ function FontPicker() {
               numberOfLines: 1,
             }}
           >
-            {t("settings.font.defaultOption", { font: documentFontFamily() })}
+            {t("settings.font.defaultOption", { font: systemFontLabel() })}
           </Text>
           <If when={defaultSelected()}>
             <Icon name="check" color={colors().accent} size={13} />
@@ -696,9 +751,8 @@ export function SettingsSheet(props: Props) {
                     flexDirection: "row",
                     alignItems: "center",
                     gap: 8,
-                    backgroundColor: on() ? colors().accentSoft : "transparent",
-                    borderLeftWidth: on() ? 1 : 0,
-                    borderLeftColor: on() ? colors().accent : "transparent",
+                    backgroundColor: on() ? chromeColors().selection : "transparent",
+                    ...motion,
                   }}
                 >
                   <Icon
@@ -798,108 +852,49 @@ export function SettingsSheet(props: Props) {
             </If>
 
             <If when={props.tab === "font"}>
-              <View style={{ gap: 4 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                  <Text
-                    style={{
-                      flex: 1,
-                      fontSize: uiTextSize(14),
-                      fontWeight: "600",
-                      letterSpacing: -0.14,
-                      color: colors().ink,
-                    }}
-                  >
+              <View style={{ gap: 16 }}>
+                <View style={{ gap: 4 }}>
+                  <Text style={{ fontSize: uiTextSize(17), fontWeight: "600", color: colors().ink }}>
                     {t("settings.font")}
                   </Text>
-                  <Button
-                    testID="font-reset"
-                    accessibilityLabel={t("settings.font.reset")}
-                    disabled={isDefaultTypography()}
-                    disabledStyle={{ opacity: 0.4 }}
-                    onPress={resetTypography}
-                    style={{
-                      height: uiControlHeight(26),
-                      paddingHorizontal: 9,
-                      borderRadius: 6,
-                      borderWidth: 1,
-                      borderColor: colors().thread,
-                      backgroundColor: colors().list,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                    activeStyle={{ opacity: 0.7 }}
-                  >
-                    <Text style={{ fontSize: uiTextSize(12.5), color: colors().ink2 }}>
-                      {t("settings.font.reset")}
-                    </Text>
-                  </Button>
+                  <Text style={{ fontSize: uiTextSize(12.5), color: colors().ink2, lineHeight: uiLineHeight(18) }}>
+                    {t("settings.font.desc")}
+                  </Text>
                 </View>
-                <Text style={{ fontSize: uiTextSize(12.5), color: colors().ink2, lineHeight: uiLineHeight(18) }}>
-                  {t("settings.font.desc")}
-                </Text>
-                <View style={{ gap: 10, marginTop: 8 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                    <Text style={{ flex: 1, color: colors().ink2, fontSize: uiTextSize(13) }}>
-                      {t("settings.font.interfaceSize")}
-                    </Text>
-                    <Stepper
-                      testID="ui-font-size"
-                      value={String(uiFontSize())}
-                      disabledDec={uiFontSize() <= UI_FONT_SIZE_MIN}
-                      disabledInc={uiFontSize() >= UI_FONT_SIZE_MAX}
-                      onDec={() => applyUiFontSize(uiFontSize() - 1)}
-                      onInc={() => applyUiFontSize(uiFontSize() + 1)}
-                    />
-                  </View>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                    <Text style={{ flex: 1, color: colors().ink2, fontSize: uiTextSize(13) }}>
-                      {t("settings.font.editorSize")}
-                    </Text>
-                    <Stepper
-                      testID="editor-font-size"
-                      value={String(editorFontSize())}
-                      disabledDec={editorFontSize() <= EDITOR_FONT_SIZE_MIN}
-                      disabledInc={editorFontSize() >= EDITOR_FONT_SIZE_MAX}
-                      onDec={() => applyEditorFontSize(editorFontSize() - 1)}
-                      onInc={() => applyEditorFontSize(editorFontSize() + 1)}
-                    />
-                  </View>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                    <Text
-                      style={{
-                        width: 72,
-                        fontSize: uiTextSize(13),
-                        fontWeight: "500",
-                        color: colors().ink2,
-                      }}
-                    >
-                      {t("settings.font.family")}
-                    </Text>
-                    <View style={{ flex: 1 }}>
+
+                {/* 预览卡用真实阅读样式渲染，字体 / 字号 / 行高改动即时可见。 */}
+                <View
+                  style={{
+                    backgroundColor: colors().preview,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: colors().thread,
+                    paddingHorizontal: 24,
+                    paddingVertical: 20,
+                    gap: 12,
+                  }}
+                >
+                  <Text style={{ fontSize: uiTextSize(11), fontWeight: "600", color: colors().ink3 }}>
+                    {t("settings.font.previewLabel")}
+                  </Text>
+                  <TextView
+                    document={{
+                      blocks: [
+                        { type: "heading", level: 2, content: [{ type: "text", text: t("app.name") }] },
+                        { type: "paragraph", content: [{ type: "text", text: t("settings.font.preview") }] },
+                      ],
+                    }}
+                    styles={previewTextStyles()}
+                  />
+                </View>
+
+                <FormGroup label={t("settings.font.reading")}>
+                  <FormRow label={t("settings.font.family")}>
+                    <View style={{ width: 220 }}>
                       <FontPicker />
                     </View>
-                  </View>
-
-                  <Text style={{ fontSize: uiTextSize(13), fontWeight: "600", color: colors().ink, marginTop: 12 }}>
-                    {t("settings.font.reading")}
-                  </Text>
-                  <View style={{ gap: 8 }}>
-                    <Text style={{ fontSize: uiTextSize(12), color: colors().ink2 }}>
-                      {t("settings.readerWidth.title")}
-                    </Text>
-                    <ReaderWidthPicker />
-                  </View>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                    <Text
-                      style={{
-                        width: 72,
-                        fontSize: uiTextSize(13),
-                        fontWeight: "500",
-                        color: colors().ink2,
-                      }}
-                    >
-                      {t("settings.font.size")}
-                    </Text>
+                  </FormRow>
+                  <FormRow label={t("settings.font.size")}>
                     <Stepper
                       testID="font-size"
                       value={String(fontSize())}
@@ -908,19 +903,8 @@ export function SettingsSheet(props: Props) {
                       onDec={() => applyFontSize(fontSize() - 1)}
                       onInc={() => applyFontSize(fontSize() + 1)}
                     />
-                  </View>
-
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                    <Text
-                      style={{
-                        width: 72,
-                        fontSize: uiTextSize(13),
-                        fontWeight: "500",
-                        color: colors().ink2,
-                      }}
-                    >
-                      {t("settings.font.lineHeight")}
-                    </Text>
+                  </FormRow>
+                  <FormRow label={t("settings.font.lineHeight")}>
                     <Stepper
                       testID="font-line"
                       value={formatLineHeight()}
@@ -929,41 +913,59 @@ export function SettingsSheet(props: Props) {
                       onDec={() => applyFontLineHeight(fontLineHeight() - LINE_HEIGHT_STEP)}
                       onInc={() => applyFontLineHeight(fontLineHeight() + LINE_HEIGHT_STEP)}
                     />
-                  </View>
-                </View>
+                  </FormRow>
+                  <FormRow
+                    label={t("settings.readerWidth.title")}
+                    detail={t(`settings.readerWidth.${readerWidth()}.desc`)}
+                    last
+                  >
+                    <ReaderWidthSegments />
+                  </FormRow>
+                </FormGroup>
 
-                <View
+                <FormGroup>
+                  <FormRow label={t("settings.font.editorSize")}>
+                    <Stepper
+                      testID="editor-font-size"
+                      value={String(editorFontSize())}
+                      disabledDec={editorFontSize() <= EDITOR_FONT_SIZE_MIN}
+                      disabledInc={editorFontSize() >= EDITOR_FONT_SIZE_MAX}
+                      onDec={() => applyEditorFontSize(editorFontSize() - 1)}
+                      onInc={() => applyEditorFontSize(editorFontSize() + 1)}
+                    />
+                  </FormRow>
+                  <FormRow label={t("settings.font.interfaceSize")} last>
+                    <Stepper
+                      testID="ui-font-size"
+                      value={String(uiFontSize())}
+                      disabledDec={uiFontSize() <= UI_FONT_SIZE_MIN}
+                      disabledInc={uiFontSize() >= UI_FONT_SIZE_MAX}
+                      onDec={() => applyUiFontSize(uiFontSize() - 1)}
+                      onInc={() => applyUiFontSize(uiFontSize() + 1)}
+                    />
+                  </FormRow>
+                </FormGroup>
+
+                <Button
+                  testID="font-reset"
+                  accessibilityLabel={t("settings.font.reset")}
+                  disabled={isDefaultTypography()}
+                  disabledStyle={{ opacity: 0.4 }}
+                  onPress={resetTypography}
                   style={{
-                    marginTop: 10,
-                    padding: 14,
-                    borderRadius: 9,
-                    borderWidth: 1,
-                    borderColor: colors().thread,
-                    backgroundColor: colors().editor,
+                    alignSelf: "flex-end",
+                    height: uiControlHeight(26),
+                    paddingHorizontal: 4,
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
+                  hoverStyle={{ opacity: 0.7 }}
+                  activeStyle={{ opacity: 0.5 }}
                 >
-                  <Text
-                    style={{
-                      fontSize: uiTextSize(11),
-                      fontWeight: "510",
-                      color: colors().ink3,
-                      marginBottom: 8,
-                      letterSpacing: 0.11,
-                    }}
-                  >
-                    {t("settings.font.previewLabel")}
+                  <Text style={{ fontSize: uiTextSize(13), color: colors().accent }}>
+                    {t("settings.font.reset")}
                   </Text>
-                  <Text
-                    style={{
-                      fontSize: fontSize(),
-                      lineHeight: lineHeightPx(),
-                      fontFamily: documentFontFamily(),
-                      color: colors().ink,
-                    }}
-                  >
-                    {t("settings.font.preview")}
-                  </Text>
-                </View>
+                </Button>
               </View>
             </If>
 

@@ -17,7 +17,7 @@ test("文稿配色：预览即时切换并保留正文、字号、链接下划�
   const paper = themePreset("merino-light").palette;
   const rgba = (hex: string) => `${hex.toLowerCase()}ff`;
   const headingSize = style("hi").fontSize;
-  expect(style("hi").color).toBe(rgba(paper.accent));
+  expect(style("hi").color).toBe(rgba(paper.ink));
   expect(style("引用 quote").color).toBe(rgba(paper.quote));
   expect(style("inline_code").color).toBe(rgba(paper.syntaxBold));
   expect(style("链接 link").color).toBe(rgba(paper.accent));
@@ -36,7 +36,7 @@ test("文稿配色：预览即时切换并保留正文、字号、链接下划�
   const silverPointDark = themePreset("silver-point-dark").palette;
   expect(style("hi").color).toBe(rgba(silverPointDark.ink));
   await app.press("id:render-color");
-  expect(style("hi").color).toBe(rgba(silverPointDark.accent));
+  expect(style("hi").color).toBe(rgba(silverPointDark.ink));
   expect(style("引用 quote").color).toBe(rgba(silverPointDark.quote));
 });
 
@@ -45,17 +45,17 @@ test("文稿配色：源码切换清除高亮并在恢复彩色后重新着色",
   const style = (text: string) => app.spanStyle(`id:document-editor >> text:${text}`);
   const paper = themePreset("merino-light").palette;
   const rgba = (hex: string) => `${hex.toLowerCase()}ff`;
-  expect(style("# hi").color).toBe(rgba(paper.accent));
+  expect(style("# hi").color).toBe(rgba(paper.ink));
   await app.press("id:render-monochrome");
   await app.waitUntil(() => style("# hi").color === rgba(paper.ink));
   for (const text of ["# hi", "> 引用 quote", "[链接 link]", "`inline_code`", "const a = 1;"]) {
     expect({ text, color: style(text).color }).toEqual({ text, color: rgba(paper.ink) });
   }
   await app.press("id:render-color");
-  expect(style("# hi").color).toBe(rgba(paper.accent));
+  expect(style("# hi").color).toBe(rgba(paper.ink));
   await app.press("id:theme-silver-point-dark");
   const silverPointDark = themePreset("silver-point-dark").palette;
-  expect(style("# hi").color).toBe(rgba(silverPointDark.accent));
+  expect(style("# hi").color).toBe(rgba(silverPointDark.ink));
   expect(style("> 引用 quote").color).toBe(rgba(silverPointDark.quote));
 });
 

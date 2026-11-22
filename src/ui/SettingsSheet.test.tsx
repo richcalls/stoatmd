@@ -152,7 +152,7 @@ test("同步：未连接展示两家网盘；缺客户端凭据时明确提示�
   expect(app.shows("id:sync-auth-cancel")).toBe(false);
 });
 
-test("设置：字体下拉可选默认衬线并持久化，语言切换即时生效", async () => {
+test("设置：字体下拉可选默认系统字体并持久化，语言切换即时生效", async () => {
   const app = await open("./SettingsSheet.harness.tsx", {
     ...desktop,
     storage: {
@@ -177,11 +177,11 @@ test("设置：字体下拉可选默认衬线并持久化，语言切换即时�
     () =>
       app.storage()["prefs.fontFamily"] === "system" &&
       app.storage()["prefs.fontSize"] === "19" &&
-      app.storage()["prefs.fontLineHeight"] === "1.6",
+      app.storage()["prefs.fontLineHeight"] === "1.75",
   );
   expect(app.texts().some((text) => text.startsWith("Kami"))).toBe(false);
   expect(app.storage()["prefs.fontSize"]).toBe("19");
-  expect(app.storage()["prefs.fontLineHeight"]).toBe("1.6");
+  expect(app.storage()["prefs.fontLineHeight"]).toBe("1.75");
 
   await app.press("id:settings-tab-appearance");
   await app.press("id:locale-select");
@@ -192,7 +192,7 @@ test("设置：字体下拉可选默认衬线并持久化，语言切换即时�
   expect(app.texts()).toContain("Appearance");
 });
 
-test("设置：字体一键恢复默认，字体 / 字号 / 行高回默认衬线并覆盖偏好", async () => {
+test("设置：字体一键恢复默认，字体 / 字号 / 行高回默认系统字体并覆盖偏好", async () => {
   const app = await open("./SettingsSheet.harness.tsx", {
     ...desktop,
     storage: {
@@ -215,12 +215,12 @@ test("设置：字体一键恢复默认，字体 / 字号 / 行高回默认衬�
       app.storage()["prefs.uiFontSize"] === "14" &&
       app.storage()["prefs.editorFontSize"] === "15" &&
       app.storage()["prefs.fontSize"] === "16" &&
-      app.storage()["prefs.fontLineHeight"] === "1.55",
+      app.storage()["prefs.fontLineHeight"] === "1.7",
   );
   expect(app.texts()).not.toContain("Helvetica");
   expect(app.texts().some((text) => text.includes("Kami"))).toBe(false);
   expect(app.texts()).toContain("16");
-  expect(app.texts()).toContain("1.55");
+  expect(app.texts()).toContain("1.7");
 });
 
 test("设置：字体搜索可过滤系统字体、无匹配有空态、选中后持久化", async () => {

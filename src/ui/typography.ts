@@ -1,6 +1,5 @@
-import { signal } from "nsh";
+import { platform, signal } from "nsh";
 import { SystemFonts } from "stoatmd/native";
-import { KAMI_READING_LINE_HEIGHT, kamiSerifFamily } from "./kami";
 import {
   loadSavedFontFamily,
   loadSavedFontLineHeight,
@@ -20,7 +19,7 @@ export const DEFAULT_FONT_FAMILY = "";
 export const DEFAULT_FONT_SIZE = 16;
 export const DEFAULT_UI_FONT_SIZE = 14;
 export const DEFAULT_EDITOR_FONT_SIZE = 15;
-export const DEFAULT_FONT_LINE_HEIGHT = KAMI_READING_LINE_HEIGHT;
+export const DEFAULT_FONT_LINE_HEIGHT = 1.7;
 
 export const fontFamily = signal(DEFAULT_FONT_FAMILY);
 /** 系统可用字体族（macOS 由原生桥枚举；不可用时为空）。 */
@@ -80,10 +79,30 @@ export function applyEditorFontSize(next: number) {
   void saveEditorFontSize(String(value));
 }
 
-/** 文稿正文共用的字体：用户选定优先，否则用本机可用的 Kami 衬线。 */
-export function documentFontFamily(): string {
+/** 文稿正文的字体：用户选定优先，否则回落到系统字体（`undefined` 交给宿主）。 */
+export function documentFontFamily(): string | undefined {
   const family = fontFamily();
-  return family === "" ? kamiSerifFamily(systemFonts()) : family;
+  return family === "" ? undefined : family;
+}
+
+/** 设置里「默认」字体显示的名字：跟随平台系统字体。 */
+export function systemFontLabel(): string {
+  if (platform.os === "macos" || platform.os === "ios") return "SF Pro";
+  if (platform.os === "windows") return "Segoe UI";
+  return "System";
+}
+
+/** Editor 默认用系统等宽之外的无衬线正文；`undefined` 时宿主回落到等宽字体。 */
+function systemEditorFont(): string | undefined {
+  if (platform.os === "macos" || platform.os === "ios") return ".AppleSystemUIFont";
+  if (platform.os === "windows") return "Segoe UI";
+  return undefined;
+}
+
+/** 源码编辑区的字体：用户选定优先，否则用系统正文字体（宿主默认是等宽）。 */
+export function editorFontFamily(): string | undefined {
+  const family = fontFamily();
+  return family === "" ? systemEditorFont() : family;
 }
 
 /** 字体桥只枚举一次；宿主没有桥时保持为空，下次打开再试。 */

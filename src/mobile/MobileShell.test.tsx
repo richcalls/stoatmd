@@ -78,11 +78,11 @@ test("iPhone: theme, icon, language and font settings persist after restarting",
   await app.press("id:settings.font.lineHeight-increase");
   await app.press("id:mobile-language-toggle");
   await app.press("id:mobile-language-en");
-  await app.waitUntil(() => app.storage()["prefs.locale"] === "en" && app.storage()["prefs.theme"] === "silver-point-dark" && app.storage()["prefs.renderMode"] === "monochrome" && app.storage()["prefs.fontSize"] === "17" && app.storage()["prefs.fontLineHeight"] === "1.6");
+  await app.waitUntil(() => app.storage()["prefs.locale"] === "en" && app.storage()["prefs.theme"] === "silver-point-dark" && app.storage()["prefs.renderMode"] === "monochrome" && app.storage()["prefs.fontSize"] === "17" && app.storage()["prefs.fontLineHeight"] === "1.75");
   const again = await openApp("./MobileShell.harness.tsx", { ...phone, storage: app.storage() });
   await again.press("id:mobile-settings");
   expect(again.shows("text:Settings")).toBe(true);
-  expect(again.shows("text:Kami · 17 / 1.60")).toBe(true);
+  expect(again.shows("text:SF Pro · 17 / 1.75")).toBe(true);
   expect(again.storage()["prefs.theme"]).toBe("silver-point-dark");
   expect(again.shows("text:Agile Silhouette")).toBe(true);
   expect(again.storage()["prefs.appLogo"]).toBe("agile");

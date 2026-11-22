@@ -13,10 +13,10 @@ function stylesFor(text: string) {
   }));
 }
 
-test("markdownDecorations：标题整行用 accent，加粗标记 ink3、粗体文本 650", () => {
+test("markdownDecorations：标题整行用正文墨色，加粗标记 ink3、粗体文本 650", () => {
   const spans = stylesFor("# 标题\n正文**重点**结尾");
   expect(spans).toEqual([
-    { line: 0, from: 0, to: 4, style: { color: palette.accent, fontWeight: "600" } },
+    { line: 0, from: 0, to: 4, style: { color: palette.ink, fontWeight: "600" } },
     { line: 1, from: 2, to: 4, style: { color: palette.ink3 } },
     { line: 1, from: 4, to: 6, style: { fontWeight: "650" } },
     { line: 1, from: 6, to: 8, style: { color: palette.ink3 } },

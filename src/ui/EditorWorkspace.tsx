@@ -5,7 +5,7 @@ import { findShortcuts, type FindRequest } from "./findShortcuts";
 import { markdownDecorations } from "./markdownDecorations";
 import { displayBlock, documentColors, renderMode, type RenderMode } from "./documentAppearance";
 import { t } from "./i18n";
-import { kamiMonoFamily, kamiTypeScale } from "./kami";
+import { kamiMonoFamily } from "./kami";
 import {
   PREVIEW_TOP_PADDING,
   previewGap,
@@ -13,7 +13,7 @@ import {
   resolveAnchor,
 } from "./previewModel";
 import { colors, themePreset, type ThemePalette, type ThemePreset } from "./theme";
-import { editorFontSize, editorLineHeight, fontSize, lineHeightPx, documentFontFamily, systemFonts } from "./typography";
+import { editorFontSize, editorLineHeight, editorFontFamily, fontSize, lineHeightPx, documentFontFamily, systemFonts } from "./typography";
 import { readerWidth } from "./readerWidth";
 import type { ViewMode } from "./Toolbar";
 import {
@@ -50,92 +50,119 @@ const editorTextStyles = () => ({
   content: { backgroundColor: colors().editor, color: colors().ink, paddingRight: 16 },
 });
 
-/** 预览排版：Kami 文章样式（衬线、500 字重、引用无底色），字号随设置缩放。 */
+/** 预览排版：系统正文字体、克制的标题阶梯（以正文字号为基准），字号随设置缩放。 */
 export const previewTextStyles = (palette: ThemePalette = colors()): TextViewStyles => {
   const size = fontSize();
   const lh = lineHeightPx(size);
-  const scale = kamiTypeScale(size);
   const mono = kamiMonoFamily(systemFonts());
   const ink = documentColors(palette);
+  const h1 = Math.round(size * 1.75);
+  const h2 = Math.round(size * 1.375);
+  const h3 = Math.round(size * 1.125);
+  const h6 = Math.round(size * 0.875);
+  const code = Math.round(size * 0.875);
   return {
     root: {
       color: palette.ink,
       fontSize: size,
       lineHeight: lh,
       fontFamily: documentFontFamily(),
-      letterSpacing: 0.3,
+      letterSpacing: 0,
     },
-    heading: { fontWeight: 500, color: ink.heading },
+    heading: { fontWeight: 600, color: ink.heading },
     heading1: {
-      fontSize: scale.h1,
-      lineHeight: Math.round(scale.h1 * 1.2),
-      letterSpacing: 0.3,
+      fontSize: h1,
+      lineHeight: Math.round(h1 * 1.2),
+      letterSpacing: -0.5,
     },
     heading2: {
-      fontSize: scale.h2,
-      lineHeight: Math.round(scale.h2 * 1.25),
+      fontSize: h2,
+      lineHeight: Math.round(h2 * 1.25),
+      letterSpacing: -0.3,
     },
     heading3: {
-      fontSize: scale.h3,
-      lineHeight: Math.round(scale.h3 * 1.3),
-      color: ink.heading,
+      fontSize: h3,
+      lineHeight: Math.round(h3 * 1.3),
+      letterSpacing: -0.1,
     },
     heading4: {
-      fontSize: scale.h4,
-      lineHeight: Math.round(scale.h4 * 1.4),
+      fontSize: size,
+      lineHeight: Math.round(size * 1.4),
     },
     heading5: {
-      fontSize: scale.h5,
-      lineHeight: Math.round(scale.h5 * 1.4),
+      fontSize: size,
+      lineHeight: Math.round(size * 1.4),
     },
     heading6: {
-      fontSize: scale.h6,
-      lineHeight: Math.round(scale.h6 * 1.4),
-      color: ink.heading,
+      fontSize: h6,
+      lineHeight: Math.round(h6 * 1.4),
+      color: palette.ink2,
     },
-    // 引用保留 Kami 的缩进排版，文字颜色跟随文稿配色。
+    // 引用：左侧竖线、无底色，文字颜色跟随文稿配色。
     blockquote: {
       color: ink.quote,
       fontSize: size,
       lineHeight: lh,
       backgroundColor: "transparent",
+      borderLeftWidth: 3,
+      borderLeftColor: palette.thread,
+      paddingLeft: 14,
+      paddingRight: 0,
+    },
+    // Callout（GitHub alert）：圆角灰底卡片，种类靠原生图标颜色表达，
+    // 覆盖引用块的竖线与文字色。
+    alert: {
+      color: palette.ink,
+      backgroundColor: palette.codeBg,
       borderLeftWidth: 0,
-      paddingLeft: 16,
-      paddingRight: 16,
+      borderRadius: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
     },
     code: {
       color: ink.code,
       backgroundColor: palette.codeBg,
       fontFamily: mono,
-      fontSize: scale.code,
-      borderRadius: 2,
-      paddingHorizontal: 4,
+      fontSize: code,
+      borderRadius: 4,
+      paddingHorizontal: 5,
     },
     codeBlock: {
       // Fenced code keeps a stable neutral surface across appearance themes.
       backgroundColor: palette.codeBg,
-      borderRadius: 5,
-      paddingTop: 13,
-      paddingBottom: 13,
-      paddingHorizontal: 19,
+      borderWidth: 0,
+      borderRadius: 8,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
     },
     codeBlockCode: {
       fontFamily: mono,
-      fontSize: scale.code,
-      lineHeight: Math.round(scale.code * 1.5),
+      fontSize: code,
+      lineHeight: Math.round(code * 1.55),
       color: palette.ink,
     },
-    strong: { fontWeight: 500 },
+    strong: { fontWeight: 600 },
     link: { color: ink.link, textDecorationLine: "underline" },
     listMarker: { color: ink.marker },
+    // Tables read like a document: horizontal rules only, no outer frame or column lines.
+    table: { borderWidth: 0 },
     tableHead: { backgroundColor: "transparent" },
     tableHeaderCell: {
-      color: palette.ink2,
-      fontWeight: 500,
+      color: palette.ink,
+      fontWeight: 600,
+      borderTopWidth: 0,
+      borderLeftWidth: 0,
+      borderRightWidth: 0,
       borderBottomWidth: 1,
       borderBottomColor: palette.thread,
     },
-    tableCell: { borderBottomWidth: 1, borderBottomColor: palette.thread },
+    tableCell: {
+      borderTopWidth: 0,
+      borderLeftWidth: 0,
+      borderRightWidth: 0,
+      borderBottomWidth: 1,
+      borderBottomColor: palette.thread,
+    },
     rule: { borderTopColor: palette.thread },
   };
 };
@@ -289,7 +316,7 @@ export function EditorWorkspace(props: Props) {
 
   /** 适中版心按正文行长控制在约 40–70 个汉字。 */
   const documentWidth = () =>
-    Math.min(960, Math.max(640, Math.round(840 + (fontSize() - 16) * 20)));
+    Math.min(880, Math.max(600, Math.round(720 + (fontSize() - 16) * 20)));
 
   const handleVisible = (info: {
     viewableItems: { index: number; isViewable: boolean }[];
@@ -366,7 +393,7 @@ export function EditorWorkspace(props: Props) {
           highlighting={renderMode() === "color"}
           softWrap
           lineNumbers={false}
-          fontFamily={documentFontFamily()}
+          fontFamily={editorFontFamily()}
           fontSize={editorFontSize()}
           lineHeight={editorLineHeight()}
           scrollBeyondLastLine={false}
@@ -390,7 +417,7 @@ export function EditorWorkspace(props: Props) {
           language="markdown"
           softWrap
           lineNumbers={false}
-          fontFamily={documentFontFamily()}
+          fontFamily={editorFontFamily()}
           fontSize={editorFontSize()}
           lineHeight={editorLineHeight()}
           scrollBeyondLastLine={false}
@@ -440,7 +467,7 @@ export function EditorWorkspace(props: Props) {
           estimatedItemSize={previewItemSize()}
           contentStyle={{
             paddingTop: PREVIEW_TOP_PADDING,
-            paddingBottom: 26,
+            paddingBottom: 64,
             paddingHorizontal: gutter(),
           }}
           testID="pane-preview"
@@ -497,7 +524,7 @@ export function EditorWorkspace(props: Props) {
   // 字体与字号变化会改变折行及内容高度，重新测量两侧的滚动比例。
   effect(() => {
     editorFontSize();
-    documentFontFamily();
+    editorFontFamily();
     refreshPreviewMetrics();
   });
 
