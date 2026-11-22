@@ -161,4 +161,9 @@ test("同步行：网络错误给灰点与离线文案，授权错误给红点�
   const auth = { kind: "auth" as const, message: "HTTP 401" };
   expect(sidebarSyncLabel("error", auth, 0)).toBe("Sync error");
   expect(sidebarSyncDot("error", auth)).toBe(statusColor("danger"));
+
+  // 上一轮留下的错误不能盖住进行中的同步与冲突。
+  expect(sidebarSyncLabel("syncing", auth, 0)).toBe("Syncing");
+  expect(sidebarSyncDot("syncing", auth)).toBe(colors().accent);
+  expect(sidebarSyncLabel("conflict", network, 2)).toBe(t("sync.conflictsCount", { n: 2 }));
 });

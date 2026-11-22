@@ -49,7 +49,8 @@ export function sidebarSyncLabel(
   error: { kind: SyncErrorKind; message: string } | null | undefined,
   conflictCount: number,
 ): string {
-  if (error) return error.kind === "network" ? t("sync.offline") : t("sync.error");
+  const failed = !!error && (phase === "error" || phase === "offline");
+  if (failed) return error.kind === "network" ? t("sync.offline") : t("sync.error");
   if (phase === "conflict") return t("sync.conflictsCount", { n: conflictCount });
   if (phase === "authorizing") return t("sync.authorizing");
   if (phase === "syncing") return t("sync.syncing");
@@ -64,7 +65,8 @@ export function sidebarSyncDot(
   phase: SyncPhase,
   error: { kind: SyncErrorKind; message: string } | null | undefined,
 ): string {
-  if (error) return error.kind === "network" || error.kind === "unknown" ? colors().ink3 : statusColor("danger");
+  const failed = !!error && (phase === "error" || phase === "offline");
+  if (failed) return error.kind === "network" || error.kind === "unknown" ? colors().ink3 : statusColor("danger");
   if (phase === "conflict" || phase === "error") return statusColor("danger");
   if (phase === "synced") return statusColor("ok");
   if (phase === "authorizing" || phase === "syncing") return colors().accent;
