@@ -21,7 +21,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.5.0 sh
+          curl -fsSL https://nsh.dev/install.sh | NSH_VERSION=v0.6.1 sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: System
@@ -43,7 +43,7 @@ jobs:
             command -v "$tool" || { echo "missing"; exit 1; }
           done
           nsh --version
-          nsh --version | grep -q "nsh 0.5.0" || { echo "::error::期望 nsh 0.5.0"; exit 1; }
+          nsh --version | grep -q "nsh 0.6.1" || { echo "::error::期望 nsh 0.6.1"; exit 1; }
           gh --version | head -1
           /usr/bin/python3 --version
           [[ "$(uname -m)" == "arm64" ]] || { echo "::error::期望 Apple Silicon runner"; exit 1; }
