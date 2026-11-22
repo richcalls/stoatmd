@@ -59,8 +59,13 @@ async function flushCloudPush(): Promise<void> {
   const gone = new Set(removed);
   const uploads = saved.filter(path => !gone.has(path));
   try {
-    await (removed.length ? syncRuntime.pushDeletions(removed, true) : null);
-    await (uploads.length ? syncRuntime.pushPaths(uploads, true) : null);
+    const results = [
+      removed.length ? await syncRuntime.pushDeletions(removed, true) : null,
+      uploads.length ? await syncRuntime.pushPaths(uploads, true) : null,
+    ];
+    // 云端版本已变 / 本地已不在：单文件推送不裁决，立即补一轮全量同步。
+    // 手机上没有定时全量同步，不补的话这些改动要等到下次启动或下拉刷新才会上传。
+    if (results.some(result => result?.needsFullSync)) await syncRuntime.syncNow();
   } catch { /* 后台推送失败不打断编辑，最多拖到下一次全量同步 */ }
 }
 type Panel = "settings" | "storage" | "outline" | "type" | "actions" | "info" | "rename" | "folder" | "move" | "trash" | "erase" | "cloudConflicts" | null;

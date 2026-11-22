@@ -248,12 +248,13 @@ export function MacShell() {
     if (storageBusy()) return;
     const v = vault();
     if (!v || !syncRuntime.isAttached()) return;
-    if (syncRuntime.phase() === "conflict") return;
     await flushSave();
+    // 冲突不再挡住整库同步；只在出现新的冲突路径时弹窗，定时同步不反复打断。
+    const known = new Set(syncRuntime.conflicts().map((item) => item.path));
     const result = await syncRuntime.syncNow();
     if (!result || storageBusy() || vault() !== v) return;
     if (result.changedLocal.includes(READER_CONFIG_PATH)) await restoreReaderWidth(v.root);
-    if (result.conflicts.length > 0) syncConflictOpen.set(true);
+    if (result.conflicts.some((item) => !known.has(item.path))) syncConflictOpen.set(true);
     if (result.changedLocal.length > 0) {
       const cur = opened();
       for (const path of result.changedLocal) markSelfWrite(path);
@@ -884,7 +885,7 @@ export function MacShell() {
   effect(() => {
     const id = setInterval(() => {
       if (!syncRuntime.isAttached()) return;
-      if (syncRuntime.phase() === "conflict" || syncRuntime.phase() === "syncing") return;
+      if (syncRuntime.phase() === "syncing" || syncRuntime.phase() === "paused") return;
       void runSync();
     }, SYNC_PULL_MS);
     cleanup(() => clearInterval(id));

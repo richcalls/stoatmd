@@ -182,19 +182,23 @@ test("单文件推送：本地文件已删除时交回全量同步", async () =>
   }
 });
 
-test("单文件推送：冲突未解决时不写入云端", async () => {
+test("单文件推送：冲突未解决的路径不写入云端", async () => {
   const calls: Calls = { inventories: 0, uploads: [], removals: [] };
   const { vault, restore } = await setup(calls);
   try {
+    syncRuntime.conflicts.set([{
+      path: "a.md", kind: "bothModified", base: null, local: null, remote: null, localHash: null, remoteHash: null,
+    }]);
     syncRuntime.phase.set("conflict");
     vault.createBytes("a.md", new TextEncoder().encode("hello"));
 
     const result = await syncRuntime.pushPaths(["a.md"]);
 
-    expect(result).toBe(null);
+    expect(result?.uploaded).toBe(0);
     expect(calls.uploads.length).toBe(0);
     expect(syncRuntime.phase()).toBe("conflict");
   } finally {
+    syncRuntime.conflicts.set([]);
     syncRuntime.phase.set("synced");
     await restore();
   }

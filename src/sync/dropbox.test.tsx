@@ -171,6 +171,8 @@ test("Dropbox：上传新文件用 add；已有文件用 update+rev；409 转冲
   const uploads = calls.filter((c) => c.url.endsWith("/files/upload"));
   expect(JSON.parse(uploads[0]!.headers["Dropbox-API-Arg"]).mode).toEqual({ ".tag": "add" });
   expect(JSON.parse(uploads[0]!.headers["Dropbox-API-Arg"]).autorename).toBe(false);
+  // upload 自己会补齐父目录，不再逐级 create_folder。
+  expect(calls.some((c) => c.url.endsWith("/files/create_folder_v2"))).toBe(false);
 
   const updated = await provider.upload(root, "Notes/a.md", "hello2", {
     existing: { path: "Notes/a.md", id: "/StoatMD/Notes/a.md", rev: "00c", mtimeMs: 0, size: 5 },
