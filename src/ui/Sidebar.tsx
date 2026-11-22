@@ -2,10 +2,12 @@ import { uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
 import { List, Text, View, cleanup, effect, keymap, signal } from "nsh";
 import { Button, Input, Menu, MenuItem, MenuSeparator } from "nsh/base";
 import type { SyncPhase } from "../sync/runtime";
+import type { SyncErrorKind } from "../sync/provider";
+import { syncErrorKey } from "../sync/errorText";
 import { Icon, type IconName } from "./Icon";
 import { t } from "./i18n";
 import { colors, statusColor } from "./theme";
-import { chromeColors, controlFocusStyle, controlHoverStyle, controlPressStyle } from "./chrome";
+import { chromeColors, controlFocusStyle, controlHoverStyle, controlPressStyle, motion } from "./chrome";
 import {
   libraryRows,
   vaultNameFromRoot,
@@ -37,7 +39,37 @@ type Props = {
   vaultRoot: string | null;
   syncPhase?: SyncPhase;
   syncConflictCount?: number;
+  /** 已过滤的失败（瞬时错误未达阈值时不传）：行内给可读原因。 */
+  syncError?: { kind: SyncErrorKind; message: string } | null;
 };
+
+/** 同步行文字：error 优先于 phase（MacShell 已过滤瞬时错误）。 */
+export function sidebarSyncLabel(
+  phase: SyncPhase,
+  error: { kind: SyncErrorKind; message: string } | null | undefined,
+  conflictCount: number,
+): string {
+  if (error) return error.kind === "network" ? t("sync.offline") : t("sync.error");
+  if (phase === "conflict") return t("sync.conflictsCount", { n: conflictCount });
+  if (phase === "authorizing") return t("sync.authorizing");
+  if (phase === "syncing") return t("sync.syncing");
+  if (phase === "synced") return t("sync.synced");
+  if (phase === "offline") return t("sync.offline");
+  if (phase === "error") return t("sync.error");
+  return t("sync.off");
+}
+
+/** 同步行圆点：断网 / 瞬时错误用中性灰点，只有确定要处理的问题才涂红。 */
+export function sidebarSyncDot(
+  phase: SyncPhase,
+  error: { kind: SyncErrorKind; message: string } | null | undefined,
+): string {
+  if (error) return error.kind === "network" || error.kind === "unknown" ? colors().ink3 : statusColor("danger");
+  if (phase === "conflict" || phase === "error") return statusColor("danger");
+  if (phase === "synced") return statusColor("ok");
+  if (phase === "authorizing" || phase === "syncing") return colors().accent;
+  return colors().ink3;
+}
 
 const headerButtonStyle = {
   width: 26,
@@ -64,26 +96,8 @@ export function Sidebar(props: Props) {
     cleanup(off);
   });
 
-  const syncLabel = (): string => {
-    const phase = props.syncPhase ?? "off";
-    if (phase === "conflict") {
-      return t("sync.conflictsCount", { n: props.syncConflictCount ?? 0 });
-    }
-    if (phase === "authorizing") return t("sync.authorizing");
-    if (phase === "syncing") return t("sync.syncing");
-    if (phase === "synced") return t("sync.synced");
-    if (phase === "offline") return t("sync.offline");
-    if (phase === "error") return t("sync.error");
-    return t("sync.off");
-  };
-
-  const syncDotColor = (): string => {
-    const phase = props.syncPhase ?? "off";
-    if (phase === "conflict" || phase === "error") return statusColor("danger");
-    if (phase === "synced") return statusColor("ok");
-    if (phase === "authorizing" || phase === "syncing") return colors().accent;
-    return colors().ink3;
-  };
+  const syncLabel = (): string => sidebarSyncLabel(props.syncPhase ?? "off", props.syncError, props.syncConflictCount ?? 0);
+  const syncDotColor = (): string => sidebarSyncDot(props.syncPhase ?? "off", props.syncError);
 
   return (
     <View
@@ -137,9 +151,10 @@ export function Sidebar(props: Props) {
                   borderRadius: 5,
                   flexDirection: "row",
                   alignItems: "center",
+                  ...motion,
                 }}
               >
-                <Text style={{ flexShrink: 1, fontSize: uiTextSize(12), fontWeight: "600", color: colors().ink2, numberOfLines: 1 }}>
+                <Text style={{ flexShrink: 1, fontSize: uiTextSize(11), fontWeight: "600", color: colors().ink3, numberOfLines: 1 }}>
                   {rootLabel()}
                 </Text>
                 <Icon name="caret-down" color={colors().ink3} size={9} />
@@ -194,10 +209,11 @@ export function Sidebar(props: Props) {
             alignItems: "center",
             gap: 6,
             height: uiControlHeight(28),
-            borderRadius: 6,
+            borderRadius: 7,
             borderWidth: 1,
             borderColor: searchFocused() ? colors().accent : "transparent",
-            backgroundColor: chromeColors().hover,
+            backgroundColor: chromeColors().field,
+            boxShadow: searchFocused() ? `0 0 0 3px ${colors().accentSoft}` : "none",
             paddingHorizontal: 8,
           }}
         >
@@ -306,33 +322,31 @@ export function Sidebar(props: Props) {
                 paddingLeft: 5 + row().depth * 12,
                 paddingRight: 7,
                 borderRadius: 6,
-                // Keep the selected row flat against the sidebar. A full
-                // border plus shadow produced dark vertical bands at both
-                // sides of the row, especially while the list was clipped.
+                // Keep the selected row flat against the sidebar (fill only,
+                // no border or shadow): a border plus shadow produced dark
+                // vertical bands at both sides while the list was clipped.
                 borderWidth: 0,
-                borderBottomWidth: selected() ? 1 : 0,
-                borderBottomColor: selected() ? chromeColors().selectionEdge : "transparent",
                 backgroundColor: selected() ? chromeColors().selection : "transparent",
-                boxShadow: "none",
+                ...motion,
               }}
             >
               <If when={isFolder()}>
                 <View style={{ width: 9, alignItems: "center" }}>
                   <Icon name={caret()} color={colors().ink3} size={8} />
                 </View>
-                <Icon name="folder" color={colors().ink3} size={14} />
+                <Icon name="folder" color={colors().accent} size={15} />
               </If>
               <If when={!isFolder()}>
                 <View style={{ width: 9 }} />
-                <Icon name="file-text" color={selected() ? colors().ink2 : colors().ink3} size={14} />
+                <Icon name="file-text" color={selected() ? colors().accent : colors().ink3} size={15} />
               </If>
               <Text
                 style={{
                   flex: 1,
                   minWidth: 0,
                   fontSize: uiTextSize(12),
-                  fontWeight: selected() || isFolder() ? "500" : "400",
-                  color: selected() ? colors().ink : colors().ink2,
+                  fontWeight: selected() ? "500" : "400",
+                  color: colors().ink,
                   numberOfLines: 1,
                 }}
               >
@@ -356,6 +370,9 @@ export function Sidebar(props: Props) {
         activeStyle={controlPressStyle()}
         testID="sidebar-sync"
         accessibilityLabel={t("settings.sync")}
+        tooltip={props.syncError
+          ? <Text style={{ fontSize: uiTextSize(12) }}>{t(syncErrorKey(props.syncError))}</Text>
+          : undefined}
         onPress={props.onSync}
         style={{
           flexDirection: "row",
@@ -365,12 +382,13 @@ export function Sidebar(props: Props) {
           paddingHorizontal: 8,
           height: uiControlHeight(28),
           borderRadius: 6,
+          ...motion,
         }}
       >
         <View
           style={{
-            width: 5,
-            height: 5,
+            width: 6,
+            height: 6,
             borderRadius: 3,
             backgroundColor: syncDotColor(),
           }}

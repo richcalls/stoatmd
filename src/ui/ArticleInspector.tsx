@@ -12,7 +12,7 @@ import { Icon } from "./Icon";
 import { locale, t } from "./i18n";
 import { watchEditorScroll } from "./scrollSync";
 import { colors } from "./theme";
-import { controlFocusStyle, controlHoverStyle, controlPressStyle, iconButtonStyle } from "./chrome";
+import { controlFocusStyle, controlHoverStyle, controlPressStyle, iconButtonStyle, motion, segmentStyle } from "./chrome";
 import type { ViewMode } from "./Toolbar";
 import { formatDateTime } from "./vaultModel";
 
@@ -48,13 +48,14 @@ function TabButton(props: {
       accessibilityLabel={props.label}
       onPress={props.onPress}
       style={{
-        height: uiControlHeight(30),
+        height: uiControlHeight(26),
         paddingHorizontal: 8,
-        borderRadius: 6,
+        borderRadius: 5,
         flexDirection: "row",
         alignItems: "center",
         gap: 5,
-        backgroundColor: props.active ? colors().searchBg : "transparent",
+        ...segmentStyle(props.active),
+        ...motion,
       }}
       hoverStyle={controlHoverStyle()}
       focusStyle={controlFocusStyle()}
@@ -104,7 +105,7 @@ function SectionTitle(props: { children: any }) {
     <Text
       style={{
         fontSize: uiTextSize(11),
-        fontWeight: "500",
+        fontWeight: "600",
         color: colors().ink3,
         marginBottom: 11,
       }}
@@ -172,20 +173,31 @@ export function ArticleInspector(props: Props) {
           paddingBottom: 18,
         }}
       >
-        <TabButton
-          testID="inspector-tab-outline"
-          icon="list-tree"
-          label={t("inspector.outline")}
-          active={props.tab === "outline"}
-          onPress={() => props.onTab("outline")}
-        />
-        <TabButton
-          testID="inspector-tab-info"
-          icon="info"
-          label={t("inspector.info")}
-          active={props.tab === "info"}
-          onPress={() => props.onTab("info")}
-        />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 2,
+            padding: 2,
+            borderRadius: 7,
+            backgroundColor: colors().searchBg,
+          }}
+        >
+          <TabButton
+            testID="inspector-tab-outline"
+            icon="list-tree"
+            label={t("inspector.outline")}
+            active={props.tab === "outline"}
+            onPress={() => props.onTab("outline")}
+          />
+          <TabButton
+            testID="inspector-tab-info"
+            icon="info"
+            label={t("inspector.info")}
+            active={props.tab === "info"}
+            onPress={() => props.onTab("info")}
+          />
+        </View>
         <View style={{ flex: 1 }} />
         <Button
           testID="inspector-close"
@@ -207,6 +219,7 @@ export function ArticleInspector(props: Props) {
             <Text
               style={{
                 fontSize: uiTextSize(11),
+                fontWeight: "600",
                 color: colors().ink3,
                 marginHorizontal: 8,
                 marginBottom: 10,
@@ -245,10 +258,11 @@ export function ArticleInspector(props: Props) {
                         paddingRight: 9,
                         paddingLeft: 9 + (heading().level - 1) * 11,
                         borderRadius: 6,
-                        backgroundColor: active() ? colors().accentSoft : "transparent",
+                        backgroundColor: "transparent",
                         justifyContent: "center",
+                        ...motion,
                       }}
-                      hoverStyle={active() ? { backgroundColor: colors().accentSoft } : controlHoverStyle()}
+                      hoverStyle={controlHoverStyle()}
                       focusStyle={controlFocusStyle()}
                       activeStyle={controlPressStyle()}
                     >

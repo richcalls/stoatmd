@@ -1,5 +1,6 @@
 import { expect, test } from "nsh/test";
-import { previewModel, resolveAnchor } from "./previewModel";
+import { TextView } from "nsh/base";
+import { parsedDocument, previewModel, resolveAnchor } from "./previewModel";
 
 const MD = `# 标题
 
@@ -52,4 +53,50 @@ test("resolveAnchor：只解析预览内锚点，外链与未知锚点不处理"
   expect(resolveAnchor(model.anchors, `#${encodeURIComponent("标题")}`)).toBe(0);
   expect(resolveAnchor(model.anchors, "https://example.com")).toBe(undefined);
   expect(resolveAnchor(model.anchors, "#missing")).toBe(undefined);
+});
+
+test("callout：小写 [!warning] 加同行标题转为 alert 与加粗标题段", () => {
+  const document = parsedDocument("> [!warning] 重要\n> 请立刻保存密码。\n\n正文段落");
+  const quote = document.blocks[0];
+  expect(quote.type).toBe("blockquote");
+  if (quote.type !== "blockquote") return;
+  expect(quote.alert).toBe("warning");
+  const title = quote.children[0];
+  expect(title.type).toBe("paragraph");
+  if (title.type === "paragraph") {
+    expect(title.content[0].type).toBe("strong");
+    expect(title.content.some((inline) => inline.type === "break")).toBe(true);
+    expect(TextView.plainText({ blocks: [title] })).toContain("请立刻保存密码");
+  }
+});
+
+test("callout：标记行内联标题整行成加粗标题，未知类别映射 note，代码块内不处理", () => {
+  const single = parsedDocument("> [!tip] 全部在一行的提示");
+  const quote = single.blocks[0];
+  if (quote.type !== "blockquote") throw new Error("expected blockquote");
+  expect(quote.alert).toBe("tip");
+  expect(quote.children.length).toBe(1);
+
+  const unknown = parsedDocument("> [!mystery] 未知提示\n> 正文");
+  const u = unknown.blocks[0];
+  if (u.type !== "blockquote") throw new Error("expected blockquote");
+  expect(u.alert).toBe("note");
+
+  const fenced = parsedDocument("```\n> [!warning] 不是 callout\n```");
+  expect(fenced.blocks[0].type).toBe("codeBlock");
+});
+
+test("callout：GitHub 原生 [!WARNING] 独占一行仍工作；折叠记号剥离", () => {
+  const native = parsedDocument("> [!WARNING]\n> 正文");
+  const q = native.blocks[0];
+  if (q.type !== "blockquote") throw new Error("expected blockquote");
+  expect(q.alert).toBe("warning");
+  if (q.children[0].type === "paragraph") {
+    expect(TextView.plainText({ blocks: [q.children[0]] })).toBe("正文");
+  }
+
+  const folded = parsedDocument("> [!danger]- 危险\n> 正文");
+  const f = folded.blocks[0];
+  if (f.type !== "blockquote") throw new Error("expected blockquote");
+  expect(f.alert).toBe("caution");
 });

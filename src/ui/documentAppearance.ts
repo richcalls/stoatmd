@@ -22,11 +22,11 @@ export function documentColors(palette: ThemePalette = colors(), mode: RenderMod
   const colorful = mode === "color";
   return {
     body: palette.ink,
-    heading: colorful ? palette.accent : palette.ink,
+    heading: palette.ink,
     quote: colorful ? palette.quote : palette.ink,
     code: colorful ? palette.syntaxBold : palette.ink,
     link: colorful ? palette.accent : palette.ink,
-    marker: colorful ? palette.accent : palette.ink,
+    marker: palette.ink3,
     syntaxMarker: palette.ink3,
     codeBackground: palette.codeBg,
   };

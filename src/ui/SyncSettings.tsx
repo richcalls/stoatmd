@@ -4,6 +4,7 @@ import { VaultDialog } from "stoatmd/native";
 import { credentialsFor, loadSyncConfig } from "../sync/config";
 import { SyncError, type RemoteDir } from "../sync/provider";
 import { providerLabelKey, remoteRoot, syncRuntime } from "../sync/runtime";
+import { syncErrorKey } from "../sync/errorText";
 import type { ProviderId } from "../sync/types";
 import { connectionLocation, storageMigration as migration } from "../storage/runtime";
 import { activeStorage, storageBusy, type Location } from "../storage/state";
@@ -198,8 +199,11 @@ export function SyncSettings(props: SyncSettingsProps) {
     const phase = syncRuntime.phase();
     if (phase === "syncing") return t("sync.syncing");
     if (phase === "conflict") return t("sync.conflictsCount", { n: syncRuntime.conflicts().length });
-    if (phase === "offline") return t("sync.offline");
-    if (phase === "error") return t("sync.error.generic");
+    if (phase === "offline" || phase === "error") {
+      const error = syncRuntime.error();
+      if (error) return t(syncErrorKey(error));
+      return phase === "offline" ? t("sync.offline") : t("sync.error.generic");
+    }
     return `${t("sync.synced")} · ${formatSyncMoment(syncRuntime.lastSyncAt())}`;
   };
 
@@ -254,6 +258,9 @@ export function SyncSettings(props: SyncSettingsProps) {
             {connected() || !props.cloudOnly ? button("storage-change-folder", t("storage.changeFolder"), () => void choose(currentKind()), false, loading()) : null}
             <If when={!!connected()}>
               {button("sync-now", t("sync.syncNow"), () => props.onSyncNow?.(), false, syncRuntime.phase() === "syncing")}
+              <If when={!!syncRuntime.error()}>
+                {button("sync-retry", t("sync.error.retry"), () => props.onSyncNow?.(), false, syncRuntime.phase() === "syncing")}
+              </If>
               <If when={syncRuntime.conflicts().length > 0}>
                 {button("sync-conflicts", t("sync.manageConflicts"), () => props.onManageConflicts?.())}
               </If>

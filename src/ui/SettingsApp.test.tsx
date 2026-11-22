@@ -4,7 +4,7 @@ import type { SettingsState } from "./settingsState";
 const state: SettingsState = {
   title: "设置", vaultRoot: "/tmp/stoatmd-test-vault", tab: "appearance",
   theme: "merino-light", locale: "zh", logo: "thread", renderMode: "color",
-  typography: { ui: 14, editor: 15, family: "system", size: 16, line: 1.55 },
+  typography: { ui: 14, editor: 15, family: "system", size: 16, line: 1.55, width: "comfortable" },
   storage: { busy: false, active: null, phase: "idle", target: null, summary: null, keepOriginal: true,
     progress: { stage: "copying", done: 0, total: 0 }, error: null, warning: null },
   sync: { phase: "off", connection: null, lastSyncAt: 0, error: null, conflicts: [], progress: { done: 0, total: 0 } },

@@ -1,5 +1,8 @@
 import { expect, open, test } from "nsh/test";
-import { themePreset } from "./theme";
+import { themePreset, colors, statusColor } from "./theme";
+import { sidebarSyncDot, sidebarSyncLabel } from "./Sidebar";
+import { syncErrorKey } from "../sync/errorText";
+import { t } from "./i18n";
 
 const options = { width: 800, height: 600, locale: "zh-CN", platform: "macos" as const };
 
@@ -62,8 +65,8 @@ test("文件树：文件名和文件夹使用清晰的正文墨色，图标使�
   const app = await open("./Sidebar.harness.tsx", options);
   await app.press("id:feed");
   const palette = themePreset("merino-light").palette;
-  expect(app.spanStyle("text:根级笔记").color).toBe(`${palette.ink2.toLowerCase()}ff`);
-  expect(app.spanStyle("text:项目").color).toBe(`${palette.ink2.toLowerCase()}ff`);
+  expect(app.spanStyle("text:根级笔记").color).toBe(`${palette.ink.toLowerCase()}ff`);
+  expect(app.spanStyle("text:项目").color).toBe(`${palette.ink.toLowerCase()}ff`);
 });
 
 test("文件树：点文件夹可折叠/展开，并记录新建目标", async () => {
@@ -140,4 +143,22 @@ test("文件树：同步状态随阶段变化（已同步 / 冲突 / 离线）",
   expect(app.texts()).toContain("2 冲突");
   await app.press("id:phase-offline");
   expect(app.texts()).toContain("离线 · 仅本机");
+});
+
+test("同步错误：网络错误显示离线文案，授权错误显示同步错误", async () => {
+  const app = await open("./Sidebar.harness.tsx", options);
+  await app.press("id:err-network");
+  expect(app.texts()).toContain("离线 · 仅本机");
+  await app.press("id:err-auth");
+  expect(app.texts()).toContain("同步出错");
+});
+
+test("同步行：网络错误给灰点与离线文案，授权错误给红点与可读原因", () => {
+  const network = { kind: "network" as const, message: "HTTP 503" };
+  expect(sidebarSyncLabel("offline", network, 0)).toBe("Offline · local only");
+  expect(sidebarSyncDot("offline", network)).toBe(colors().ink3);
+  expect(t(syncErrorKey(network))).toContain("Cloud storage");
+  const auth = { kind: "auth" as const, message: "HTTP 401" };
+  expect(sidebarSyncLabel("error", auth, 0)).toBe("Sync error");
+  expect(sidebarSyncDot("error", auth)).toBe(statusColor("danger"));
 });

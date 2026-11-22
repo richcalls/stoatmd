@@ -6,7 +6,7 @@ import { Icon } from "./Icon";
 import { ModeSwitch } from "./ModeSwitch";
 import { t } from "./i18n";
 import { colors } from "./theme";
-import { controlFocusStyle, controlHoverStyle, controlPressStyle, iconButtonStyle } from "./chrome";
+import { controlFocusStyle, controlHoverStyle, controlPressStyle, iconButtonStyle, motion } from "./chrome";
 
 export type ViewMode = "edit" | "split" | "preview";
 /** 左栏：展开 / 隐藏。 */
@@ -45,7 +45,12 @@ function ToolButton(props: {
         tooltip={<Text style={{ fontSize: uiTextSize(12) }}>{props.label}</Text>}
         onPress={props.onPress}
         selected={props.selected}
-        style={{ ...iconButtonStyle, opacity: props.revealed ? 1 : 0 }}
+        style={{
+          ...iconButtonStyle,
+          opacity: props.revealed ? 1 : 0,
+          ...motion,
+          transitionDuration: 150,
+        }}
         hoverStyle={{ ...controlHoverStyle(), opacity: 1 }}
         focusStyle={{ ...controlFocusStyle(), opacity: 1 }}
         activeStyle={controlPressStyle()}
@@ -126,7 +131,7 @@ export function WindowBar(props: Props) {
           testID="toolbar-title"
           style={{
             fontSize: uiTextSize(),
-            fontWeight: "500",
+            fontWeight: "600",
             color: colors().ink,
             textAlign: "center",
             flexShrink: 1,

@@ -10,7 +10,7 @@ export type PreviewModel = {
 };
 
 /** 阅读画布顶部留白（与 List 的 contentStyle 保持一致）。 */
-export const PREVIEW_TOP_PADDING = 44;
+export const PREVIEW_TOP_PADDING = 56;
 
 /** 排版偏好（预览正文）；估算随字号/行高缩放。 */
 export type PreviewMetrics = {
@@ -36,13 +36,13 @@ export function previewGap(
   if (!previous) return 0;
   const gap = (n: number) => Math.round(n * scale);
   if (block.type === "heading") return gap(block.level <= 2 ? 32 : 24);
-  if (previous.type === "heading") return gap(10);
+  if (previous.type === "heading") return gap(8);
   if (block.type === "blockquote" || previous.type === "blockquote") return gap(16);
   if (block.type === "codeBlock" || previous.type === "codeBlock") return gap(14);
   if (block.type === "table" || previous.type === "table") return gap(16);
   if (block.type === "math" || previous.type === "math") return gap(16);
   if (block.type === "rule") return gap(24);
-  return gap(13);
+  return gap(14);
 }
 
 function estimateBlockHeight(block: TextViewBlock, metrics: PreviewMetrics): number {
@@ -126,10 +126,49 @@ export function resolveAnchor(
   return anchors.get(key);
 }
 
+/** Obsidian 的 callout 类别 → GitHub alert 五类。 */
+const ALERT_KINDS: Record<string, string> = {
+  note: "note", info: "note", abstract: "note", summary: "note", tldr: "note", todo: "note",
+  tip: "tip", hint: "tip", success: "tip", check: "tip", done: "tip",
+  important: "important", question: "important", help: "important", faq: "important",
+  example: "important", quote: "important", cite: "important",
+  warning: "warning", attention: "warning",
+  caution: "caution", danger: "caution", error: "caution", bug: "caution",
+  failure: "caution", fail: "caution", missing: "caution",
+};
+
+const CALLOUT_LINE = /^([ \t]*(?:>[ \t]*)+)\[!([A-Za-z]+)\][+-]?[ \t]*(.*)$/;
+
+/**
+ * 把 Obsidian 式 `> [!kind] 标题` 改写为 GitHub alert 语法再解析：大小写不敏感、
+ * 允许 `[!kind]+/-` 折叠记号、标记行上的文字成为加粗标题段。TextView 只认大写
+ * 且独占一行的 `[!KIND]`；解析后的 AST 里软换行已并入文本，无法在块上区分
+ * 标题行与正文行，所以在解析前改写源文本（块结构不变：仍是一个 blockquote）。
+ */
+export function calloutAlerts(markdown: string): string {
+  let out = "";
+  let fenced = false;
+  for (const line of markdown.split("\n")) {
+    if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
+    const match = fenced ? null : line.match(CALLOUT_LINE);
+    if (!match) {
+      out += line + "\n";
+      continue;
+    }
+    const [, prefix, rawKind, rawRest] = match;
+    const kind = ALERT_KINDS[rawKind.toLowerCase()] ?? "note";
+    out += `${prefix}[!${kind.toUpperCase()}]\n`;
+    // 标题行尾部两个空格产出硬换行：标题独占一行，正文跟在同一段落下一段。
+    const rest = rawRest.trim();
+    if (rest.length > 0) out += `${prefix}**${rest}**  \n`;
+  }
+  return out.slice(0, -1);
+}
+
 /** 同一正文只解析一次：预览、目录与统计共用这份解析树。 */
 export function parsedDocument(markdown: string): TextViewDocument {
   if (parsedKey === markdown && parsedDocumentCache) return parsedDocumentCache;
-  const document = TextView.parse(bodyWithoutFrontmatter(markdown));
+  const document = TextView.parse(calloutAlerts(bodyWithoutFrontmatter(markdown)));
   parsedKey = markdown;
   parsedDocumentCache = document;
   return document;

@@ -21,7 +21,7 @@ import { librarySearch } from "../ui/librarySearch";
 import { loadSavedFavorites, saveFavorites, saveLocale } from "../ui/prefs";
 import { previewGap, previewModel, resolveAnchor } from "../ui/previewModel";
 import { applyTheme, setPaletteOverride } from "../ui/theme";
-import { LINE_HEIGHT_MAX, LINE_HEIGHT_MIN, LINE_HEIGHT_STEP, applyEditorFontSize, applyFontLineHeight, applyFontSize, editorFontSize, fontLineHeight, fontSize, lineHeightPx } from "../ui/typography";
+import { LINE_HEIGHT_MAX, LINE_HEIGHT_MIN, LINE_HEIGHT_STEP, applyEditorFontSize, applyFontLineHeight, applyFontSize, editorFontSize, fontLineHeight, fontSize, lineHeightPx, systemFontLabel } from "../ui/typography";
 import { formatDateTime, formatWhen, titleFromName } from "../ui/vaultModel";
 import { mobileLibrary, type MobileLibrary } from "./library";
 import { flattenTree } from "./libraryTree";
@@ -1633,7 +1633,7 @@ function LanguageRow() {
 function FontRow() {
   const open = signal(false);
   return <View>
-    <SettingsRow id="mobile-text-row" title={t("mobile.typography")} value={`Kami · ${fontSize()} / ${lineHeightRatio()}`} onPress={() => open.set(!open())} />
+    <SettingsRow id="mobile-text-row" title={t("mobile.typography")} value={`${systemFontLabel()} · ${fontSize()} / ${lineHeightRatio()}`} onPress={() => open.set(!open())} />
     {open() ? <View style={{ padding: 16 }}><TypeSettings /></View> : null}
   </View>;
 }
