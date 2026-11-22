@@ -107,6 +107,7 @@ export function editorFontFamily(): string | undefined {
 
 /** 字体桥只枚举一次；宿主没有桥时保持为空，下次打开再试。 */
 let fontsLoaded = false;
+let fontsLoading: Promise<void> | null = null;
 
 /** 枚举系统字体；宿主没有字体桥时保持为空，界面只剩系统默认。 */
 export function loadSystemFonts(): void {
@@ -120,6 +121,31 @@ export function loadSystemFonts(): void {
   } catch {
     systemFonts.set([]);
   }
+}
+
+/** 后台异步枚举系统字体，避免冷启动时同步阻塞界面挂载。 */
+export function loadSystemFontsAsync(): Promise<void> {
+  if (fontsLoaded) return Promise.resolve();
+  if (fontsLoading) return fontsLoading;
+  if (typeof SystemFonts.listAsync !== "function") {
+    loadSystemFonts();
+    return Promise.resolve();
+  }
+  const task = SystemFonts.listAsync()
+    .then((list) => {
+      if (list.length > 0) {
+        systemFonts.set(list);
+        fontsLoaded = true;
+      }
+    })
+    .catch(() => {
+      // 桥不可用时静默保留空列表，打开字体设置时再试
+    })
+    .finally(() => {
+      fontsLoading = null;
+    });
+  fontsLoading = task;
+  return task;
 }
 
 /** 预览正文行高（像素）。 */

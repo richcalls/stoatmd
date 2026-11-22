@@ -112,7 +112,14 @@ export function attachEditor(ref: EditorRef | null) {
 
 export function attachHiddenEditor(ref: EditorRef | null) {
   S.hidden = ref;
-  if (ref && S.mode === "split") scheduleMeasure(30);
+  if (!ref) {
+    if (S.measureTimer) {
+      clearTimeout(S.measureTimer);
+      S.measureTimer = 0;
+    }
+    return;
+  }
+  if (S.mode === "split") scheduleMeasure(30);
 }
 
 export function attachPreview(node: ListRef | null) {
@@ -274,6 +281,11 @@ export function markEditorFocus(focused: boolean) {
   if (focused) S.hotUntil = now() + 400;
 }
 
+/** 编辑内容变化时唤醒短时高频同步，保证输入导致的滚动立刻对齐。 */
+export function markEditorActivity() {
+  S.hotUntil = now() + 400;
+}
+
 /** 预览原生滚动回调：回环过滤后驱动编辑区。 */
 export function handlePreviewScroll(e: ScrollEvent) {
   if (S.mode !== "split") return;
@@ -397,21 +409,28 @@ function handleEditorOffset(rawY: number) {
   drivePreviewFromEditor(y);
 }
 
+function shouldRunLoop(): boolean {
+  return S.editor !== null && (S.mode === "split" || S.spy !== null);
+}
+
 function ensureLoop() {
-  if (S.loopStarted) return;
+  if (S.loopStarted || !shouldRunLoop()) return;
   S.loopStarted = true;
   const tick = () => {
+    if (!shouldRunLoop()) {
+      S.loopStarted = false;
+      return;
+    }
     S.frames += 1;
     const t = now();
-    const hot = S.hovered || S.focused || t < S.hotUntil;
-    if (S.editor) {
-      if (S.mode === "split") {
-        const every = S.spy ? 3 : 15;
-        if (hot || S.frames % every === 0) void readEditorOffset();
-      } else if (S.spy && (hot || S.frames % 2 === 0)) {
-        // 源码/阅读模式的目录高亮也要跟随编辑器滚动
-        void readEditorOffset();
-      }
+    const hot = S.hovered || t < S.hotUntil;
+    if (S.mode === "split") {
+      // 悬停或刚滚动时每帧跟随；仅聚焦但静止时降低轮询频率，减少无谓跨桥 IPC。
+      const every = S.spy ? 3 : S.focused ? 10 : 20;
+      if (hot || S.frames % every === 0) void readEditorOffset();
+    } else if (S.spy && (hot || S.frames % 6 === 0)) {
+      // 源码/阅读模式的目录高亮也要跟随编辑器滚动
+      void readEditorOffset();
     }
     requestAnimationFrame(tick);
   };

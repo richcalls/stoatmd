@@ -26,13 +26,18 @@ function parentDir(path: string): string {
   return i <= 0 ? "" : path.slice(0, i);
 }
 
+const ASCII_ONLY = /^[\x00-\x7F]*$/;
+
+function fastNfc(text: string): string {
+  return ASCII_ONLY.test(text) ? text : text.normalize("NFC");
+}
+
 /**
  * 统一库内路径：NFC（对齐 macOS NFD 磁盘名）+ `/` 分隔 + 去首尾斜杠。
  * 侧栏选中 id 与 listRecursive 返回的 path 都必须经此再比较。
  */
 export function normalizeVaultPath(path: string): string {
-  return path
-    .normalize("NFC")
+  return fastNfc(path)
     .replace(/\\/g, "/")
     .replace(/^\/+/g, "")
     .replace(/\/+$/g, "");
@@ -314,7 +319,9 @@ export type OpenedNote = {
 };
 
 export async function readNote(vault: Vault, path: string): Promise<OpenedNote> {
-  const file: VaultFileDto = vault.read(path);
+  const file: VaultFileDto = typeof vault.readAsync === "function"
+    ? await vault.readAsync(path)
+    : vault.read(path);
   return {
     path: normalizeVaultPath(path),
     content: file.content,

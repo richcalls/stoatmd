@@ -15,7 +15,7 @@ import { EditorWorkspace } from "./EditorWorkspace";
 import { findShortcuts, type FindAction, type FindRequest } from "./findShortcuts";
 import { Icon } from "./Icon";
 import { librarySearch } from "./librarySearch";
-import { t } from "./i18n";
+import { locale, t } from "./i18n";
 import { loadSavedRoot, saveRoot } from "./prefs";
 import { scrollEditorToLine, scrollPreviewToIndex } from "./scrollSync";
 import type { SettingsTab } from "./SettingsSheet";
@@ -96,11 +96,38 @@ export function MacShell() {
   const renameError = signal("");
   /** 取消过期的异步 openNote，避免清空列表后旧请求又写回正文。 */
   let openGen = 0;
+  /** 取消过期的异步目录扫描，避免慢扫描回写覆盖新库。 */
+  let treeGen = 0;
+  /** 状态浮标自动消退定时器。 */
+  let statusTimer: ReturnType<typeof setTimeout> | null = null;
+  const setStatus = (message: string, transient = false) => {
+    if (statusTimer) {
+      clearTimeout(statusTimer);
+      statusTimer = null;
+    }
+    status.set(message);
+    if (transient && message) {
+      statusTimer = setTimeout(() => {
+        statusTimer = null;
+        if (status() === message) status.set("");
+      }, 2400);
+    }
+  };
   /** 编辑器里的最新正文（不等信号）；自动保存与预览都以它为准。 */
   let liveText = "";
   /** 自己写入过的文件，忽略随后 watcher 报回的变更。 */
   const selfWrites = new Map<string, number>();
   let syncTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const listEntriesAsync = (v: Vault): Promise<VaultEntryDto[]> =>
+    typeof v.listRecursiveAsync === "function"
+      ? v.listRecursiveAsync("")
+      : Promise.resolve(v.listRecursive(""));
+
+  const writeFileAsync = (v: Vault, path: string, content: string, expectedMtimeMs: number | null) =>
+    typeof v.writeAsync === "function"
+      ? v.writeAsync(path, content, expectedMtimeMs)
+      : Promise.resolve(v.write(path, content, expectedMtimeMs));
 
   /** 文件所在目录（根目录为 `""`）。 */
   const parentOf = (path: string): string => {
@@ -130,28 +157,33 @@ export function MacShell() {
   };
 
   const refreshTree = (v: Vault, keepFolder?: string) => {
-    try {
-      // 始终全库递归一次，再在 TS 侧过滤（避开子路径 resolve / NFD 不一致）
-      const entries = v.listRecursive("");
-      const nextFolders = foldersFromEntries(entries);
-      folders.set(nextFolders);
-      const preferred = normalizeVaultPath(keepFolder ?? folderId());
-      const exists = !preferred || nextFolders.some((f) => f.id === preferred);
-      const nextFolder = exists ? preferred : "";
-      folderId.set(nextFolder);
-      applyNotes(entries, selectedNoteId(), v);
-    } catch (err) {
-      status.set(String(err));
-    }
+    const gen = ++treeGen;
+    void listEntriesAsync(v)
+      .then((entries) => {
+        if (gen !== treeGen || vault() !== v) return;
+        const nextFolders = foldersFromEntries(entries);
+        folders.set(nextFolders);
+        const preferred = normalizeVaultPath(keepFolder ?? folderId());
+        const exists = !preferred || nextFolders.some((f) => f.id === preferred);
+        const nextFolder = exists ? preferred : "";
+        folderId.set(nextFolder);
+        applyNotes(entries, selectedNoteId(), v);
+      })
+      .catch((err) => {
+        if (gen === treeGen && vault() === v) setStatus(String(err));
+      });
   };
 
   const refreshNotes = (v: Vault, keepNote?: string) => {
-    try {
-      const entries = v.listRecursive("");
-      applyNotes(entries, keepNote ?? selectedNoteId(), v);
-    } catch (err) {
-      status.set(String(err));
-    }
+    const gen = ++treeGen;
+    void listEntriesAsync(v)
+      .then((entries) => {
+        if (gen !== treeGen || vault() !== v) return;
+        applyNotes(entries, keepNote ?? selectedNoteId(), v);
+      })
+      .catch((err) => {
+        if (gen === treeGen && vault() === v) setStatus(String(err));
+      });
   };
 
   const clearEditor = () => {
@@ -274,7 +306,7 @@ export function MacShell() {
       refreshTree(v, folderId());
       if (cur && result.changedLocal.includes(cur.path) && stillOnCur(v, cur.path)) {
         await openNote(v, cur.path, true);
-        status.set(t("vault.reloaded"));
+        setStatus(t("vault.reloaded"), true);
       }
     }
   };
@@ -438,7 +470,7 @@ export function MacShell() {
       }
       expandAncestors(result.path);
       refreshTree(v, wasOpen ? result.path : selectedNoteId());
-      status.set(t("rename.done"));
+      setStatus(t("rename.done"), true);
       closeRename();
     } catch (err) {
       renameError.set(renameErrorKey(err));
@@ -459,9 +491,9 @@ export function MacShell() {
       markSelfWrite(target);
       expandAncestors(target);
       refreshTree(v, selectedNoteId());
-      status.set(t("context.duplicated"));
+      setStatus(t("context.duplicated"), true);
     } catch (err) {
-      status.set(String(err));
+      setStatus(String(err));
     }
   };
 
@@ -486,9 +518,9 @@ export function MacShell() {
       markSelfWrite(path);
       if (opened()?.path === path) clearEditor();
       refreshTree(v, selectedNoteId());
-      status.set(t("trash.done"));
+      setStatus(t("trash.done"), true);
     } catch (err) {
-      status.set(String(err));
+      setStatus(String(err));
     }
   };
 
@@ -502,9 +534,9 @@ export function MacShell() {
           ? remoteNotePath(cloud.provider, cloud.remotePath, id)
           : v.absolute(id);
       await Clipboard.writeText(text);
-      status.set(t(relative ? "context.copiedRelative" : cloud ? "context.copiedCloudPath" : "context.copiedPath"));
+      setStatus(t(relative ? "context.copiedRelative" : cloud ? "context.copiedCloudPath" : "context.copiedPath"), true);
     } catch (err) {
-      status.set(String(err));
+      setStatus(String(err));
     }
   };
 
@@ -598,15 +630,15 @@ export function MacShell() {
     if (!v || !cur || !cur.dirty || saving) return;
     saving = true;
     const content = liveText;
-    status.set(t("vault.saving"));
+    setStatus(t("vault.saving"));
     try {
-      const result = v.write(cur.path, content, cur.mtimeMs);
+      const result = await writeFileAsync(v, cur.path, content, cur.mtimeMs);
       if (result.conflict) {
         await handleConflict(v, cur.path);
       } else {
         markSelfWrite(cur.path);
         patchNoteMtime(cur.path, result.mtimeMs);
-        status.set(t("vault.saved"));
+        setStatus(t("vault.saved"), true);
         scheduleSyncPush(cur.path);
         // 写盘期间可能已经切到别的笔记：只更新仍打开的那篇
         if (opened()?.path === cur.path) {
@@ -621,7 +653,7 @@ export function MacShell() {
         }
       }
     } catch (err) {
-      status.set(String(err));
+      setStatus(String(err));
     } finally {
       saving = false;
     }
@@ -641,11 +673,11 @@ export function MacShell() {
       });
       if (action === "keep") {
         const content = liveText;
-        const result = v.write(path, content, null);
+        const result = await writeFileAsync(v, path, content, null);
         if (result.ok) {
           markSelfWrite(path);
           patchNoteMtime(path, result.mtimeMs);
-          status.set(t("vault.saved"));
+          setStatus(t("vault.saved"), true);
           if (opened()?.path === path) {
             const stillDirty = liveText !== content;
             opened.set({
@@ -660,7 +692,7 @@ export function MacShell() {
         }
       } else if (action === "reload") {
         await openNote(v, path, true);
-        status.set(t("vault.reloaded"));
+        setStatus(t("vault.reloaded"), true);
       }
     } finally {
       conflictOpen.set(false);
@@ -729,44 +761,49 @@ export function MacShell() {
 
   const checkUpdates = () => {
     void (async () => {
-      status.set(t("update.checking"));
+      setStatus(t("update.checking"));
       try {
         const result = await checkLatestVersion(await StoatMeta.version());
         if (result === "current") {
-          status.set(t("update.current"));
+          setStatus(t("update.current"), true);
           return;
         }
-        status.set(t("update.available", { version: result }));
+        setStatus(t("update.available", { version: result }), true);
         const { opened } = await openUrl(
           "https://github.com/richcalls/stoatmd/releases/latest/download/StoatMD-macos.dmg",
         );
-        if (!opened) status.set(t("update.openFailed"));
+        if (!opened) setStatus(t("update.openFailed"));
       } catch {
-        status.set(t("update.failed"));
+        setStatus(t("update.failed"));
       }
     })();
   };
 
-  // 应用菜单：语言切换或状态变化（模式 / 主题 / 侧栏 / 同步…）后随信号重建
+  // 应用菜单：只在菜单项实际依赖的状态变化时才重建原生 NSMenu，避免同步阶段抖动反复重绘菜单。
+  let lastMenuKey = "";
   effect(() => {
     const mac = platform.os === "macos";
     const findKeys = findShortcuts();
     const syncPhase = syncRuntime.phase();
+    const menuState = {
+      mac,
+      mode: mode(),
+      sidebarVisible: sidebarMode() !== "hidden",
+      inspectorOpen: inspectorOpen(),
+      noteOpen: opened() !== null,
+      theme: themeId(),
+      readerWidth: readerWidth(),
+      renderMode: renderMode(),
+      syncEnabled: syncRuntime.connection() !== null &&
+        syncPhase !== "syncing" && syncPhase !== "authorizing",
+      searchEnabled: searchEnabled(),
+      findKeys,
+    };
+    const key = `${locale()}|${menuState.mac}|${menuState.mode}|${menuState.sidebarVisible}|${menuState.inspectorOpen}|${menuState.noteOpen}|${menuState.theme}|${menuState.readerWidth}|${menuState.renderMode}|${menuState.syncEnabled}|${menuState.searchEnabled}`;
+    if (key === lastMenuKey) return;
+    lastMenuKey = key;
     Menu.setApplicationMenu(appMenu(
-      {
-        mac,
-        mode: mode(),
-        sidebarVisible: sidebarMode() !== "hidden",
-        inspectorOpen: inspectorOpen(),
-        noteOpen: opened() !== null,
-        theme: themeId(),
-        readerWidth: readerWidth(),
-        renderMode: renderMode(),
-        syncEnabled: syncRuntime.connection() !== null &&
-          syncPhase !== "syncing" && syncPhase !== "authorizing",
-        searchEnabled: searchEnabled(),
-        findKeys,
-      },
+      menuState,
       {
         openSettings: () => openSettings("appearance"),
         checkUpdates,
@@ -819,7 +856,7 @@ export function MacShell() {
           void handleConflict(v, cur.path);
         } else {
           void openNote(v, cur.path).then(() => {
-            status.set(t("vault.reloaded"));
+            setStatus(t("vault.reloaded"), true);
           });
         }
       } catch {
@@ -835,6 +872,10 @@ export function MacShell() {
       if (syncTimer) {
         clearTimeout(syncTimer);
         syncTimer = null;
+      }
+      if (statusTimer) {
+        clearTimeout(statusTimer);
+        statusTimer = null;
       }
       cancelPreview();
     });
@@ -915,6 +956,7 @@ export function MacShell() {
         onToggleSidebar={cycleSidebar}
         vaultName={vault() ? vaultName() : ""}
         title={noteTitle()}
+        dirty={opened()?.dirty ?? false}
         showModes={!!opened()}
         mode={mode()}
         onMode={changeMode}
@@ -1006,7 +1048,7 @@ export function MacShell() {
                 contentMatches={search.matches()}
                 searchPending={search.pending()}
                 searchError={search.error()}
-                currentNote={opened() ? { path: opened()!.path, content: previewDraft() } : undefined}
+                currentNote={query().trim() && opened() ? { path: opened()!.path, content: previewDraft() } : undefined}
                 onQuery={(q) => query.set(q)}
                 onSelectNote={selectNote}
                 onSelectFolder={selectFolder}
@@ -1086,22 +1128,31 @@ export function MacShell() {
                     </Text>
                   </View>
                 </If>
-                <If when={!!status()}>
-                  <Text
-                    style={{
-                      fontSize: uiTextSize(11),
-                      color: colors().ink3,
-                      paddingHorizontal: 12,
-                      paddingVertical: 4,
-                      borderTopWidth: 1,
-                      borderTopColor: colors().thread,
-                      backgroundColor: colors().paper,
-                    }}
-                  >
+              </View>
+
+              <If when={!!status()}>
+                <View
+                  testID="workspace-status"
+                  style={{
+                    position: "absolute",
+                    right: 16,
+                    bottom: 12,
+                    zIndex: 12,
+                    pointerEvents: "none",
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: chromeColors().panelEdge,
+                    backgroundColor: colors().paper,
+                    boxShadow: chromeColors().panelShadow,
+                  }}
+                >
+                  <Text style={{ fontSize: uiTextSize(11), color: colors().ink2 }}>
                     {status()}
                   </Text>
-                </If>
-              </View>
+                </View>
+              </If>
 
               <If when={!!opened() && inspectorOpen()}>
                 <View
@@ -1123,7 +1174,7 @@ export function MacShell() {
                 </View>
               </If>
 
-              {/* 目录入口位于正文上方留白内，横排文案兼容各语言。 */}
+              {/* 目录入口位于正文上方留白内，横排文案兼容各语言；留出滚动条间距与轻边框。 */}
               <If when={!!opened() && !inspectorOpen()}>
                 <Button
                   testID="inspector-peek"
@@ -1133,22 +1184,25 @@ export function MacShell() {
                   style={{
                     position: "absolute",
                     top: 10,
-                    right: 10,
+                    right: 16,
                     height: 28,
                     flexDirection: "row",
                     alignItems: "center",
                     gap: 5,
-                    paddingHorizontal: 8,
-                    borderRadius: 6,
+                    paddingHorizontal: 9,
+                    borderRadius: 7,
+                    borderWidth: 1,
+                    borderColor: chromeColors().panelEdge,
                     backgroundColor: colors().paper,
+                    boxShadow: chromeColors().panelShadow,
                     ...motion,
                   }}
                   hoverStyle={controlHoverStyle()}
                   focusStyle={controlFocusStyle()}
                   activeStyle={controlPressStyle()}
                 >
-                  <Icon name="list-tree" color={colors().ink3} size={13} />
-                  <Text style={{ fontSize: uiTextSize(11), color: colors().ink3 }}>
+                  <Icon name="list-tree" color={colors().ink2} size={13} />
+                  <Text style={{ fontSize: uiTextSize(11), color: colors().ink2 }}>
                     {t("inspector.open")}
                   </Text>
                 </Button>

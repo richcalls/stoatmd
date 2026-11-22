@@ -36,6 +36,7 @@ import {
   fontSize,
   isDefaultTypography,
   loadSystemFonts,
+  loadSystemFontsAsync,
   documentFontFamily,
   resetTypography,
   systemFontLabel,
@@ -239,8 +240,13 @@ function ReaderWidthSegments() {
   );
 }
 
+const LIGHT_THEMES = THEMES.filter((theme) => theme.mode === "light");
+const DARK_THEMES = THEMES.filter((theme) => theme.mode === "dark");
+
 function ThemeCard(props: { item: ThemePreset }) {
   const on = () => themeId() === props.item.id;
+  const ink = props.item.mode === "dark" ? "#F4F6F8" : "#20242A";
+  const idleEdge = props.item.mode === "dark" ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.12)";
   return (
     <View
       role="button"
@@ -251,6 +257,9 @@ function ThemeCard(props: { item: ThemePreset }) {
         // 图标有浅色 / 暗色两版，主题明暗变化后同步 Dock 图标。
         applyAppLogo(appLogo());
       }}
+      hoverStyle={{ opacity: 0.92 }}
+      focusStyle={controlFocusStyle()}
+      activeStyle={{ opacity: 0.8 }}
       style={{
         width: THEME_CARD_WIDTH,
         height: uiControlHeight(44),
@@ -259,9 +268,10 @@ function ThemeCard(props: { item: ThemePreset }) {
         gap: 9,
         paddingHorizontal: 10,
         borderRadius: 9,
-        borderWidth: 1,
-        borderColor: on() ? props.item.swatches[3] : props.item.swatches[0],
+        borderWidth: on() ? 2 : 1,
+        borderColor: on() ? colors().accent : idleEdge,
         backgroundColor: props.item.swatches[0],
+        ...motion,
       }}
     >
       <View style={{ flexDirection: "row", gap: 3, flexShrink: 0 }}>
@@ -272,15 +282,19 @@ function ThemeCard(props: { item: ThemePreset }) {
       <Text
         style={{
           fontSize: uiTextSize(12.5),
-          fontWeight: "560",
+          fontWeight: on() ? "600" : "560",
           letterSpacing: -0.12,
-          color: props.item.mode === "dark" ? "#F4F6F8" : "#20242A",
+          color: ink,
           flex: 1,
+          minWidth: 0,
           numberOfLines: 1,
         }}
       >
         {props.item.name}
       </Text>
+      <If when={on()}>
+        <Icon name="check" color={ink} size={12} />
+      </If>
     </View>
   );
 }
@@ -293,6 +307,9 @@ function LogoCard(props: { item: (typeof APP_LOGOS)[number] }) {
       testID={`logo-${props.item.id}`}
       accessibilityLabel={t(props.item.nameKey)}
       onPress={() => applyAppLogo(props.item.id)}
+      hoverStyle={on() ? { backgroundColor: colors().accentSoft } : controlHoverStyle()}
+      focusStyle={controlFocusStyle()}
+      activeStyle={controlPressStyle()}
       style={{
         width: LOGO_CARD_WIDTH,
         height: uiControlHeight(64),
@@ -304,6 +321,7 @@ function LogoCard(props: { item: (typeof APP_LOGOS)[number] }) {
         borderWidth: 1,
         borderColor: on() ? colors().accent : colors().thread,
         backgroundColor: on() ? colors().accentSoft : colors().list,
+        ...motion,
       }}
     >
       <Image
@@ -370,7 +388,9 @@ function Stepper(props: {
         disabledStyle={{ opacity: 0.4 }}
         onPress={props.onDec}
         style={arrow()}
-        activeStyle={{ opacity: 0.7 }}
+        hoverStyle={controlHoverStyle()}
+        focusStyle={controlFocusStyle()}
+        activeStyle={controlPressStyle()}
       >
         <Text style={{ fontSize: uiTextSize(15), color: colors().ink2 }}>−</Text>
       </Button>
@@ -399,7 +419,9 @@ function Stepper(props: {
         disabledStyle={{ opacity: 0.4 }}
         onPress={props.onInc}
         style={arrow()}
-        activeStyle={{ opacity: 0.7 }}
+        hoverStyle={controlHoverStyle()}
+        focusStyle={controlFocusStyle()}
+        activeStyle={controlPressStyle()}
       >
         <Text style={{ fontSize: uiTextSize(15), color: colors().ink2 }}>+</Text>
       </Button>
@@ -448,6 +470,9 @@ function FontPicker() {
           role="button"
           testID="font-select"
           accessibilityLabel={t("settings.font.family")}
+          hoverStyle={controlHoverStyle()}
+          focusStyle={controlFocusStyle()}
+          activeStyle={controlPressStyle()}
           style={{
             height: uiControlHeight(32),
             paddingHorizontal: 10,
@@ -458,6 +483,7 @@ function FontPicker() {
             flexDirection: "row",
             alignItems: "center",
             gap: 8,
+            ...motion,
           }}
         >
           <Text
@@ -607,6 +633,9 @@ function LocalePicker() {
           role="button"
           testID="locale-select"
           accessibilityLabel={t("settings.locale")}
+          hoverStyle={controlHoverStyle()}
+          focusStyle={controlFocusStyle()}
+          activeStyle={controlPressStyle()}
           style={{
             height: uiControlHeight(32),
             paddingHorizontal: 10,
@@ -617,6 +646,7 @@ function LocalePicker() {
             flexDirection: "row",
             alignItems: "center",
             gap: 8,
+            ...motion,
           }}
         >
           <Text
@@ -683,7 +713,7 @@ export function SettingsSheet(props: Props) {
   const formatLineHeight = () => String(Number(fontLineHeight().toFixed(2)));
 
   effect(() => {
-    if (props.tab === "font") loadSystemFonts();
+    if (props.tab === "font") void loadSystemFontsAsync();
   });
 
   effect(() => {
@@ -744,6 +774,9 @@ export function SettingsSheet(props: Props) {
                   role="button"
                   testID={`settings-tab-${item.id}`}
                   onPress={() => { if (!storageBusy()) props.onTab(item.id); }}
+                  hoverStyle={on() ? { backgroundColor: chromeColors().selection } : controlHoverStyle()}
+                  focusStyle={controlFocusStyle()}
+                  activeStyle={controlPressStyle()}
                   style={{
                     height: uiControlHeight(32),
                     borderRadius: 7,
@@ -781,7 +814,24 @@ export function SettingsSheet(props: Props) {
         >
           <View style={{ gap: 22, width: "100%", maxWidth: CONTENT_MAX_WIDTH }}>
             <If when={props.tab === "appearance"}>
-              <View style={{ gap: 22 }}>
+              <View style={{ gap: 20 }}>
+                <View style={{ gap: 4 }}>
+                  <Text style={{ fontSize: uiTextSize(17), fontWeight: "600", color: colors().ink }}>
+                    {t("settings.appearance")}
+                  </Text>
+                  <Text style={{ fontSize: uiTextSize(12.5), color: colors().ink2, lineHeight: uiLineHeight(18) }}>
+                    {t("settings.theme.desc")}
+                  </Text>
+                </View>
+
+                <FormGroup>
+                  <FormRow label={t("settings.locale")} last>
+                    <View style={{ width: 220 }}>
+                      <LocalePicker />
+                    </View>
+                  </FormRow>
+                </FormGroup>
+
                 <View style={{ gap: 8 }}>
                   <Text style={{ fontSize: uiTextSize(14), fontWeight: "600", color: colors().ink }}>
                     {t("settings.renderMode")}
@@ -791,7 +841,8 @@ export function SettingsSheet(props: Props) {
                     {t("settings.renderMode.desc")}
                   </Text>
                 </View>
-                <View style={{ gap: 4 }}>
+
+                <View style={{ gap: 10 }}>
                   <Text
                     style={{
                       fontSize: uiTextSize(14),
@@ -802,13 +853,25 @@ export function SettingsSheet(props: Props) {
                   >
                     {t("settings.theme")}
                   </Text>
-                  <Text style={{ fontSize: uiTextSize(12.5), color: colors().ink2, lineHeight: uiLineHeight(18) }}>
-                    {t("settings.theme.desc")}
-                  </Text>
-                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-                    <Each of={THEMES}>
-                      {(row) => <ThemeCard item={row()} />}
-                    </Each>
+                  <View style={{ gap: 6 }}>
+                    <Text style={{ fontSize: uiTextSize(11.5), fontWeight: "600", color: colors().ink3 }}>
+                      {t("settings.theme.light")}
+                    </Text>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                      <Each of={LIGHT_THEMES}>
+                        {(row) => <ThemeCard item={row()} />}
+                      </Each>
+                    </View>
+                  </View>
+                  <View style={{ gap: 6, marginTop: 4 }}>
+                    <Text style={{ fontSize: uiTextSize(11.5), fontWeight: "600", color: colors().ink3 }}>
+                      {t("settings.theme.dark")}
+                    </Text>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                      <Each of={DARK_THEMES}>
+                        {(row) => <ThemeCard item={row()} />}
+                      </Each>
+                    </View>
                   </View>
                 </View>
 
@@ -830,22 +893,6 @@ export function SettingsSheet(props: Props) {
                     <Each of={APP_LOGOS}>
                       {(row) => <LogoCard item={row()} />}
                     </Each>
-                  </View>
-                </View>
-
-                <View style={{ gap: 8 }}>
-                  <Text
-                    style={{
-                      fontSize: uiTextSize(14),
-                      fontWeight: "600",
-                      letterSpacing: -0.14,
-                      color: colors().ink,
-                    }}
-                  >
-                    {t("settings.locale")}
-                  </Text>
-                  <View style={{ width: 240 }}>
-                    <LocalePicker />
                   </View>
                 </View>
               </View>

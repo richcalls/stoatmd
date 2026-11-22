@@ -475,6 +475,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
     editor?.setSelection(start + before.length, end + before.length);
   };
   const model = () => previewModel(lib.note()?.content ?? "", { fontSize: fontSize(), lineHeight: lineHeightPx() });
+  const memoReaderStyles = computed(() => previewTextStyles(mobileColors()));
   const goToBlock = (index: number) => { reader?.scrollToIndex({ index, animated: true, viewPosition: 0 }); };
   /**
    * 查找命中：编辑态在源码里按字符偏移找（选中原文），阅读态按块找（滚到那块高亮）。
@@ -691,7 +692,7 @@ function MobileApp(props: { library: MobileLibrary; connected: boolean; nativeCh
           : undefined;
         return <View style={{ paddingTop: previewGap(index() > 0 ? model().blocks[index() - 1] : undefined, block(), fontSize() / 15),
           backgroundColor: finding() && currentBlock() === index() ? mobileColors().accentSoft : "transparent" }}>
-          <TextView document={{ blocks: [displayBlock(stripped.block, renderMode())] }} selectable links="open" onLinkPress={event => onLink(event.url)} styles={readerStyles()} />
+          <TextView document={{ blocks: [displayBlock(stripped.block, renderMode())] }} selectable links="open" onLinkPress={event => onLink(event.url)} styles={memoReaderStyles()} />
           {stripped.images.map(image => {
             const rel = root && exists ? imageRelPath(image.src, notePath, exists) : null;
             if (root && exists && rel && !exists(rel)) return <ReaderImageNotice alt={image.alt} hint={t("mobile.imagePending")} testID="mobile-image-pending" />;
@@ -1084,14 +1085,31 @@ function LibraryPage(props: {
   const snippetFor = (path: string) => snippets()[path] ?? "";
   effect(() => {
     const notes = q() ? results() : allNotes().slice(0, 40);
-    for (const note of notes) {
-      if (note.path in snippets() || loadingSnippets.has(note.path)) continue;
-      loadingSnippets.add(note.path);
-      void Promise.resolve(lib.vault.read(note.path))
-        .then(file => snippets.update(current => ({ ...current, [note.path]: noteSnippet(file.content) })))
-        .catch(() => {})
-        .finally(() => loadingSnippets.delete(note.path));
-    }
+    const current = snippets();
+    const pending = notes.filter(note => !(note.path in current) && !loadingSnippets.has(note.path));
+    if (pending.length === 0) return;
+    for (const note of pending) loadingSnippets.add(note.path);
+    void Promise.all(
+      pending.map(async (note) => {
+        try {
+          const file = await (lib.vault.readAsync ? lib.vault.readAsync(note.path) : lib.vault.read(note.path));
+          return [note.path, noteSnippet(file.content)] as const;
+        } catch {
+          return null;
+        } finally {
+          loadingSnippets.delete(note.path);
+        }
+      }),
+    ).then((pairs) => {
+      const additions: Record<string, string> = {};
+      let added = 0;
+      for (const pair of pairs) {
+        if (!pair) continue;
+        additions[pair[0]] = pair[1];
+        added += 1;
+      }
+      if (added > 0) snippets.update(prev => ({ ...prev, ...additions }));
+    });
   });
   const libraryTitle = () => props.tab() === "favorites" ? t("mobile.favorites") : t("mobile.library");
   const librarySubtitle = () => props.tab() === "all" && props.connected
@@ -1410,11 +1428,6 @@ function MobileFindBar(props: { query: string; total: number; current: number; o
       <Icon name="x" color={c.ink2} size={15} />
     </Button>
   </View>;
-}
-
-/** 阅读页与 Mac 预览共用同一套文稿配色：彩色模式下标题、引用、代码、链接都跟随强调色。 */
-function readerStyles() {
-  return previewTextStyles(mobileColors());
 }
 
 function FormatButton(props: { label?: string; icon?: IconName; accessibilityLabel: string; onPress: () => void; bold?: boolean }) {

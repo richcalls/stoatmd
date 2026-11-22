@@ -97,7 +97,7 @@ export function createSettingsWindow(options: Options) {
       void cancelPreparation();
       if (!storageBusy() && syncRuntime.phase() !== "syncing") void syncRuntime.cancelConnect();
     }
-    timer = setTimeout(drain, open() ? 50 : 500);
+    timer = open() ? setTimeout(drain, 50) : undefined;
   };
 
   effect(() => {

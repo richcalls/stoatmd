@@ -9,10 +9,13 @@ export interface LocalVault {
   /** 查询文件是否存在；测试里的内存库可以没有。 */
   mtime?(path: string): number;
   listRecursive(dir: string): MaybeAsync<VaultEntryDto[]>;
+  listRecursiveAsync?(dir: string): Promise<VaultEntryDto[]>;
   read(path: string): MaybeAsync<VaultFileDto>;
+  readAsync?(path: string): Promise<VaultFileDto>;
   /** Exact bytes of a file in the library; the reader shows local attachments through a blob: URL. */
   readBytes?(path: string): Uint8Array;
   write(path: string, content: string, expectedMtimeMs: number | null): MaybeAsync<VaultWriteDto>;
+  writeAsync?(path: string, content: string, expectedMtimeMs: number | null): Promise<VaultWriteDto>;
   create(path: string, content: string): MaybeAsync<VaultWriteDto>;
   ensureDir(path: string): MaybeAsync<void>;
   rename(from: string, to: string): MaybeAsync<void>;
@@ -21,6 +24,18 @@ export interface LocalVault {
   readDraft(): MaybeAsync<string | null>;
   clearDraft(): MaybeAsync<void>;
   searchContent(query: string): Promise<string[]>;
+}
+
+function entriesEqual(a: readonly VaultEntryDto[], b: readonly VaultEntryDto[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    const x = a[i];
+    const y = b[i];
+    if (x.path !== y.path || x.name !== y.name || x.isDir !== y.isDir || x.mtimeMs !== y.mtimeMs || x.size !== y.size) {
+      return false;
+    }
+  }
+  return true;
 }
 export type MobileNote = VaultFileDto & { path: string; saved: string };
 export type RecycledNote = { path: string; original: string; deletedAt: number };
@@ -56,10 +71,14 @@ export function mobileLibrary(vault: LocalVault, hooks: LibraryHooks = {}) {
     journal = journal.catch(() => {}).then(() => vault.clearDraft());
     return journal;
   };
+  const readFile = (path: string) => (vault.readAsync ? vault.readAsync(path) : vault.read(path));
+  const writeFile = (path: string, content: string, expectedMtimeMs: number | null) =>
+    (vault.writeAsync ? vault.writeAsync(path, content, expectedMtimeMs) : vault.write(path, content, expectedMtimeMs));
+  const listAll = (dir: string) => (vault.listRecursiveAsync ? vault.listRecursiveAsync(dir) : vault.listRecursive(dir));
   const dirty = () => !!note() && note()!.content !== note()!.saved;
   const refresh = async () => {
-    const next = await vault.listRecursive("");
-    if (JSON.stringify(next) !== JSON.stringify(entries())) { entries.set(next); bump(); }
+    const next = await listAll("");
+    if (!entriesEqual(next, entries())) { entries.set(next); bump(); }
   };
 
   const flush = (): Promise<boolean> => {
@@ -74,7 +93,7 @@ export function mobileLibrary(vault: LocalVault, hooks: LibraryHooks = {}) {
           while (dirty()) {
             const snapshot = note()!;
             await persist(snapshot);
-            const result = await vault.write(snapshot.path, snapshot.content, snapshot.mtimeMs);
+            const result = await writeFile(snapshot.path, snapshot.content, snapshot.mtimeMs);
             if (!result.ok || result.conflict) { conflict.set(true); await journal; return false; }
             note.set({ ...note()!, mtimeMs: result.mtimeMs, saved: snapshot.content });
             hooks.saved?.(snapshot.path);
@@ -100,7 +119,7 @@ export function mobileLibrary(vault: LocalVault, hooks: LibraryHooks = {}) {
   };
   const openNote = async (path: string) => {
     if (!await flush()) return false;
-    const file = await vault.read(path);
+    const file = await readFile(path);
     note.set({ ...file, path, saved: file.content });
     conflict.set(false);
     error.set("");
@@ -148,7 +167,7 @@ export function mobileLibrary(vault: LocalVault, hooks: LibraryHooks = {}) {
     if (pending) await pending;
     const current = note();
     if (!current) return;
-    const file = await vault.read(current.path);
+    const file = await readFile(current.path);
     note.set({ ...file, path: current.path, saved: file.content });
     conflict.set(false);
     error.set("");
@@ -172,7 +191,7 @@ export function mobileLibrary(vault: LocalVault, hooks: LibraryHooks = {}) {
         !/\.(md|markdown)$/i.test(draft.path) || typeof draft.content !== "string" || typeof draft.saved !== "string" ||
         typeof draft.mtimeMs !== "number" || typeof draft.createdMs !== "number") throw new Error("Invalid recovery journal");
     const exists = entries().some(e => e.path === draft.path && !e.isDir);
-    const disk = exists ? await vault.read(draft.path) : null;
+    const disk = exists ? await readFile(draft.path) : null;
     if (disk?.content === draft.content) { await clearJournal(); return; }
     note.set(draft);
     recovered.set(true);
@@ -189,7 +208,7 @@ export function mobileLibrary(vault: LocalVault, hooks: LibraryHooks = {}) {
     if (!snapshot || note() !== snapshot || pending || conflict()) return;
     const exists = entries().some(e => e.path === snapshot.path && !e.isDir);
     if (!exists) { conflict.set(true); return; }
-    const disk = await vault.read(snapshot.path);
+    const disk = await readFile(snapshot.path);
     if (note() !== snapshot || pending) return;
     if (disk.content !== snapshot.saved) {
       if (dirty()) conflict.set(true);
@@ -213,7 +232,7 @@ export function mobileLibrary(vault: LocalVault, hooks: LibraryHooks = {}) {
   };
   const loadTrash = async () => {
     await vault.ensureDir(TRASH);
-    recycled.set((await vault.listRecursive(TRASH)).filter(e => !e.isDir).map(e => {
+    recycled.set((await listAll(TRASH)).filter(e => !e.isDir).map(e => {
       const parts = e.path.split("/");
       return { path: e.path, original: parts.slice(2).join("/"), deletedAt: Number(parts[1].split("-")[0]) };
     }).sort((a, b) => b.deletedAt - a.deletedAt));

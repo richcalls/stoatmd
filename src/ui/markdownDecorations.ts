@@ -41,13 +41,16 @@ function styleLine(out: EditorDecoration[], line: number, length: number, style:
   if (length > 0) push(out, line, 0, length, style);
 }
 
+const LINK_RE = /!?\[[^\]\n]*\]\([^\n)]*\)/y;
+
 function styleInline(out: EditorDecoration[], line: number, source: string, ink: ReturnType<typeof documentColors>) {
   let at = 0;
   while (at < source.length) {
     const ch = source[at];
 
     if (ch === "[" || (ch === "!" && source[at + 1] === "[")) {
-      const link = source.slice(at).match(/^!?\[[^\]\n]*\]\([^\n)]*\)/);
+      LINK_RE.lastIndex = at;
+      const link = LINK_RE.exec(source);
       if (link) {
         push(out, line, at, at + link[0].length, { color: ink.link });
         at += link[0].length;

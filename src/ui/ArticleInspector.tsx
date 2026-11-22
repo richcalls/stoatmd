@@ -12,7 +12,7 @@ import { Icon } from "./Icon";
 import { locale, t } from "./i18n";
 import { watchEditorScroll } from "./scrollSync";
 import { colors } from "./theme";
-import { controlFocusStyle, controlHoverStyle, controlPressStyle, iconButtonStyle, motion, segmentStyle } from "./chrome";
+import { chromeColors, controlFocusStyle, controlHoverStyle, controlPressStyle, iconButtonStyle, motion, segmentStyle } from "./chrome";
 import type { ViewMode } from "./Toolbar";
 import { formatDateTime } from "./vaultModel";
 
@@ -258,11 +258,11 @@ export function ArticleInspector(props: Props) {
                         paddingRight: 9,
                         paddingLeft: 9 + (heading().level - 1) * 11,
                         borderRadius: 6,
-                        backgroundColor: "transparent",
+                        backgroundColor: active() ? chromeColors().selection : "transparent",
                         justifyContent: "center",
                         ...motion,
                       }}
-                      hoverStyle={controlHoverStyle()}
+                      hoverStyle={active() ? { backgroundColor: chromeColors().selection } : controlHoverStyle()}
                       focusStyle={controlFocusStyle()}
                       activeStyle={controlPressStyle()}
                     >
@@ -353,8 +353,10 @@ export function ArticleInspector(props: Props) {
                   <View
                     style={{
                       backgroundColor: colors().searchBg,
-                      borderRadius: 4,
-                      paddingHorizontal: 7,
+                      borderWidth: 1,
+                      borderColor: colors().thread,
+                      borderRadius: 5,
+                      paddingHorizontal: 8,
                       paddingVertical: 3,
                     }}
                   >
