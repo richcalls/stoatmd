@@ -1,4 +1,4 @@
-import { List, View, batch, cleanup, effect, keymap, signal, type InputRef } from "nsh";
+import { List, View, batch, cleanup, computed, effect, keymap, signal, type InputRef } from "nsh";
 import { Editor, ResizablePanel, ResizablePanelGroup, TextView, type EditorDecoration, type EditorRef, type EditorSearchResult, type TextViewStyles } from "nsh/base";
 import { FindBar } from "./FindBar";
 import { findShortcuts, type FindRequest } from "./findShortcuts";
@@ -21,6 +21,7 @@ import {
   attachHiddenEditor,
   attachPreview,
   handlePreviewScroll,
+  markEditorActivity,
   markEditorFocus,
   markEditorHover,
   refreshPreviewMetrics,
@@ -304,6 +305,26 @@ export function EditorWorkspace(props: Props) {
   const previewItemSize = signal(initial.estimatedItemSize);
   const previewAnchors = signal(initial.anchors);
   const previewWidth = signal(0);
+  const editorWidth = signal(0);
+  // 缓存预览样式：List 回收每个块时复用同一份样式对象，避免逐块重建 25 个样式节点与字体扫描。
+  const memoPreviewStyles = computed(() => previewTextStyles());
+  const memoEditorStyles = computed(() => editorTextStyles());
+
+  // 源码装饰跟随编辑内容防抖更新，不回灌 Editor.value，兼顾实时语法着色与光标稳定。
+  const decorText = signal(props.source);
+  let decorTimer: ReturnType<typeof setTimeout> | null = null;
+  const cancelDecorTimer = () => {
+    if (decorTimer) {
+      clearTimeout(decorTimer);
+      decorTimer = null;
+    }
+  };
+  effect(() => {
+    const next = props.source;
+    cancelDecorTimer();
+    decorText.set(next);
+  });
+  cleanup(cancelDecorTimer);
 
   /** 正文外侧保留呼吸空间；舒适版心由文档最大宽度控制。 */
   const gutter = () => {
@@ -317,6 +338,8 @@ export function EditorWorkspace(props: Props) {
   /** 适中版心按正文行长控制在约 40–70 个汉字。 */
   const documentWidth = () =>
     Math.min(880, Math.max(600, Math.round(720 + (fontSize() - 16) * 20)));
+  const previewMaxWidth = computed(() => (readerWidth() === "full" ? "100%" : documentWidth()));
+  const editorMeasureWidth = computed(() => (readerWidth() === "full" ? "100%" : documentWidth() + 48));
 
   const handleVisible = (info: {
     viewableItems: { index: number; isViewable: boolean }[];
@@ -361,14 +384,25 @@ export function EditorWorkspace(props: Props) {
     decorationCache = { text, preset, mode, value };
     return value;
   };
-  const editorPane = () => (
+  const editorPane = (isSplit: boolean) => (
     <View
       style={{ flex: 1, backgroundColor: colors().editor, position: "relative" }}
       testID="pane-editor"
       onMouseEnter={() => markEditorHover(true)}
       onMouseLeave={() => markEditorHover(false)}
+      onLayout={({ bounds }) => editorWidth.set(bounds.size.width)}
     >
-      <View style={{ flex: 1, paddingTop: 12 }} onLayout={({ bounds }) => setEditorViewHeight(bounds.size.height)}>
+      <View
+        style={{
+          flex: 1,
+          paddingTop: 28,
+          paddingHorizontal: isSplit ? 12 : (editorWidth() >= 760 ? 28 : 16),
+          maxWidth: isSplit ? "100%" : editorMeasureWidth(),
+          width: "100%",
+          alignSelf: "center",
+        }}
+        onLayout={({ bounds }) => setEditorViewHeight(bounds.size.height)}
+      >
         <Editor
           ref={(ref) => {
             editor = ref;
@@ -378,7 +412,15 @@ export function EditorWorkspace(props: Props) {
           testID="document-editor"
           value={props.source}
           readOnly={props.readOnly}
-          onChange={({ value }) => props.onChange(value)}
+          onChange={({ value }) => {
+            markEditorActivity();
+            props.onChange(value);
+            cancelDecorTimer();
+            decorTimer = setTimeout(() => {
+              decorTimer = null;
+              decorText.set(value);
+            }, 250);
+          }}
           onFocus={() => { editorFocused.set(true); markEditorFocus(true); }}
           onBlur={() => { editorFocused.set(false); markEditorFocus(false); }}
           search={findOpen() ? { query: findQuery() } : null}
@@ -393,39 +435,46 @@ export function EditorWorkspace(props: Props) {
           highlighting={renderMode() === "color"}
           softWrap
           lineNumbers={false}
+          folding={false}
+          indentGuides={false}
           fontFamily={editorFontFamily()}
           fontSize={editorFontSize()}
           lineHeight={editorLineHeight()}
           scrollBeyondLastLine={false}
           style={{ flex: 1 }}
-          decorations={decorations(props.source)}
+          decorations={decorations(decorText())}
           // 编辑器自己按显示行折行；行内再用 whitespace-nowrap 阻止 Text 二次折行，
           // 否则测量误差会让行尾字符折到下一行、与下一行文字重叠。右侧留白容纳这点溢出。
           classes={{ content: "whitespace-nowrap" }}
-          styles={editorTextStyles()}
+          styles={memoEditorStyles()}
         />
       </View>
-      {/* 隐藏探针：同宽同字体，滚到最大值即可反推出可见编辑器的内容高度（不可见、不可交互） */}
-      <View
-        style={{ height: 1, opacity: 0, overflow: "hidden", pointerEvents: "none" }}
-        onLayout={({ bounds }) => setHiddenViewHeight(bounds.size.height)}
-      >
-        <Editor
-          ref={attachHiddenEditor}
-          value={props.source}
-          readOnly
-          language="markdown"
-          softWrap
-          lineNumbers={false}
-          fontFamily={editorFontFamily()}
-          fontSize={editorFontSize()}
-          lineHeight={editorLineHeight()}
-          scrollBeyondLastLine={false}
-          style={{ flex: 1 }}
-          classes={{ content: "whitespace-nowrap" }}
-          styles={editorTextStyles()}
-        />
-      </View>
+      {/* 隐藏探针只在分栏模式挂载且关闭语法高亮：仅用于测量折行后的编辑器内容总高。 */}
+      {isSplit ? (
+        <View
+          style={{ height: 1, opacity: 0, overflow: "hidden", pointerEvents: "none", paddingHorizontal: 12 }}
+          onLayout={({ bounds }) => setHiddenViewHeight(bounds.size.height)}
+        >
+          <Editor
+            ref={attachHiddenEditor}
+            value={props.source}
+            readOnly
+            language="markdown"
+            highlighting={false}
+            softWrap
+            lineNumbers={false}
+            folding={false}
+            indentGuides={false}
+            fontFamily={editorFontFamily()}
+            fontSize={editorFontSize()}
+            lineHeight={editorLineHeight()}
+            scrollBeyondLastLine={false}
+            style={{ flex: 1 }}
+            classes={{ content: "whitespace-nowrap" }}
+            styles={memoEditorStyles()}
+          />
+        </View>
+      ) : null}
       <If when={findOpen()}>
         <View
           style={{ position: "absolute", top: 10, left: 10, right: 10, zIndex: 10, alignItems: "flex-end", pointerEvents: "box-none" }}
@@ -464,6 +513,7 @@ export function EditorWorkspace(props: Props) {
         {/* 整篇 TextView 不虚拟化，长文档会拖垮整窗帧率：按块交给 List 回收渲染 */}
         <List
           each={previewBlocks()}
+          keyExtractor={(_block, index) => String(index)}
           estimatedItemSize={previewItemSize()}
           contentStyle={{
             paddingTop: PREVIEW_TOP_PADDING,
@@ -485,7 +535,7 @@ export function EditorWorkspace(props: Props) {
             return (
               <View
                 style={{
-                  maxWidth: readerWidth() === "full" ? "100%" : documentWidth(),
+                  maxWidth: previewMaxWidth(),
                   width: "100%",
                   alignSelf: "center",
                   paddingTop: gap(),
@@ -497,7 +547,7 @@ export function EditorWorkspace(props: Props) {
                   links="open"
                   codeBlockActions={[{ id: "copy", label: t("preview.copyCode") }]}
                   onLinkPress={(event) => followPreviewLink(event.url)}
-                  styles={previewTextStyles()}
+                  styles={memoPreviewStyles()}
                 />
               </View>
             );
@@ -532,19 +582,22 @@ export function EditorWorkspace(props: Props) {
   const body = () => {
     setSyncMode(props.mode);
     if (props.mode === "edit") {
-      return <View style={{ flex: 1 }}>{editorPane()}</View>;
+      attachHiddenEditor(null);
+      return <View style={{ flex: 1 }}>{editorPane(false)}</View>;
     }
     if (props.mode === "preview") {
+      attachHiddenEditor(null);
       return <View style={{ flex: 1 }}>{previewPane()}</View>;
     }
     return (
       <ResizablePanelGroup
         axis="horizontal"
         handleStyle={{ backgroundColor: colors().thread, width: 1 }}
+        handleThumbStyle={{ width: 3, borderRadius: 2, backgroundColor: colors().thread }}
         handleAccessibilityLabel="Resize editor and preview"
         style={{ flex: 1 }}
       >
-        <ResizablePanel minSize={180}>{editorPane()}</ResizablePanel>
+        <ResizablePanel minSize={180}>{editorPane(true)}</ResizablePanel>
         <ResizablePanel minSize={180}>{previewPane()}</ResizablePanel>
       </ResizablePanelGroup>
     );

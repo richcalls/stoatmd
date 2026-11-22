@@ -1,5 +1,5 @@
 import { TextView } from "nsh/base";
-import type { TextViewBlock, TextViewDocument } from "nsh/base";
+import type { TextViewBlock, TextViewDocument, TextViewInline } from "nsh/base";
 
 export type PreviewModel = {
   blocks: TextViewBlock[];
@@ -9,8 +9,8 @@ export type PreviewModel = {
   anchors: ReadonlyMap<string, number>;
 };
 
-/** 阅读画布顶部留白（与 List 的 contentStyle 保持一致）。 */
-export const PREVIEW_TOP_PADDING = 56;
+/** 阅读画布顶部留白（与 List 的 contentStyle 保持一致，并与分栏编辑区对齐）。 */
+export const PREVIEW_TOP_PADDING = 40;
 
 /** 排版偏好（预览正文）；估算随字号/行高缩放。 */
 export type PreviewMetrics = {
@@ -45,21 +45,117 @@ export function previewGap(
   return gap(14);
 }
 
+/** 纯 JS 统计行内文本的字符宽单位，避免每个块都跨桥调用 TextView.plainText()。 */
+function inlineUnits(nodes: readonly TextViewInline[] | undefined): number {
+  if (!nodes) return 0;
+  let units = 0;
+  for (const node of nodes) {
+    switch (node.type) {
+      case "text":
+      case "keyboard":
+        units += textUnits(node.text);
+        break;
+      case "code":
+        units += textUnits(node.code);
+        break;
+      case "image":
+        units += node.alt ? textUnits(node.alt) : 12;
+        break;
+      case "math":
+        units += textUnits(node.tex);
+        break;
+      case "break":
+        units += BASE_CHARS_PER_LINE;
+        break;
+      case "footnoteReference":
+        units += 2;
+        break;
+      case "strong":
+      case "emphasis":
+      case "strikethrough":
+      case "underline":
+      case "superscript":
+      case "subscript":
+      case "small":
+      case "highlight":
+      case "link":
+        if ("content" in node) units += inlineUnits(node.content);
+        break;
+      case "custom":
+        if (node.text) units += textUnits(node.text);
+        else if (node.content) units += inlineUnits(node.content);
+        break;
+    }
+  }
+  return units;
+}
+
+function textUnits(text: string): number {
+  let units = 0;
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    units += code > 0x024f && CJK.test(text[i]) ? 1 : 0.55;
+  }
+  return units;
+}
+
+function blockUnits(block: TextViewBlock): number {
+  switch (block.type) {
+    case "paragraph":
+    case "heading":
+      return inlineUnits(block.content);
+    case "blockquote": {
+      let units = 0;
+      for (const child of block.children) units += blockUnits(child) + BASE_CHARS_PER_LINE * 0.5;
+      return units;
+    }
+    case "details": {
+      let units = inlineUnits(block.summary) + BASE_CHARS_PER_LINE;
+      for (const child of block.children) units += blockUnits(child);
+      return units;
+    }
+    case "list": {
+      let units = 0;
+      for (const item of block.items) {
+        let itemUnits = 0;
+        for (const child of item.children) itemUnits += blockUnits(child);
+        units += Math.max(BASE_CHARS_PER_LINE, itemUnits);
+      }
+      return units;
+    }
+    case "custom": {
+      let units = block.text ? textUnits(block.text) : 0;
+      if (block.content) units += inlineUnits(block.content);
+      for (const child of block.children ?? []) units += blockUnits(child);
+      return units;
+    }
+    default:
+      return 0;
+  }
+}
+
+function countLines(text: string): number {
+  let lines = 1;
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) === 10) lines += 1;
+  }
+  return lines;
+}
+
 function estimateBlockHeight(block: TextViewBlock, metrics: PreviewMetrics): number {
   const { fontSize, lineHeight } = metrics;
   const scale = fontSize / BASE_SIZE;
   if (block.type === "rule") return Math.round(25 * scale);
   if (block.type === "heading") return Math.round(36 * scale);
   if (block.type === "math") return Math.round(64 * scale);
-  const text = TextView.plainText({ blocks: [block] });
   if (block.type === "codeBlock") {
-    return Math.max(1, text.split("\n").length) * Math.round(20 * scale) + Math.round(30 * scale);
+    return countLines(block.code) * Math.round(20 * scale) + Math.round(30 * scale);
   }
   if (block.type === "table") {
-    return Math.max(1, text.split("\n").length) * Math.round(30 * scale) + 12;
+    const rows = 1 + (block.rows?.length ?? 0);
+    return rows * Math.round(30 * scale) + 12;
   }
-  let units = 0;
-  for (const ch of text) units += CJK.test(ch) ? 1 : 0.55;
+  const units = blockUnits(block);
   const charsPerLine = BASE_CHARS_PER_LINE / scale;
   return Math.max(1, Math.ceil(units / charsPerLine)) * lineHeight + 10;
 }
@@ -76,11 +172,20 @@ let parsedDocumentCache: TextViewDocument | null = null;
 
 /** 去掉 YAML frontmatter：元数据只在信息栏读取，不进入正文、目录与统计。 */
 export function bodyWithoutFrontmatter(markdown: string): string {
-  const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
-  if (lines[0]?.trim() !== "---") return markdown;
-  for (let i = 1; i < lines.length; i += 1) {
-    const line = lines[i].trim();
-    if (line === "---" || line === "...") return lines.slice(i + 1).join("\n");
+  if (!markdown.startsWith("---")) return markdown;
+  const normalized = markdown.includes("\r") ? markdown.replace(/\r\n?/g, "\n") : markdown;
+  const firstNl = normalized.indexOf("\n");
+  if (firstNl < 0 || normalized.slice(0, firstNl).trim() !== "---") return markdown;
+  let pos = firstNl + 1;
+  while (pos <= normalized.length) {
+    const nextNl = normalized.indexOf("\n", pos);
+    const lineEnd = nextNl < 0 ? normalized.length : nextNl;
+    const trimmed = normalized.slice(pos, lineEnd).trim();
+    if (trimmed === "---" || trimmed === "...") {
+      return nextNl < 0 ? "" : normalized.slice(nextNl + 1);
+    }
+    if (nextNl < 0) break;
+    pos = nextNl + 1;
   }
   return markdown;
 }
@@ -146,23 +251,24 @@ const CALLOUT_LINE = /^([ \t]*(?:>[ \t]*)+)\[!([A-Za-z]+)\][+-]?[ \t]*(.*)$/;
  * 标题行与正文行，所以在解析前改写源文本（块结构不变：仍是一个 blockquote）。
  */
 export function calloutAlerts(markdown: string): string {
-  let out = "";
+  if (!markdown.includes("[!")) return markdown;
+  const out: string[] = [];
   let fenced = false;
   for (const line of markdown.split("\n")) {
     if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
     const match = fenced ? null : line.match(CALLOUT_LINE);
     if (!match) {
-      out += line + "\n";
+      out.push(line);
       continue;
     }
     const [, prefix, rawKind, rawRest] = match;
     const kind = ALERT_KINDS[rawKind.toLowerCase()] ?? "note";
-    out += `${prefix}[!${kind.toUpperCase()}]\n`;
+    out.push(`${prefix}[!${kind.toUpperCase()}]`);
     // 标题行尾部两个空格产出硬换行：标题独占一行，正文跟在同一段落下一段。
     const rest = rawRest.trim();
-    if (rest.length > 0) out += `${prefix}**${rest}**  \n`;
+    if (rest.length > 0) out.push(`${prefix}**${rest}**  `);
   }
-  return out.slice(0, -1);
+  return out.join("\n");
 }
 
 /** 同一正文只解析一次：预览、目录与统计共用这份解析树。 */

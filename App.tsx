@@ -6,10 +6,11 @@ import { restoreLocale } from "./src/ui/i18n";
 import { SettingsApp } from "./src/ui/SettingsApp";
 import { restoreTheme } from "./src/ui/theme";
 import { restoreRenderMode } from "./src/ui/documentAppearance";
-import { restoreTypography, loadSystemFonts } from "./src/ui/typography";
+import { restoreTypography, loadSystemFontsAsync } from "./src/ui/typography";
 import { restoreReaderWidth } from "./src/ui/readerWidth";
 
-loadSystemFonts();
+// 后台异步加载系统字体，避免 Core Text 枚举阻塞应用冷启动首屏挂载。
+void loadSystemFontsAsync();
 
 if (host.params.settingsWindow === true) {
   mount(SettingsApp);

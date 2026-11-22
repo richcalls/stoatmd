@@ -22,10 +22,16 @@ test("笔记库菜单：点击库名展开，明确选择打开文件夹才触�
   expect(app.shows("id:sidebar-open")).toBe(false);
 });
 
-test("搜索框：输入后按 Esc 清空内容（Obsidian 习惯）", async () => {
+test("搜索框：输入后按 Esc 或点清空按钮清空内容", async () => {
   const app = await open("./Sidebar.harness.tsx", options);
+  expect(app.shows("id:sidebar-search-clear")).toBe(false);
   await app.paste("id:sidebar-search", { text: "计划" });
   expect(app.value("id:sidebar-search")).toBe("计划");
+  expect(app.shows("id:sidebar-search-clear")).toBe(true);
+  await app.press("id:sidebar-search-clear");
+  expect(app.value("id:sidebar-search")).toBe("");
+  expect(app.shows("id:sidebar-search-clear")).toBe(false);
+  await app.paste("id:sidebar-search", { text: "计划" });
   await app.keyboard.press("escape");
   expect(app.value("id:sidebar-search")).toBe("");
   // 已经空了再按 Esc 不应报错，也不影响其他状态。

@@ -89,6 +89,11 @@ impl SystemFonts {
             Vec::new()
         }
     }
+
+    /// 在后台线程枚举系统字体，避免阻塞应用冷启动。
+    pub async fn list_async() -> Result<Vec<String>, String> {
+        blocking(Self::list).await.map_err(|err| err.to_string())
+    }
 }
 
 /// 系统选文件夹（桌面；nsh 0.3.0 尚无 `file_dialog`，用 rfd 等价能力）。
@@ -540,6 +545,17 @@ impl Vault {
             .map_err(map_err)
     }
 
+    /// 在后台线程递归列出目录与 `.md`，避免大库扫描阻塞界面线程。
+    pub async fn list_recursive_async(
+        this: Instance<Self>,
+        dir: String,
+    ) -> Result<Vec<VaultEntryDto>, String> {
+        let core = this.with(|vault| vault.core.clone());
+        blocking(move || core.list_recursive(&dir).map(map_entries).map_err(map_err))
+            .await
+            .map_err(|err| err.to_string())?
+    }
+
     /// 在后台线程搜索全库正文，返回匹配的库内路径。
     pub async fn search_content(this: Instance<Self>, query: String) -> Result<Vec<String>, String> {
         let core = this.with(|vault| vault.core.clone());
@@ -560,6 +576,22 @@ impl Vault {
             .map_err(map_err)
     }
 
+    /// 在后台线程读取 `.md`，切换大笔记时不阻塞界面线程。
+    pub async fn read_async(this: Instance<Self>, path: String) -> Result<VaultFileDto, String> {
+        let core = this.with(|vault| vault.core.clone());
+        blocking(move || {
+            core.read(&path)
+                .map(|f| VaultFileDto {
+                    content: f.content,
+                    mtime_ms: f.mtime_ms,
+                    created_ms: f.created_ms,
+                })
+                .map_err(map_err)
+        })
+        .await
+        .map_err(|err| err.to_string())?
+    }
+
     /// 写入；`expectedMtimeMs` 不匹配时 `conflict: true` 且不覆盖。
     pub fn write(
         &self,
@@ -567,21 +599,20 @@ impl Vault {
         content: String,
         expected_mtime_ms: Option<u64>,
     ) -> Result<VaultWriteDto, String> {
-        match self.core.write(&path, &content, expected_mtime_ms) {
-            Ok(mtime_ms) => Ok(VaultWriteDto {
-                ok: true,
-                mtime_ms,
-                conflict: false,
-            }),
-            Err(VaultError::Conflict {
-                disk_mtime_ms, ..
-            }) => Ok(VaultWriteDto {
-                ok: false,
-                mtime_ms: disk_mtime_ms,
-                conflict: true,
-            }),
-            Err(other) => Err(map_err(other)),
-        }
+        map_write_result(self.core.write(&path, &content, expected_mtime_ms))
+    }
+
+    /// 在后台线程原子写盘并 fsync，避免自动保存卡顿输入与滚动。
+    pub async fn write_async(
+        this: Instance<Self>,
+        path: String,
+        content: String,
+        expected_mtime_ms: Option<u64>,
+    ) -> Result<VaultWriteDto, String> {
+        let core = this.with(|vault| vault.core.clone());
+        blocking(move || map_write_result(core.write(&path, &content, expected_mtime_ms)))
+            .await
+            .map_err(|err| err.to_string())?
     }
 
     /// 新建 `.md`。
@@ -749,6 +780,24 @@ mod tests {
 
 fn map_err(err: VaultError) -> String {
     err.to_string()
+}
+
+fn map_write_result(res: Result<u64, VaultError>) -> Result<VaultWriteDto, String> {
+    match res {
+        Ok(mtime_ms) => Ok(VaultWriteDto {
+            ok: true,
+            mtime_ms,
+            conflict: false,
+        }),
+        Err(VaultError::Conflict {
+            disk_mtime_ms, ..
+        }) => Ok(VaultWriteDto {
+            ok: false,
+            mtime_ms: disk_mtime_ms,
+            conflict: true,
+        }),
+        Err(other) => Err(map_err(other)),
+    }
 }
 
 fn map_entries(rows: Vec<stoatmd_core::VaultEntry>) -> Vec<VaultEntryDto> {

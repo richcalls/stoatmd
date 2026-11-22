@@ -36,7 +36,7 @@ function ModeButton(props: {
         alignItems: "center",
         justifyContent: "center",
         ...segmentStyle(props.active),
-        opacity: props.revealed ? 1 : 0,
+        opacity: props.revealed ? 1 : props.active ? 0.85 : 0.45,
         ...motion,
         transitionDuration: 150,
       }}
@@ -49,7 +49,7 @@ function ModeButton(props: {
   );
 }
 
-/** 源码 / 分栏 / 阅读：固定占位，悬停显露时保留分段控件外观。 */
+/** 源码 / 分栏 / 阅读：静息时低对比度保留当前模式反馈，悬停显露完整分段控件外观。 */
 export function ModeSwitch(props: Props) {
   const ink = () => colors().ink2;
   const active = () => colors().ink;
@@ -63,7 +63,10 @@ export function ModeSwitch(props: Props) {
         gap: 2,
         padding: 3,
         borderRadius: 8,
-        backgroundColor: props.revealed === false ? "transparent" : colors().searchBg,
+        backgroundColor: colors().searchBg,
+        opacity: props.revealed === false ? 0.55 : 1,
+        ...motion,
+        transitionDuration: 150,
         flexShrink: 0,
       }}
     >

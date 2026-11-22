@@ -24,6 +24,8 @@ type Props = {
   vaultName: string;
   /** 当前笔记标题。 */
   title: string;
+  /** 当前笔记有未保存改动时在标题旁显示静默圆点。 */
+  dirty?: boolean;
   showModes: boolean;
   mode: ViewMode;
   onMode: (mode: ViewMode) => void;
@@ -47,7 +49,7 @@ function ToolButton(props: {
         selected={props.selected}
         style={{
           ...iconButtonStyle,
-          opacity: props.revealed ? 1 : 0,
+          opacity: props.revealed ? 1 : 0.45,
           ...motion,
           transitionDuration: 150,
         }}
@@ -123,6 +125,7 @@ export function WindowBar(props: Props) {
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "center",
+          gap: 6,
           paddingHorizontal: 8,
           pointerEvents: "none",
         }}
@@ -141,6 +144,18 @@ export function WindowBar(props: Props) {
         >
           {props.title || props.vaultName || t("app.name")}
         </Text>
+        <If when={!!props.dirty}>
+          <View
+            testID="toolbar-dirty-dot"
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: colors().accent,
+              flexShrink: 0,
+            }}
+          />
+        </If>
       </View>
       <View
         style={{

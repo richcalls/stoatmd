@@ -1,7 +1,9 @@
 //! 本地笔记库：路径限制在 root 内的 `.md` CRUD。
 
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use unicode_normalization::UnicodeNormalization;
@@ -68,10 +70,21 @@ impl std::fmt::Display for VaultError {
 
 impl std::error::Error for VaultError {}
 
+/// 缓存规范化小写后的笔记正文，按 `(mtime_ms, size)` 校验失效，避免连续搜索重复读盘与 NFC 规范化。
+#[derive(Debug, Clone)]
+struct CachedSearchDoc {
+    mtime_ms: u64,
+    size: u64,
+    normalized_lower: String,
+}
+
+const MAX_SEARCH_CACHE_ENTRIES: usize = 4096;
+
 /// 本地笔记库根。
 #[derive(Debug, Clone)]
 pub struct Vault {
     root: PathBuf,
+    search_cache: Arc<Mutex<HashMap<PathBuf, CachedSearchDoc>>>,
 }
 
 impl Vault {
@@ -134,7 +147,10 @@ impl Vault {
             return Err(VaultError::NotADirectory(root.display().to_string()));
         }
         let root = fs::canonicalize(root).map_err(|e| VaultError::Io(e.to_string()))?;
-        Ok(Self { root })
+        Ok(Self {
+            root,
+            search_cache: Arc::new(Mutex::new(HashMap::new())),
+        })
     }
 
     /// 库根绝对路径。
@@ -175,27 +191,126 @@ impl Vault {
 
     /// 全库正文搜索：字面量、忽略大小写与 Unicode 组合形式，每篇笔记返回一次。
     pub fn search_content(&self, query: &str) -> Result<Vec<String>, VaultError> {
-        let query = nfc(query.trim()).to_lowercase();
+        let query = normalize_lower(query.trim());
         if query.is_empty() {
             return Ok(Vec::new());
         }
         let mut matches = Vec::new();
-        for entry in self.list_recursive("")? {
-            if entry.is_dir {
+        let mut seen = HashSet::new();
+        self.collect_search_matches(&self.root, &query, &mut seen, &mut matches)?;
+        if let Ok(mut cache) = self.search_cache.lock() {
+            cache.retain(|path, _| seen.contains(path));
+        }
+        matches.sort_by_cached_key(|path| path.to_lowercase());
+        Ok(matches)
+    }
+
+    fn collect_search_matches(
+        &self,
+        dir: &Path,
+        query: &str,
+        seen: &mut HashSet<PathBuf>,
+        matches: &mut Vec<String>,
+    ) -> Result<(), VaultError> {
+        let rd = match fs::read_dir(dir) {
+            Ok(rd) => rd,
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(err) => return Err(VaultError::Io(err.to_string())),
+        };
+        for entry in rd {
+            let entry = entry.map_err(|e| VaultError::Io(e.to_string()))?;
+            let name = nfc(&entry.file_name().to_string_lossy());
+            let ty = entry.file_type().map_err(|e| VaultError::Io(e.to_string()))?;
+            let path = entry.path();
+            if ty.is_dir() {
+                if should_skip_dir(&name) {
+                    continue;
+                }
+                self.collect_search_matches(&path, query, seen, matches)?;
                 continue;
             }
-            match self.read(&entry.path) {
-                Ok(file) => {
-                    if nfc(&file.content).to_lowercase().contains(&query) {
-                        matches.push(entry.path);
-                    }
+            if ty.is_file() {
+                if name.starts_with('.') || !is_markdown(&name) {
+                    continue;
                 }
-                // 扫描期间被删除的文件交给下一次目录刷新处理。
-                Err(VaultError::NotFound(_)) => continue,
-                Err(err) => return Err(VaultError::Io(format!("{}: {err}", entry.path))),
+                self.match_search_file(&path, query, seen, matches)?;
+                continue;
+            }
+            if ty.is_symlink() {
+                if should_skip_dir(&name) {
+                    continue;
+                }
+                let Ok(canon) = fs::canonicalize(&path) else {
+                    continue;
+                };
+                if !is_within(&canon, &self.root) {
+                    continue;
+                }
+                if canon.is_dir() {
+                    self.collect_search_matches(&path, query, seen, matches)?;
+                } else if canon.is_file() && is_markdown(&name) && !name.starts_with('.') {
+                    self.match_search_file(&path, query, seen, matches)?;
+                }
             }
         }
-        Ok(matches)
+        Ok(())
+    }
+
+    fn match_search_file(
+        &self,
+        path: &Path,
+        query: &str,
+        seen: &mut HashSet<PathBuf>,
+        matches: &mut Vec<String>,
+    ) -> Result<(), VaultError> {
+        let meta = match fs::metadata(path) {
+            Ok(meta) => meta,
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(err) => return Err(VaultError::Io(err.to_string())),
+        };
+        let mtime = mtime_ms(&meta);
+        let size = meta.len();
+        seen.insert(path.to_path_buf());
+
+        let cached_hit = self.search_cache.lock().ok().and_then(|cache| {
+            cache
+                .get(path)
+                .filter(|doc| doc.mtime_ms == mtime && doc.size == size)
+                .map(|doc| doc.normalized_lower.contains(query))
+        });
+        if let Some(hit) = cached_hit {
+            if hit {
+                matches.push(self.rel_string(path)?);
+            }
+            return Ok(());
+        }
+
+        let content = match fs::read_to_string(path) {
+            Ok(content) => content,
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(err) => {
+                let rel = self.rel_string(path).unwrap_or_else(|_| path.display().to_string());
+                return Err(VaultError::Io(format!("{rel}: io: {err}")));
+            }
+        };
+        let normalized_lower = normalize_lower(&content);
+        let hit = normalized_lower.contains(query);
+        if let Ok(mut cache) = self.search_cache.lock() {
+            if cache.len() < MAX_SEARCH_CACHE_ENTRIES || cache.contains_key(path) {
+                cache.insert(
+                    path.to_path_buf(),
+                    CachedSearchDoc {
+                        mtime_ms: mtime,
+                        size,
+                        normalized_lower,
+                    },
+                );
+            }
+        }
+        if hit {
+            matches.push(self.rel_string(path)?);
+        }
+        Ok(())
     }
 
     fn collect_dir(
@@ -205,27 +320,22 @@ impl Vault {
         out: &mut Vec<VaultEntry>,
     ) -> Result<(), VaultError> {
         let rd = fs::read_dir(dir).map_err(|e| VaultError::Io(e.to_string()))?;
-        let mut children: Vec<(PathBuf, String, fs::Metadata)> = Vec::new();
         for entry in rd {
             let entry = entry.map_err(|e| VaultError::Io(e.to_string()))?;
-            let path = entry.path();
             // 显示名与相对路径一律 NFC（macOS 目录项常为 NFD）
             let name = nfc(&entry.file_name().to_string_lossy());
-            let meta = entry.metadata().map_err(|e| VaultError::Io(e.to_string()))?;
-            children.push((path, name, meta));
-        }
-        children.sort_by(|a, b| a.1.to_lowercase().cmp(&b.1.to_lowercase()));
-
-        for (path, name, meta) in children {
-            let is_dir = meta.is_dir();
-            if is_dir {
+            let ty = entry.file_type().map_err(|e| VaultError::Io(e.to_string()))?;
+            // 先用 d_type 过滤隐藏目录、node_modules 与非 Markdown 文件，避免无谓 stat()
+            if ty.is_dir() {
                 if should_skip_dir(&name) {
                     continue;
                 }
+                let path = entry.path();
+                let meta = entry.metadata().map_err(|e| VaultError::Io(e.to_string()))?;
                 let rel_path = self.rel_string(&path)?;
                 out.push(VaultEntry {
                     path: rel_path,
-                    name: name.clone(),
+                    name,
                     is_dir: true,
                     mtime_ms: mtime_ms(&meta),
                     size: 0,
@@ -233,7 +343,14 @@ impl Vault {
                 if recursive {
                     self.collect_dir(&path, true, out)?;
                 }
-            } else if is_markdown(&name) && !name.starts_with('.') {
+                continue;
+            }
+            if ty.is_file() {
+                if name.starts_with('.') || !is_markdown(&name) {
+                    continue;
+                }
+                let path = entry.path();
+                let meta = entry.metadata().map_err(|e| VaultError::Io(e.to_string()))?;
                 let rel_path = self.rel_string(&path)?;
                 out.push(VaultEntry {
                     path: rel_path,
@@ -242,6 +359,38 @@ impl Vault {
                     mtime_ms: mtime_ms(&meta),
                     size: meta.len(),
                 });
+                continue;
+            }
+            if ty.is_symlink() {
+                if should_skip_dir(&name) {
+                    continue;
+                }
+                let path = entry.path();
+                let Ok(meta) = fs::metadata(&path) else {
+                    continue;
+                };
+                if meta.is_dir() {
+                    let rel_path = self.rel_string(&path)?;
+                    out.push(VaultEntry {
+                        path: rel_path,
+                        name,
+                        is_dir: true,
+                        mtime_ms: mtime_ms(&meta),
+                        size: 0,
+                    });
+                    if recursive {
+                        self.collect_dir(&path, true, out)?;
+                    }
+                } else if is_markdown(&name) && !name.starts_with('.') {
+                    let rel_path = self.rel_string(&path)?;
+                    out.push(VaultEntry {
+                        path: rel_path,
+                        name,
+                        is_dir: false,
+                        mtime_ms: mtime_ms(&meta),
+                        size: meta.len(),
+                    });
+                }
             }
         }
         Ok(())
@@ -284,6 +433,7 @@ impl Vault {
             }
         }
         atomic_replace(&path, content.as_bytes())?;
+        self.invalidate_search_cache(&path);
         let meta = fs::metadata(&path).map_err(|e| VaultError::Io(e.to_string()))?;
         Ok(mtime_ms(&meta))
     }
@@ -306,6 +456,7 @@ impl Vault {
             }
         }
         self.create_bytes(rel, content.as_bytes())?;
+        self.invalidate_search_cache(&path);
         let meta = fs::metadata(&path).map_err(|e| VaultError::Io(e.to_string()))?;
         Ok(mtime_ms(&meta))
     }
@@ -333,7 +484,10 @@ impl Vault {
         if dst.exists() {
             return Err(VaultError::AlreadyExists(to.to_owned()));
         }
-        fs::rename(&src, &dst).map_err(|e| VaultError::Io(e.to_string()))
+        fs::rename(&src, &dst).map_err(|e| VaultError::Io(e.to_string()))?;
+        self.invalidate_search_cache(&src);
+        self.invalidate_search_cache(&dst);
+        Ok(())
     }
 
     /// 删除文件或空目录。
@@ -343,9 +497,17 @@ impl Vault {
             return Err(VaultError::NotFound(rel.to_owned()));
         }
         if path.is_dir() {
-            fs::remove_dir(&path).map_err(|e| VaultError::Io(e.to_string()))
+            fs::remove_dir(&path).map_err(|e| VaultError::Io(e.to_string()))?;
         } else {
-            fs::remove_file(&path).map_err(|e| VaultError::Io(e.to_string()))
+            fs::remove_file(&path).map_err(|e| VaultError::Io(e.to_string()))?;
+        }
+        self.invalidate_search_cache(&path);
+        Ok(())
+    }
+
+    fn invalidate_search_cache(&self, path: &Path) {
+        if let Ok(mut cache) = self.search_cache.lock() {
+            cache.remove(path);
         }
     }
 
@@ -460,15 +622,7 @@ fn should_skip_dir(name: &str) -> bool {
 }
 
 fn sort_entries(out: &mut [VaultEntry]) {
-    out.sort_by(|a, b| match (a.is_dir, b.is_dir) {
-        (true, false) => std::cmp::Ordering::Less,
-        (false, true) => std::cmp::Ordering::Greater,
-        _ => a
-            .path
-            .to_lowercase()
-            .cmp(&b.path.to_lowercase())
-            .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
-    });
+    out.sort_by_cached_key(|e| (!e.is_dir, e.path.to_lowercase(), e.name.to_lowercase()));
 }
 
 fn mtime_ms(meta: &fs::Metadata) -> u64 {
@@ -489,7 +643,19 @@ fn created_ms(meta: &fs::Metadata) -> u64 {
 }
 
 fn nfc(s: &str) -> String {
-    s.nfc().collect()
+    if s.is_ascii() {
+        s.to_owned()
+    } else {
+        s.nfc().collect()
+    }
+}
+
+fn normalize_lower(s: &str) -> String {
+    if s.is_ascii() {
+        s.to_ascii_lowercase()
+    } else {
+        s.nfc().collect::<String>().to_lowercase()
+    }
 }
 
 /// 在 `parent` 下找 NFC 名等于 `name` 的子项（兼容磁盘上的 NFD 名）。
@@ -633,10 +799,14 @@ mod tests {
         assert!(vault.search_content(".*").unwrap().is_empty());
         vault.write("a.markdown", "updated", None).unwrap();
         assert!(vault.search_content("needle").unwrap().is_empty());
-        vault.rename("a.markdown", "b.md").unwrap();
-        assert_eq!(vault.search_content("updated").unwrap(), ["b.md"]);
-        vault.delete("b.md").unwrap();
+        // 等长改写也要立即刷新搜索缓存
+        vault.write("a.markdown", "changed", None).unwrap();
         assert!(vault.search_content("updated").unwrap().is_empty());
+        assert_eq!(vault.search_content("changed").unwrap(), ["a.markdown"]);
+        vault.rename("a.markdown", "b.md").unwrap();
+        assert_eq!(vault.search_content("changed").unwrap(), ["b.md"]);
+        vault.delete("b.md").unwrap();
+        assert!(vault.search_content("changed").unwrap().is_empty());
     }
 
     #[test]

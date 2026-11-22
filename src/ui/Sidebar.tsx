@@ -1,5 +1,5 @@
 import { uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
-import { List, Text, View, cleanup, effect, keymap, signal } from "nsh";
+import { List, Text, View, cleanup, computed, effect, keymap, signal } from "nsh";
 import { Button, Input, Menu, MenuItem, MenuSeparator } from "nsh/base";
 import type { SyncPhase } from "../sync/runtime";
 import type { SyncErrorKind } from "../sync/provider";
@@ -88,8 +88,20 @@ export function Sidebar(props: Props) {
   const vaultMenuOpen = signal(false);
   const rootLabel = (): string => vaultNameFromRoot(props.vaultRoot) || t("vault.rootFolder");
 
-  const rows = () =>
-    libraryRows(props.folders, props.notes, props.collapsed, props.query, rootLabel(), props.contentMatches, props.currentNote);
+  const rows = computed(() => {
+    const query = props.query;
+    const searching = query.trim().length > 0;
+    // 未搜索时不订阅 contentMatches / currentNote，避免每 250ms 打字重建整棵文件树。
+    return libraryRows(
+      props.folders,
+      props.notes,
+      props.collapsed,
+      query,
+      rootLabel(),
+      searching ? props.contentMatches : undefined,
+      searching ? props.currentNote : undefined,
+    );
+  });
 
   // Obsidian 习惯：搜索框里按 Esc 先清空内容；空着时 Esc 才交给别的快捷键（如收起文章栏）。
   effect(() => {
@@ -156,7 +168,7 @@ export function Sidebar(props: Props) {
                   ...motion,
                 }}
               >
-                <Text style={{ flexShrink: 1, fontSize: uiTextSize(11), fontWeight: "600", color: colors().ink3, numberOfLines: 1 }}>
+                <Text style={{ flexShrink: 1, fontSize: uiTextSize(12.5), fontWeight: "600", color: colors().ink, numberOfLines: 1 }}>
                   {rootLabel()}
                 </Text>
                 <Icon name="caret-down" color={colors().ink3} size={9} />
@@ -238,6 +250,26 @@ export function Sidebar(props: Props) {
               height: uiControlHeight(24),
             }}
           />
+          <If when={props.query !== ""}>
+            <Button
+              testID="sidebar-search-clear"
+              accessibilityLabel={t("find.close")}
+              onPress={() => props.onQuery("")}
+              style={{
+                width: 18,
+                height: 18,
+                borderRadius: 9,
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                ...motion,
+              }}
+              hoverStyle={controlHoverStyle()}
+              activeStyle={controlPressStyle()}
+            >
+              <Icon name="x" color={colors().ink3} size={11} />
+            </Button>
+          </If>
         </View>
       </View>
 
@@ -366,6 +398,7 @@ export function Sidebar(props: Props) {
         }}
       </List>
 
+      <View style={{ borderTopWidth: 1, borderTopColor: colors().thread, paddingTop: 6, marginTop: 2 }}>
       <Button
         hoverStyle={controlHoverStyle()}
         focusStyle={controlFocusStyle()}
@@ -380,7 +413,6 @@ export function Sidebar(props: Props) {
           flexDirection: "row",
           alignItems: "center",
           gap: 7,
-          marginTop: 6,
           paddingHorizontal: 8,
           height: uiControlHeight(28),
           borderRadius: 6,
@@ -407,6 +439,7 @@ export function Sidebar(props: Props) {
           {t("sidebar.noteCount", { n: props.notes.length })}
         </Text>
       </Button>
+      </View>
     </View>
   );
 }

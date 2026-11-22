@@ -17,10 +17,16 @@ export const KAMI = {
 
 const MONO_STACK = ["JetBrains Mono", "SF Mono", "Menlo", "Consolas", "Monaco"];
 
+let lastFontsRef: readonly string[] | null = null;
+let lastMonoFamily = "Menlo";
+
 /**
  * nsh 的 fontFamily 只接受单个族名，不能传 CSS 字体栈；按安装情况回退，
- * 字体桥不可用时用 Menlo 兜底。
+ * 字体桥不可用时用 Menlo 兜底。按字体列表引用缓存，避免每个预览块线性扫描。
  */
 export function kamiMonoFamily(installed: readonly string[]): string {
-  return MONO_STACK.find((name) => installed.includes(name)) ?? "Menlo";
+  if (installed === lastFontsRef) return lastMonoFamily;
+  lastFontsRef = installed;
+  lastMonoFamily = MONO_STACK.find((name) => installed.includes(name)) ?? "Menlo";
+  return lastMonoFamily;
 }
