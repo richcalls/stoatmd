@@ -12,7 +12,7 @@ import { Icon } from "./Icon";
 import { locale, t } from "./i18n";
 import { watchEditorScroll } from "./scrollSync";
 import { colors } from "./theme";
-import { chromeColors, controlFocusStyle, controlHoverStyle, controlPressStyle, iconButtonStyle, motion, segmentStyle } from "./chrome";
+import { RADIUS_S, chromeColors, controlFocusStyle, controlHoverStyle, controlPressStyle, iconButtonStyle, motion, segmentStyle } from "./chrome";
 import type { ViewMode } from "./Toolbar";
 import { formatDateTime } from "./vaultModel";
 
@@ -50,7 +50,7 @@ function TabButton(props: {
       style={{
         height: uiControlHeight(26),
         paddingHorizontal: 8,
-        borderRadius: 5,
+        borderRadius: RADIUS_S - 2,
         flexDirection: "row",
         alignItems: "center",
         gap: 5,
@@ -179,7 +179,7 @@ export function ArticleInspector(props: Props) {
             alignItems: "center",
             gap: 2,
             padding: 2,
-            borderRadius: 7,
+            borderRadius: RADIUS_S,
             backgroundColor: colors().searchBg,
           }}
         >
@@ -257,7 +257,7 @@ export function ArticleInspector(props: Props) {
                         paddingVertical: 5,
                         paddingRight: 9,
                         paddingLeft: 9 + (heading().level - 1) * 11,
-                        borderRadius: 6,
+                        borderRadius: RADIUS_S,
                         backgroundColor: active() ? chromeColors().selection : "transparent",
                         justifyContent: "center",
                         ...motion,

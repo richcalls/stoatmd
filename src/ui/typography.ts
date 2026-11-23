@@ -19,7 +19,7 @@ export const DEFAULT_FONT_FAMILY = "";
 export const DEFAULT_FONT_SIZE = 16;
 export const DEFAULT_UI_FONT_SIZE = 14;
 export const DEFAULT_EDITOR_FONT_SIZE = 15;
-export const DEFAULT_FONT_LINE_HEIGHT = 1.7;
+export const DEFAULT_FONT_LINE_HEIGHT = 1.65;
 
 export const fontFamily = signal(DEFAULT_FONT_FAMILY);
 /** 系统可用字体族（macOS 由原生桥枚举；不可用时为空）。 */

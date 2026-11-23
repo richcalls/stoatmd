@@ -52,16 +52,23 @@ const editorTextStyles = () => ({
 });
 
 /** 预览排版：系统正文字体、克制的标题阶梯（以正文字号为基准），字号随设置缩放。 */
+/**
+ * 预览排版：尺寸、间距、圆角移植自 Obsidian 主题 Baseline（MIT，https://github.com/svnaxis/obsidian-baseline）
+ * 的默认值——标题 1.5 / 1.25 / 1em、正文行高 1.625、块圆角 8、引用与表格落在浅一级的底色上；
+ * 颜色与字体仍用本应用自己的主题和设置。
+ */
 export const previewTextStyles = (palette: ThemePalette = colors()): TextViewStyles => {
   const size = fontSize();
   const lh = lineHeightPx(size);
   const mono = kamiMonoFamily(systemFonts());
   const ink = documentColors(palette);
-  const h1 = Math.round(size * 1.75);
-  const h2 = Math.round(size * 1.375);
-  const h3 = Math.round(size * 1.125);
-  const h6 = Math.round(size * 0.875);
-  const code = Math.round(size * 0.875);
+  const em = (factor: number) => Math.round(size * factor);
+  const h1 = em(1.5);
+  const h2 = em(1.25);
+  const h5 = em(0.9375);
+  const code = em(0.8);
+  const small = em(0.8125);
+  const headingLine = (px: number) => Math.round(px * 1.3);
   return {
     root: {
       color: palette.ink,
@@ -70,55 +77,34 @@ export const previewTextStyles = (palette: ThemePalette = colors()): TextViewSty
       fontFamily: documentFontFamily(),
       letterSpacing: 0,
     },
-    heading: { fontWeight: 600, color: ink.heading },
-    heading1: {
-      fontSize: h1,
-      lineHeight: Math.round(h1 * 1.2),
-      letterSpacing: -0.5,
-    },
-    heading2: {
-      fontSize: h2,
-      lineHeight: Math.round(h2 * 1.25),
-      letterSpacing: -0.3,
-    },
-    heading3: {
-      fontSize: h3,
-      lineHeight: Math.round(h3 * 1.3),
-      letterSpacing: -0.1,
-    },
-    heading4: {
-      fontSize: size,
-      lineHeight: Math.round(size * 1.4),
-    },
-    heading5: {
-      fontSize: size,
-      lineHeight: Math.round(size * 1.4),
-    },
-    heading6: {
-      fontSize: h6,
-      lineHeight: Math.round(h6 * 1.4),
-      color: palette.ink2,
-    },
-    // 引用：左侧竖线、无底色，文字颜色跟随文稿配色。
+    heading: { color: ink.heading },
+    heading1: { fontSize: h1, lineHeight: headingLine(h1), fontWeight: 600, letterSpacing: -0.3 },
+    heading2: { fontSize: h2, lineHeight: headingLine(h2), fontWeight: 500, letterSpacing: -0.2 },
+    heading3: { fontSize: size, lineHeight: headingLine(size), fontWeight: 600 },
+    heading4: { fontSize: size, lineHeight: headingLine(size), fontWeight: 500 },
+    heading5: { fontSize: h5, lineHeight: headingLine(h5), fontWeight: 600 },
+    heading6: { fontSize: h5, lineHeight: headingLine(h5), fontWeight: 500, color: palette.ink2 },
+    // 引用（Baseline「edge」样式）：浅一级底色的圆角块，左侧 2px 细线。
     blockquote: {
       color: ink.quote,
       fontSize: size,
       lineHeight: lh,
-      backgroundColor: "transparent",
-      borderLeftWidth: 3,
+      backgroundColor: palette.codeBg,
+      borderLeftWidth: 2,
       borderLeftColor: palette.thread,
-      paddingLeft: 14,
-      paddingRight: 0,
+      borderRadius: 8,
+      paddingVertical: 8,
+      paddingLeft: 18,
+      paddingRight: 16,
     },
-    // Callout（GitHub alert）：圆角灰底卡片，种类靠原生图标颜色表达，
-    // 覆盖引用块的竖线与文字色。
+    // Callout（GitHub alert）：同样的圆角块，内边距 16，种类靠原生图标颜色表达。
     alert: {
       color: palette.ink,
       backgroundColor: palette.codeBg,
+      borderWidth: 0,
       borderLeftWidth: 0,
       borderRadius: 8,
-      paddingVertical: 12,
-      paddingHorizontal: 14,
+      padding: 16,
     },
     code: {
       color: ink.code,
@@ -133,36 +119,39 @@ export const previewTextStyles = (palette: ThemePalette = colors()): TextViewSty
       backgroundColor: palette.codeBg,
       borderWidth: 0,
       borderRadius: 8,
-      paddingVertical: 14,
-      paddingHorizontal: 16,
+      padding: 16,
     },
     codeBlockCode: {
       fontFamily: mono,
       fontSize: code,
-      lineHeight: Math.round(code * 1.55),
+      lineHeight: Math.round(code * 1.6),
       color: palette.ink,
     },
     strong: { fontWeight: 600 },
-    link: { color: ink.link, textDecorationLine: "underline" },
+    // 彩色模式下链接靠颜色区分，不加下划线（Baseline 默认）；单色模式下只剩下划线能标出链接。
+    link: { color: ink.link, textDecorationLine: renderMode() === "color" ? "none" : "underline" },
     listMarker: { color: ink.marker },
-    // Tables read like a document: horizontal rules only, no outer frame or column lines.
-    table: { borderWidth: 0 },
+    listItem: { paddingVertical: Math.round(size * 0.175) },
+    // 表格：表头透明，表体落在浅一级底色的圆角块上，只用行间细线。
+    table: { borderWidth: 0, borderRadius: 8, overflow: "hidden" },
     tableHead: { backgroundColor: "transparent" },
     tableHeaderCell: {
       color: palette.ink,
+      backgroundColor: "transparent",
+      fontSize: small,
       fontWeight: 600,
-      borderTopWidth: 0,
-      borderLeftWidth: 0,
-      borderRightWidth: 0,
-      borderBottomWidth: 1,
-      borderBottomColor: palette.thread,
+      borderWidth: 0,
+      padding: 8,
     },
     tableCell: {
-      borderTopWidth: 0,
+      fontSize: small,
+      backgroundColor: palette.codeBg,
+      borderTopWidth: 1,
+      borderTopColor: palette.paper,
       borderLeftWidth: 0,
       borderRightWidth: 0,
-      borderBottomWidth: 1,
-      borderBottomColor: palette.thread,
+      borderBottomWidth: 0,
+      padding: 8,
     },
     rule: { borderTopColor: palette.thread },
   };
