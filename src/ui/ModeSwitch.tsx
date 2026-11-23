@@ -32,7 +32,7 @@ function ModeButton(props: {
       style={{
         width: 30,
         height: 26,
-        borderRadius: 5,
+        borderRadius: 6,
         alignItems: "center",
         justifyContent: "center",
         ...segmentStyle(props.active),

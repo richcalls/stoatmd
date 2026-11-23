@@ -177,11 +177,11 @@ test("设置：字体下拉可选默认系统字体并持久化，语言切换�
     () =>
       app.storage()["prefs.fontFamily"] === "system" &&
       app.storage()["prefs.fontSize"] === "19" &&
-      app.storage()["prefs.fontLineHeight"] === "1.75",
+      app.storage()["prefs.fontLineHeight"] === "1.7",
   );
   expect(app.texts().some((text) => text.startsWith("Kami"))).toBe(false);
   expect(app.storage()["prefs.fontSize"]).toBe("19");
-  expect(app.storage()["prefs.fontLineHeight"]).toBe("1.75");
+  expect(app.storage()["prefs.fontLineHeight"]).toBe("1.7");
 
   await app.press("id:settings-tab-appearance");
   await app.press("id:locale-select");
@@ -215,12 +215,12 @@ test("设置：字体一键恢复默认，字体 / 字号 / 行高回默认系�
       app.storage()["prefs.uiFontSize"] === "14" &&
       app.storage()["prefs.editorFontSize"] === "15" &&
       app.storage()["prefs.fontSize"] === "16" &&
-      app.storage()["prefs.fontLineHeight"] === "1.7",
+      app.storage()["prefs.fontLineHeight"] === "1.65",
   );
   expect(app.texts()).not.toContain("Helvetica");
   expect(app.texts().some((text) => text.includes("Kami"))).toBe(false);
   expect(app.texts()).toContain("16");
-  expect(app.texts()).toContain("1.7");
+  expect(app.texts()).toContain("1.65");
 });
 
 test("设置：字体搜索可过滤系统字体、无匹配有空态、选中后持久化", async () => {

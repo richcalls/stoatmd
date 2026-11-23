@@ -7,7 +7,7 @@ import { syncErrorKey } from "../sync/errorText";
 import { Icon, type IconName } from "./Icon";
 import { t } from "./i18n";
 import { colors, statusColor } from "./theme";
-import { chromeColors, controlFocusStyle, controlHoverStyle, controlPressStyle, motion } from "./chrome";
+import { RADIUS_S, chromeColors, controlFocusStyle, controlHoverStyle, controlPressStyle, motion } from "./chrome";
 import {
   libraryRows,
   vaultNameFromRoot,
@@ -235,7 +235,7 @@ export function Sidebar(props: Props) {
             alignItems: "center",
             gap: 6,
             height: uiControlHeight(28),
-            borderRadius: 7,
+            borderRadius: RADIUS_S,
             borderWidth: 1,
             borderColor: searchFocused() ? colors().accent : "transparent",
             backgroundColor: chromeColors().field,
@@ -295,7 +295,7 @@ export function Sidebar(props: Props) {
       <List
         style={{ flex: 1 }}
         contentStyle={{ paddingTop: 0, paddingBottom: 12 }}
-        estimatedItemSize={uiControlHeight(28) + 1}
+        estimatedItemSize={uiControlHeight(30) + 2}
         each={rows()}
         keyExtractor={(row) => `${row.kind}:${row.id}`}
         empty={
@@ -363,11 +363,11 @@ export function Sidebar(props: Props) {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 6,
-                height: uiControlHeight(28),
-                marginBottom: 1,
-                paddingLeft: 5 + row().depth * 12,
+                height: uiControlHeight(30),
+                marginBottom: 2,
+                paddingLeft: 8 + row().depth * 20,
                 paddingRight: 7,
-                borderRadius: 6,
+                borderRadius: RADIUS_S,
                 // Keep the selected row flat against the sidebar (fill only,
                 // no border or shadow): a border plus shadow produced dark
                 // vertical bands at both sides while the list was clipped.
@@ -427,7 +427,7 @@ export function Sidebar(props: Props) {
           gap: 7,
           paddingHorizontal: 8,
           height: uiControlHeight(28),
-          borderRadius: 6,
+          borderRadius: RADIUS_S,
           ...motion,
         }}
       >

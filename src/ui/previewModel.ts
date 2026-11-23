@@ -10,7 +10,7 @@ export type PreviewModel = {
 };
 
 /** 阅读画布顶部留白（与 List 的 contentStyle 保持一致，并与分栏编辑区对齐）。 */
-export const PREVIEW_TOP_PADDING = 40;
+export const PREVIEW_TOP_PADDING = 48;
 
 /** 排版偏好（预览正文）；估算随字号/行高缩放。 */
 export type PreviewMetrics = {
@@ -34,15 +34,11 @@ export function previewGap(
   scale = 1,
 ): number {
   if (!previous) return 0;
-  const gap = (n: number) => Math.round(n * scale);
-  if (block.type === "heading") return gap(block.level <= 2 ? 32 : 24);
-  if (previous.type === "heading") return gap(8);
-  if (block.type === "blockquote" || previous.type === "blockquote") return gap(16);
-  if (block.type === "codeBlock" || previous.type === "codeBlock") return gap(14);
-  if (block.type === "table" || previous.type === "table") return gap(16);
-  if (block.type === "math" || previous.type === "math") return gap(16);
-  if (block.type === "rule") return gap(24);
-  return gap(14);
+  // Baseline 的节奏：段落间距 1.25em，标题之前 2.5em，标题之后回到段落间距（scale 以 15px 为 1）。
+  const em = (factor: number) => Math.round(factor * 15 * scale);
+  if (block.type === "heading") return previous.type === "heading" ? em(1.25) : em(2.5);
+  if (block.type === "rule" || previous.type === "rule") return em(1.75);
+  return em(1.25);
 }
 
 /** 纯 JS 统计行内文本的字符宽单位，避免每个块都跨桥调用 TextView.plainText()。 */
