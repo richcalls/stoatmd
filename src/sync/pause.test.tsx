@@ -57,7 +57,7 @@ test("全量同步可以暂停，暂停后停在动作之间，继续时从原�
   const provider = {
     id: "google",
     account: "me@example.com",
-    inventory: async () => ({ files, directories: [] }),
+    inventory: async () => ({ files, directories: [], skipped: [] }),
     downloadBytes: async (file: RemoteFile) => {
       downloads.push(file.path);
       started();

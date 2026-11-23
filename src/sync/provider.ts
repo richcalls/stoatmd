@@ -83,11 +83,33 @@ function readWithTimeout<T>(work: () => Promise<T>, timeoutMs: number): Promise<
   return Promise.race([work(), timeout]).finally(() => clearTimeout(timer));
 }
 
+/** 云端里同步绕开的项：重名（Drive 同一文件夹可同名；Dropbox 仅大小写不同）或名字含不支持的字符。 */
+export type SkippedRemote = { path: string; reason: "duplicate" | "unsupportedName" };
+
+export type RemoteInventory = { files: RemoteFile[]; directories: string[]; skipped: SkippedRemote[] };
+
+/** `path` 是否就是 `prefix` 或在它下面。 */
+export function underPath(path: string, prefix: string): boolean {
+  return path === prefix || path.startsWith(`${prefix}/`);
+}
+
+/** 清单里去掉被跳过的项及其子树（重名的两份都去掉），保证同一路径只剩零份或一份。 */
+export function withoutSkipped(files: RemoteFile[], directories: string[], skipped: SkippedRemote[]): RemoteInventory {
+  const held = skipped.map((item) => item.path);
+  const kept = (path: string) => !held.some((prefix) => underPath(path, prefix));
+  return {
+    files: files.filter((file) => kept(file.path)),
+    directories: directories.filter(kept),
+    skipped,
+  };
+}
+
 export type SyncProvider = {
   readonly id: ProviderId;
   readonly account: string | null;
   listFiles(root: RemoteDir): Promise<RemoteFile[]>;
-  inventory(root: RemoteDir): Promise<{ files: RemoteFile[]; directories: string[] }>;
+  /** 整库清单。有歧义的项放进 `skipped` 而不是抛错：一个坏名字不该让整个库停止同步。 */
+  inventory(root: RemoteDir): Promise<RemoteInventory>;
   ensureDirectory(root: RemoteDir, path: string): Promise<void>;
   downloadBytes(file: RemoteFile): Promise<Uint8Array>;
   uploadBytes(root: RemoteDir, path: string, content: Uint8Array,

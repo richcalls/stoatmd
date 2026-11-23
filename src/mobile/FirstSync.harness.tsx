@@ -25,7 +25,7 @@ const files = Array.from({ length: 12 }, (_, index) => ({
   path: `note-${index}.md`, id: `id-${index}`, rev: "1", mtimeMs: Date.now(), size: 10,
 }));
 const provider = {
-  inventory: async () => { await wait(1500); return { files, directories: [] }; },
+  inventory: async () => { await wait(1500); return { files, directories: [], skipped: [] }; },
   downloadBytes: async (file: { path: string }) => {
     await wait(200);
     return new TextEncoder().encode(`# ${file.path}\n`);

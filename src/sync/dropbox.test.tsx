@@ -257,3 +257,24 @@ test("Dropbox：二进制上传与下载保留全部字节", async () => {
   const file = await provider.uploadBytes(root, "image.png", content, { existing: null });
   expect([...await provider.downloadBytes(file)]).toEqual([...content]);
 });
+
+test("Dropbox：规范化后同名的两份文件都跳过，其余照常列出", async () => {
+  const { fetchImpl } = makeFetch((call) => {
+    if (call.url.endsWith("/files/list_folder")) {
+      return json({
+        entries: [
+          { ".tag": "file", name: "\u00e9.md", id: "id:1", rev: "a", size: 1, path_display: "/StoatMD/\u00e9.md" },
+          { ".tag": "file", name: "e\u0301.md", id: "id:2", rev: "b", size: 1, path_display: "/StoatMD/e\u0301.md" },
+          { ".tag": "file", name: "ok.md", id: "id:3", rev: "c", size: 1, path_display: "/StoatMD/ok.md" },
+        ],
+        cursor: "c1",
+        has_more: false,
+      });
+    }
+    throw new Error(`unexpected url: ${call.url}`);
+  });
+  const provider = new DropboxProvider(tokens, fetchImpl, "me@example.com");
+  const inventory = await provider.inventory(root);
+  expect(inventory.files.map((f) => f.path)).toEqual(["ok.md"]);
+  expect(inventory.skipped).toEqual([{ path: "\u00e9.md", reason: "duplicate" }]);
+});

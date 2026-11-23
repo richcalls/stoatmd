@@ -7,7 +7,10 @@ import {
   readBodyText,
   type FetchLike,
   type RemoteDir,
+  type RemoteInventory,
+  type SkippedRemote,
   type SyncProvider,
+  withoutSkipped,
 } from "./provider";
 import { eachLimit } from "./pool";
 import { baseName, dirName, isMarkdownName, joinPath, normalizeSyncPath, usableName, libraryPath } from "./paths";
@@ -48,10 +51,11 @@ export class GoogleDriveProvider implements SyncProvider {
     return (await this.inventory(root)).files.filter((file) => isMarkdownName(file.path));
   }
 
-  async inventory(root: RemoteDir): Promise<{ files: RemoteFile[]; directories: string[] }> {
+  async inventory(root: RemoteDir): Promise<RemoteInventory> {
     const out: RemoteFile[] = [];
     const directories: string[] = [];
     const seen = new Set<string>();
+    const skipped = new Map<string, SkippedRemote>();
     let level = [{ id: root.id, prefix: "" }];
     while (level.length > 0) {
       const next: { id: string; prefix: string }[] = [];
@@ -59,14 +63,18 @@ export class GoogleDriveProvider implements SyncProvider {
         this.folderCache.set(folder.prefix, folder.id);
         for (const item of await this.children(folder.id)) {
           if (!usableName(item.name)) {
-            if (item.mimeType === FOLDER_MIME) {
-              throw new SyncError("ambiguous", `unsupported remote folder name: ${item.name}`);
-            }
+            // 名字里有 `/` 或控制字符的项没法映射成本地路径：记下来跳过，不拖垮整个库。
+            const shown = folder.prefix ? `${folder.prefix}/${item.name}` : item.name;
+            skipped.set(shown, { path: shown, reason: "unsupportedName" });
             continue;
           }
           const path = joinPath(folder.prefix, item.name);
           if (!libraryPath(path)) continue;
-          if (seen.has(path)) throw new SyncError("ambiguous", `duplicate remote path: ${path}`);
+          // Drive 允许同一文件夹里同名：两份都跳过，由用户改名后再同步。
+          if (seen.has(path)) {
+            skipped.set(path, { path, reason: "duplicate" });
+            continue;
+          }
           seen.add(path);
           if (item.mimeType === FOLDER_MIME) {
             directories.push(path);
@@ -77,9 +85,9 @@ export class GoogleDriveProvider implements SyncProvider {
           out.push(toRemote(path, item));
         }
       });
-      level = next;
+      level = next.filter((folder) => !skipped.has(folder.prefix));
     }
-    return { files: out, directories };
+    return withoutSkipped(out, directories, [...skipped.values()]);
   }
 
   async ensureDirectory(root: RemoteDir, path: string): Promise<void> {

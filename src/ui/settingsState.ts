@@ -25,6 +25,7 @@ export function settingsState(vaultRoot: string | null, tab: SettingsTab) {
     sync: {
       phase: syncRuntime.phase(), connection: syncRuntime.connection(), lastSyncAt: syncRuntime.lastSyncAt(),
       error: syncRuntime.error(), conflicts: syncRuntime.conflicts(), progress: syncRuntime.progress(),
+      skipped: syncRuntime.skipped(),
     },
   };
 }
@@ -57,5 +58,6 @@ export function applySettingsState(state: SettingsState) {
   syncRuntime.lastSyncAt.set(state.sync.lastSyncAt);
   syncRuntime.error.set(state.sync.error);
   syncRuntime.conflicts.set(state.sync.conflicts);
+  syncRuntime.skipped.set(state.sync.skipped ?? []);
   syncRuntime.progress.set(state.sync.progress);
 }

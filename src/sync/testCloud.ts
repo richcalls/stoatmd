@@ -2,7 +2,7 @@ import { Storage } from "nsh";
 import { Vault } from "stoatmd/native";
 import { ACTIVE_KEY } from "../storage/state";
 import { fixSyncConfigForTest } from "./config";
-import { RemoteConflictError, SyncError, type SyncProvider } from "./provider";
+import { RemoteConflictError, SyncError, type SkippedRemote, type SyncProvider, underPath } from "./provider";
 import { syncRuntime, type SyncConnection } from "./runtime";
 import type { RemoteFile } from "./types";
 
@@ -42,6 +42,8 @@ export function memoryCloud() {
     beforeRemove: (_path: string): void => {},
   };
   const calls = { inventory: 0, uploads: 0, ensureDirectory: [] as string[] };
+  /** 清单里要报告为「跳过」的云端项（模拟 Drive 重名等）。 */
+  const skipped: SkippedRemote[] = [];
   const meta = (path: string, f: Stored): RemoteFile =>
     ({ path, id: f.id, rev: String(f.rev), mtimeMs: 0, size: f.content.length });
   const api = {
@@ -49,7 +51,12 @@ export function memoryCloud() {
     account: "me@example.com",
     inventory: async () => {
       calls.inventory += 1;
-      return { files: Array.from(files, ([path, f]) => meta(path, f)), directories: [...directories] };
+      const held = (path: string) => skipped.some((item) => underPath(path, item.path));
+      return {
+        files: Array.from(files, ([path, f]) => meta(path, f)).filter((file) => !held(file.path)),
+        directories: [...directories].filter((dir) => !held(dir)),
+        skipped: [...skipped],
+      };
     },
     ensureDirectory: async (_root: unknown, path: string) => {
       calls.ensureDirectory.push(path);
@@ -98,7 +105,7 @@ export function memoryCloud() {
     const cur = files.get(path);
     files.set(path, { id: cur?.id ?? `id-${path}`, rev: (cur?.rev ?? 0) + 1, content: enc(text) });
   };
-  return { api, hooks, bumpRev, text, put, files, directories, inflight, calls };
+  return { api, hooks, bumpRev, text, put, files, directories, inflight, calls, skipped };
 }
 
 export async function storedPending(path: string): Promise<string[]> {
