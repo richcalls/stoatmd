@@ -7,7 +7,7 @@ const state: SettingsState = {
   typography: { ui: 14, editor: 15, family: "system", size: 16, line: 1.55, width: "comfortable" },
   storage: { busy: false, active: null, phase: "idle", target: null, summary: null, keepOriginal: true,
     progress: { stage: "copying", done: 0, total: 0 }, error: null, warning: null },
-  sync: { phase: "off", connection: null, lastSyncAt: 0, error: null, conflicts: [], progress: { done: 0, total: 0 } },
+  sync: { phase: "off", connection: null, lastSyncAt: 0, error: null, conflicts: [], progress: { done: 0, total: 0 }, skipped: [] },
 };
 const options = {
   width: 820, height: 640, locale: "zh-CN",

@@ -310,3 +310,36 @@ test("Google Drive：按名字查同名项时转义引号，并按原名精确�
   expect(result.id).toBe("n1");
   expect(calls.length).toBe(2);
 });
+
+test("Google Drive：同名文件和含 / 的文件夹只跳过自己，其余照常列出", async () => {
+  const { fetchImpl } = makeFetch((call) => {
+    if (call.url.includes(listOf("root"))) {
+      return json({
+        files: [
+          { id: "a1", name: "周报.md", mimeType: "text/markdown", version: "1" },
+          { id: "a2", name: "周报.md", mimeType: "text/markdown", version: "4" },
+          { id: "ok", name: "正常.md", mimeType: "text/markdown", version: "2" },
+          { id: "bad", name: "2024/11", mimeType: FOLDER },
+          { id: "dup", name: "项目", mimeType: FOLDER },
+          { id: "dup2", name: "项目", mimeType: FOLDER },
+          { id: "good", name: "资料", mimeType: FOLDER },
+        ],
+      });
+    }
+    if (call.url.includes(listOf("good"))) {
+      return json({ files: [{ id: "g1", name: "a.md", mimeType: "text/markdown", version: "1" }] });
+    }
+    // 重名和坏名字的文件夹都不该被展开。
+    throw new Error(`unexpected url: ${call.url}`);
+  });
+
+  const provider = new GoogleDriveProvider(tokens, fetchImpl, "me@example.com");
+  const inventory = await provider.inventory(root);
+  expect(inventory.files.map((f) => f.path).sort()).toEqual(["正常.md", "资料/a.md"]);
+  expect(inventory.directories).toEqual(["资料"]);
+  expect(inventory.skipped.sort((a, b) => a.path.localeCompare(b.path))).toEqual([
+    { path: "2024/11", reason: "unsupportedName" },
+    { path: "周报.md", reason: "duplicate" },
+    { path: "项目", reason: "duplicate" },
+  ]);
+});

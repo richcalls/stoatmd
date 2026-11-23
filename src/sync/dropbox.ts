@@ -7,7 +7,10 @@ import {
   readBodyText,
   type FetchLike,
   type RemoteDir,
+  type RemoteInventory,
+  type SkippedRemote,
   type SyncProvider,
+  withoutSkipped,
 } from "./provider";
 import {
   baseName,
@@ -67,20 +70,27 @@ export class DropboxProvider implements SyncProvider {
     return (await this.inventory(root)).files.filter((file) => isMarkdownName(file.path));
   }
 
-  async inventory(root: RemoteDir): Promise<{ files: RemoteFile[]; directories: string[] }> {
+  async inventory(root: RemoteDir): Promise<RemoteInventory> {
     const entries = await this.listFolder(root.id, true);
     const out: RemoteFile[] = [];
     const directories: string[] = [];
     const seen = new Set<string>();
+    const skipped = new Map<string, SkippedRemote>();
     for (const entry of entries) {
       if (entry[".tag"] !== "file" && entry[".tag"] !== "folder") continue;
       if (!entry.path_display) continue;
       const relative = relativeToRoot(root.id, entry.path_display);
       if (relative === null) continue;
       const path = normalizeSyncPath(relative);
-      if (!libraryPath(path)) continue;
+      if (!libraryPath(path)) {
+        // 隐藏文件和 node_modules 照旧忽略；只有名字本身不可用的才提示用户。
+        if (path && !path.split("/").every(usableName)) skipped.set(path, { path, reason: "unsupportedName" });
+        continue;
+      }
+      // 两个名字 Unicode 规范化后相同（macOS 写入的 NFD 与 NFC），会落到同一本地路径：两份都跳过。
       if (seen.has(path)) {
-        throw new SyncError("ambiguous", `duplicate remote path: ${path}`);
+        skipped.set(path, { path, reason: "duplicate" });
+        continue;
       }
       seen.add(path);
       if (entry[".tag"] === "folder") { directories.push(path); continue; }
@@ -92,7 +102,7 @@ export class DropboxProvider implements SyncProvider {
         size: Number(entry.size ?? 0),
       });
     }
-    return { files: out, directories };
+    return withoutSkipped(out, directories, [...skipped.values()]);
   }
 
   async ensureDirectory(root: RemoteDir, path: string): Promise<void> {

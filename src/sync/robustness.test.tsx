@@ -204,3 +204,50 @@ test("进度：有冲突时进度条也能走满", async () => {
     await restore();
   }
 });
+
+test("云端重名的项只跳过自己：不删本机副本、不上传、其余文件照常同步", async () => {
+  const { vault, cloud, restore } = await setup();
+  try {
+    vault.createBytes("a.md", enc("a1"));
+    vault.ensureDir("docs");
+    vault.createBytes("docs/b.md", enc("b1"));
+    vault.createBytes("c.md", enc("c1"));
+    expect((await syncRuntime.syncNow())?.ok).toBe(true);
+
+    // 云端随后出现了同名的 a.md 和同名的 docs 文件夹：清单把它们报告为跳过。
+    cloud.skipped.push({ path: "a.md", reason: "duplicate" }, { path: "docs", reason: "duplicate" });
+    edit(vault, "a.md", "a-mac");
+    edit(vault, "docs/b.md", "b-mac");
+    edit(vault, "c.md", "c2");
+
+    const result = await syncRuntime.syncNow();
+    expect(result?.ok).toBe(true);
+    expect(result?.skipped).toEqual([
+      { path: "a.md", reason: "duplicate" },
+      { path: "docs", reason: "duplicate" },
+    ]);
+    expect(syncRuntime.phase()).toBe("synced");
+    // 被跳过的路径不被当成「云端已删除」：本机副本还在，云端那份也没被本机覆盖。
+    expect(read(vault, "a.md")).toBe("a-mac");
+    expect(read(vault, "docs/b.md")).toBe("b-mac");
+    expect(cloud.text("a.md")).toBe("a1");
+    expect(cloud.text("docs/b.md")).toBe("b1");
+    // 其余文件照常。
+    expect(cloud.text("c.md")).toBe("c2");
+
+    // 保存后的单文件推送也绕开这些路径。
+    edit(vault, "a.md", "a-mac-2");
+    const push = await syncRuntime.pushPaths(["a.md", "c.md"]);
+    expect(push?.ok).toBe(true);
+    expect(cloud.text("a.md")).toBe("a1");
+
+    // 用户在云端把重名改掉后，下一轮恢复正常，本机改动照常上传。
+    cloud.skipped.length = 0;
+    expect((await syncRuntime.syncNow())?.skipped).toEqual([]);
+    expect(syncRuntime.skipped()).toEqual([]);
+    expect(cloud.text("a.md")).toBe("a-mac-2");
+    expect(cloud.text("docs/b.md")).toBe("b-mac");
+  } finally {
+    await restore();
+  }
+});

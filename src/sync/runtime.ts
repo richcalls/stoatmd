@@ -16,8 +16,10 @@ import {
   isRecoverableNetworkError,
   type FetchLike,
   type RemoteDir,
+  type SkippedRemote,
   type SyncErrorKind,
   type SyncProvider,
+  underPath,
 } from "./provider";
 import { KeychainTokenStore } from "./tokenStore";
 import { TokenSession } from "./tokens";
@@ -78,6 +80,8 @@ export type SyncRunResult = {
   error: { kind: SyncErrorKind; message: string } | null;
   /** 单文件推送无法安全完成，调用方应改跑一次全量同步。 */
   needsFullSync?: boolean;
+  /** 本轮绕开的云端项。 */
+  skipped?: SkippedRemote[];
 };
 
 const EMPTY: Omit<SyncRunResult, "conflicts" | "changedLocal" | "error"> = {
@@ -107,6 +111,8 @@ export class SyncRuntime {
   readonly lastSyncAt = signal(0);
   readonly error = signal<{ kind: SyncErrorKind; message: string } | null>(null);
   readonly conflicts = signal<ConflictItem[]>([]);
+  /** 上一轮全量同步绕开的云端项（重名 / 名字不可用）；这些路径本机也不上传、不删除。 */
+  readonly skipped = signal<SkippedRemote[]>([]);
   readonly progress = signal<{ done: number; total: number }>({ done: 0, total: 0 });
 
   /** 用户在全量同步中按下暂停；动作之间检查，恢复后从原位置继续。 */
@@ -201,6 +207,11 @@ export class SyncRuntime {
     return new Set(this.conflicts().map((item) => item.path));
   }
 
+  /** 这条路径是否要绕开：有待处理的冲突，或落在云端被跳过的项（及其子树）里。 */
+  private isHeld(path: string, held: Set<string> = this.conflictPaths()): boolean {
+    return held.has(path) || this.skipped().some((item) => underPath(path, item.path));
+  }
+
   async providerFor(provider: ProviderId, expectedAccount?: string | null): Promise<SyncProvider> {
     const session = this.activeSession(provider);
     const bundle = await session.restore();
@@ -220,6 +231,7 @@ export class SyncRuntime {
     this.connection.set(conn);
     this.lastSyncAt.set(0);
     this.conflicts.set([]);
+    this.skipped.set([]);
     this.error.set(null);
     this.phase.set(conn ? "synced" : "off");
   }
@@ -310,6 +322,7 @@ export class SyncRuntime {
       else await Storage.setItem(CONNECTION_KEY, JSON.stringify(next));
       this.error.set(null);
       this.conflicts.set([]);
+    this.skipped.set([]);
       this.phase.set("synced");
     }
     return bundle.account;
@@ -392,7 +405,7 @@ export class SyncRuntime {
       const held = this.conflictPaths();
       for (const raw of paths) {
         const path = normalizeSyncPath(raw);
-        if (held.has(path)) continue;
+        if (this.isHeld(path, held)) continue;
         if (!path || !localExists(vault, path)) {
           result.needsFullSync = true;
           continue;
@@ -461,7 +474,7 @@ export class SyncRuntime {
       const held = this.conflictPaths();
       for (const raw of paths) {
         const path = normalizeSyncPath(raw);
-        if (!path || held.has(path)) continue;
+        if (!path || this.isHeld(path, held)) continue;
         // 没有锚点说明远端本来就没有这份文件（或从没同步过），不必请求。
         const anchor = this.base.entries[path];
         if (!anchor) continue;
@@ -608,8 +621,17 @@ export class SyncRuntime {
       const remote = await this.providerFor(conn.provider);
       const root = this.rootDir(conn);
 
-      const local = buildLocalFiles(vault, this.base, true);
       const inventory = await remote.inventory(root);
+      this.skipped.set(inventory.skipped);
+      result.skipped = inventory.skipped;
+      // 被跳过的云端项不在清单里，但不能因此被当成「云端已删除」而删掉本机副本：
+      // 本机文件和锚点里落在这些路径下的也一并挡在规划之外。
+      const heldPath = (path: string) => inventory.skipped.some((item) => underPath(path, item.path));
+      const local = buildLocalFiles(vault, this.base, true).filter((file) => !heldPath(file.path));
+      const base: BaseState = inventory.skipped.length === 0 ? this.base : {
+        ...this.base,
+        entries: Object.fromEntries(Object.entries(this.base.entries).filter(([path]) => !heldPath(path))),
+      };
       const remoteFiles = inventory.files;
       const remoteByPath = new Map(remoteFiles.map((file) => [file.path, file] as const));
       const remoteDirs = new Set(inventory.directories);
@@ -619,18 +641,18 @@ export class SyncRuntime {
       // 只建云端还没有的目录：Dropbox 每建一次（已存在时）要两次请求。
       for (const entry of vault.inventory()) {
         const dir = normalizeSyncPath(entry.path);
-        if (entry.isDir && libraryPath(dir) && !remoteDirs.has(dir)) await remote.ensureDirectory(root, dir);
+        if (entry.isDir && libraryPath(dir) && !remoteDirs.has(dir) && !heldPath(dir)) await remote.ensureDirectory(root, dir);
       }
 
       const remoteHashes: Record<string, string> = {};
-      const candidates = probeCandidates({ base: this.base, local, remote: remoteFiles });
+      const candidates = probeCandidates({ base, local, remote: remoteFiles });
       await eachLimit(candidates, TRANSFER_CONCURRENCY, async (candidate) => {
         const file = remoteByPath.get(candidate.path);
         if (!file) return;
         remoteHashes[candidate.path] = sha256Bytes(await remote.downloadBytes(file));
       });
 
-      const plan = planSync({ base: this.base, local, remote: remoteFiles, remoteHashes });
+      const plan = planSync({ base, local, remote: remoteFiles, remoteHashes });
       const total =
         plan.uploads.length +
         plan.downloads.length +

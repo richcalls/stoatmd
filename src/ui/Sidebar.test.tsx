@@ -173,3 +173,10 @@ test("同步行：网络错误给灰点与离线文案，授权错误给红点�
   expect(sidebarSyncDot("syncing", auth)).toBe(colors().accent);
   expect(sidebarSyncLabel("conflict", network, 2)).toBe(t("sync.conflictsCount", { n: 2 }));
 });
+
+test("同步行：有跳过的云端项时显示数量，不显示错误", () => {
+  expect(sidebarSyncLabel("synced", null, 0, 2)).toBe("2 skipped");
+  expect(sidebarSyncDot("synced", null)).toBe(statusColor("ok"));
+  expect(sidebarSyncLabel("syncing", null, 0, 2)).toBe("Syncing");
+  expect(sidebarSyncLabel("synced", null, 0, 0)).toBe("Synced");
+});

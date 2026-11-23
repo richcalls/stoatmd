@@ -254,6 +254,17 @@ export function SyncSettings(props: SyncSettingsProps) {
             {detail(status())}
             {detail(t("storage.cacheDescription"))}
           </If>
+          <If when={!!connected() && syncRuntime.skipped().length > 0}>
+            <View testID="sync-skipped" style={{ gap: 4, marginTop: 4 }}>
+              {label(t("sync.skipped.title"))}
+              <Each of={syncRuntime.skipped()}>{(row) => (
+                <View style={{ flexDirection: "row", gap: 8, alignItems: "baseline" }}>
+                  <Text style={{ fontSize: uiTextSize(12.5), color: colors().ink, flexShrink: 0 }}>{row().path}</Text>
+                  {detail(t(`sync.skipped.${row().reason}`))}
+                </View>
+              )}</Each>
+            </View>
+          </If>
           <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", justifyContent: ios ? "flex-end" : undefined }}>
             {connected() || !props.cloudOnly ? button("storage-change-folder", t("storage.changeFolder"), () => void choose(currentKind()), false, loading()) : null}
             <If when={!!connected()}>

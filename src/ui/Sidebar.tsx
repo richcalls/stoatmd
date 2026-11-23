@@ -2,7 +2,7 @@ import { uiTextSize, uiLineHeight, uiControlHeight } from "./typography";
 import { List, Text, View, cleanup, computed, effect, keymap, signal } from "nsh";
 import { Button, Input, Menu, MenuItem, MenuSeparator } from "nsh/base";
 import type { SyncPhase } from "../sync/runtime";
-import type { SyncErrorKind } from "../sync/provider";
+import type { SkippedRemote, SyncErrorKind } from "../sync/provider";
 import { syncErrorKey } from "../sync/errorText";
 import { Icon, type IconName } from "./Icon";
 import { t } from "./i18n";
@@ -41,6 +41,8 @@ type Props = {
   syncConflictCount?: number;
   /** 已过滤的失败（瞬时错误未达阈值时不传）：行内给可读原因。 */
   syncError?: { kind: SyncErrorKind; message: string } | null;
+  /** 上一轮同步绕开的云端项（重名 / 名字不可用）。 */
+  syncSkipped?: readonly SkippedRemote[];
 };
 
 /** 同步行文字：error 优先于 phase（MacShell 已过滤瞬时错误）。 */
@@ -48,12 +50,15 @@ export function sidebarSyncLabel(
   phase: SyncPhase,
   error: { kind: SyncErrorKind; message: string } | null | undefined,
   conflictCount: number,
+  skippedCount = 0,
 ): string {
   const failed = !!error && (phase === "error" || phase === "offline");
   if (failed) return error.kind === "network" ? t("sync.offline") : t("sync.error");
   if (phase === "conflict") return t("sync.conflictsCount", { n: conflictCount });
   if (phase === "authorizing") return t("sync.authorizing");
   if (phase === "syncing") return t("sync.syncing");
+  // 库其余部分已同步，只是云端有几项绕开了：数字比「已同步」更诚实。
+  if (phase === "synced" && skippedCount > 0) return t("sync.skipped.count", { n: skippedCount });
   if (phase === "synced") return t("sync.synced");
   if (phase === "offline") return t("sync.offline");
   if (phase === "error") return t("sync.error");
@@ -110,7 +115,14 @@ export function Sidebar(props: Props) {
     cleanup(off);
   });
 
-  const syncLabel = (): string => sidebarSyncLabel(props.syncPhase ?? "off", props.syncError, props.syncConflictCount ?? 0);
+  const syncLabel = (): string =>
+    sidebarSyncLabel(props.syncPhase ?? "off", props.syncError, props.syncConflictCount ?? 0, props.syncSkipped?.length ?? 0);
+  const syncTooltip = (): string | null => {
+    if (props.syncError) return t(syncErrorKey(props.syncError));
+    const skipped = props.syncSkipped ?? [];
+    if (skipped.length === 0) return null;
+    return skipped.map((item) => `${item.path} — ${t(`sync.skipped.${item.reason}`)}`).join("\n");
+  };
   const syncDotColor = (): string => sidebarSyncDot(props.syncPhase ?? "off", props.syncError);
 
   return (
@@ -405,8 +417,8 @@ export function Sidebar(props: Props) {
         activeStyle={controlPressStyle()}
         testID="sidebar-sync"
         accessibilityLabel={t("settings.sync")}
-        tooltip={props.syncError
-          ? <Text style={{ fontSize: uiTextSize(12) }}>{t(syncErrorKey(props.syncError))}</Text>
+        tooltip={syncTooltip() !== null
+          ? <Text style={{ fontSize: uiTextSize(12) }}>{syncTooltip()}</Text>
           : undefined}
         onPress={props.onSync}
         style={{

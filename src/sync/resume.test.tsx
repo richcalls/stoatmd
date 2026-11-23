@@ -32,7 +32,7 @@ function fakeProvider(
   const api = {
     id: "google",
     account: "me@example.com",
-    inventory: async () => ({ files, directories: [] }),
+    inventory: async () => ({ files, directories: [], skipped: [] }),
     downloadBytes: async (file: RemoteFile) => {
       downloads.push(file.path);
       await options.onDownload?.(file.path);

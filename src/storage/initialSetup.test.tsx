@@ -42,7 +42,7 @@ test("iOS 首次连接：直接绑定云盘文件夹并下载，不进入迁移"
   await Storage.removeItem(ACTIVE_KEY);
   activeStorage.set(null);
   storageMigration.phase.set("idle");
-  const provider = fakeProvider(async () => ({ files: [], directories: [] }));
+  const provider = fakeProvider(async () => ({ files: [], directories: [], skipped: [] }));
   let activated = "";
   await withProvider(provider, async () => {
     await activateInitialStorage(target, async root => { activated = root; });
@@ -73,7 +73,7 @@ test("新设备恢复：按同步来的云盘绑定直接建缓存进库", async
   await Storage.removeItem(ACTIVE_KEY);
   activeStorage.set(null);
   storageMigration.phase.set("idle");
-  const provider = fakeProvider(async () => ({ files: [], directories: [] }));
+  const provider = fakeProvider(async () => ({ files: [], directories: [], skipped: [] }));
   let activated = "";
   await withProvider(provider, async () => {
     await restoreSharedStorage({ provider: "dropbox", account: "me@example.com",

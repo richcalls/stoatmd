@@ -1073,6 +1073,7 @@ export function MacShell() {
                   ? "synced"
                   : syncRuntime.phase()}
                 syncError={shownSyncError()}
+                syncSkipped={syncRuntime.skipped()}
                 syncConflictCount={syncRuntime.conflicts().length}
               />
             </View>
